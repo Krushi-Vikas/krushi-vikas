@@ -28,6 +28,7 @@ def run():
     test_project_goal_weightage(company)
     test_feedback_survey_lifecycle(company)
     test_village_profile_lifecycle(company)
+    test_baseline_survey_lifecycle(company)
     frappe.db.rollback()
     print("=== ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ===")
 
@@ -362,6 +363,311 @@ def test_village_profile_lifecycle(company):
     profiles_list = get_village_profiles_list()
     assert len(profiles_list) >= 2
     print(f"  -> Retrieved {len(profiles_list)} village profiles successfully!")
+
+def test_baseline_survey_lifecycle(company):
+    print("\n[Test 7] Testing Baseline Survey DocType, Validations, and Submission API...")
+    from krushi_vikas.api import submit_baseline_survey, get_baseline_survey_options
+
+    # 1. Test Options API
+    opts = get_baseline_survey_options()
+    assert "villages" in opts and len(opts["villages"]) > 0
+    assert "irrigation_sources" in opts and len(opts["irrigation_sources"]) > 0
+    print(f"  -> Fetched {len(opts['villages'])} villages and {len(opts['irrigation_sources'])} irrigation sources.")
+
+    # 2. Test Direct DocType Creation with All 11 PDF Child Tables
+    survey = frappe.get_doc({
+        "doctype": "Baseline Survey",
+        "farmer_name": "Ramesh Tukaram Patil",
+        "contact_number": "9823456789",
+        "village": "Rampur",
+        "survey_date": "2024-05-20",
+        "field_officer": "Administrator",
+        "category": "OBC",
+        "house_type": "Pucca",
+        "has_toilet": "Yes",
+        "is_bpl": "No",
+        "family_migrates": "No",
+        "is_shg_member": "Yes",
+        "shg_name": "Krushi Kranti Mahila Bachat Gat",
+        "shg_has_loan": "Yes",
+        "shg_business_started": "Yes",
+        "shg_business_type": "Bio-fertilizer Unit",
+        "total_landholding_acres": 3.5,
+        "irrigated_land_acres": 1.5,
+        "rainfed_land_acres": 2.0,
+        "conducts_soil_testing": "Yes",
+        "soil_testing_last_date": "May 2025",
+        "fertilizer_as_per_recommendation": "Yes",
+        "yield_increase_from_soil_test": "2 Qtl.",
+        "produce_sorted_graded": "Yes",
+        "practices_organic_farming": "Yes",
+        "aware_govt_water_schemes": "Yes",
+        "availed_water_scheme_benefits": "Yes",
+        "participates_in_gpdp_water": "Yes",
+        "has_village_water_committee": "Yes",
+        "drinking_water_source": "Tap Water",
+        "drinking_water_ownership": "Public",
+        "functional_tap_scheme": "Yes",
+        "scheme_regular_om": "Yes",
+        "drinking_water_at_home": "Yes",
+        "water_supply_days_week": "Daily",
+        "water_supply_duration": "1 Hr+",
+        "drinking_water_year_round": "Yes",
+        "wsp_awareness": "Yes",
+        "owns_livestock": "Yes",
+        "cattle_shed_type": "Pucca",
+        "milk_sale_channel": "Dairy",
+        "confirmation_consent": 1,
+        
+        # 1. Household Members
+        "household_members_table": [
+            {"member_name": "Ramesh Patil", "relation": "Self", "gender": "Male", "age": 45, "occupation": "Agriculture", "annual_income": 120000},
+            {"member_name": "Savitri Patil", "relation": "Spouse", "gender": "Female", "age": 40, "occupation": "Housework", "annual_income": 30000},
+            {"member_name": "Ganesh Patil", "relation": "Son", "gender": "Male", "age": 18, "occupation": "Other", "annual_income": 0}
+        ],
+        # 2. Crops
+        "crops_table": [
+            {"season": "Kharif", "crop_name": "Soybean", "area_irrigated_acres": 1.5, "area_dryland_acres": 0.5, "yield_quintals": 14.0, "market_rate_per_qtl": 4500, "total_income": 63000, "cost_of_production": 18000},
+            {"season": "Rabi", "crop_name": "Gram", "area_irrigated_acres": 1.0, "area_dryland_acres": 0.0, "yield_quintals": 8.0, "market_rate_per_qtl": 5000, "total_income": 40000, "cost_of_production": 10000}
+        ],
+        # 3. Irrigation Sources
+        "irrigation_sources_table": [
+            {"source_name": "Open Well", "quantity": 1, "depth_feet": 40.0, "water_availability_months": 8}
+        ],
+        # 4. Irrigation Equipment
+        "irrigation_equipment_table": [
+            {"equipment_name": "Electric Pump", "quantity_and_capacity": "1 unit (5 HP)"}
+        ],
+        # 5. Farm Conservation Works
+        "farm_conservation_works_table": [
+            {"structure_type": "Farm Bunding (Shet Bandh Bandisti)", "status": "Yes", "length_or_count": "300 meters", "implementing_dept": "Agriculture Dept", "is_maintained": "Yes"}
+        ],
+        # 6. Nullah Conservation Structures
+        "nullah_conservation_structures_table": [
+            {"structure_name": "Cement Nala Bund (CNB)", "count": 1, "dimensions": "15m x 2m", "scheme_name": "Jalyukt Shivar", "is_maintained": "Yes"}
+        ],
+        # 7. Livestock Details
+        "livestock_table": [
+            {"livestock_type": "Cow", "count": 2, "daily_milk_production_liters": 10.0, "domestic_use_liters": 2.0, "sale_liters": 8.0, "income_generated": 36000},
+            {"livestock_type": "Goat / Sheep", "count": 4, "daily_milk_production_liters": 0, "income_generated": 12000}
+        ],
+        # 8. Assets
+        "family_assets_table": [
+            {"asset_description": "House", "quantity": 1, "estimated_value": 400000},
+            {"asset_description": "Tractor", "quantity": 1, "estimated_value": 350000}
+        ],
+        # 9. Loans
+        "loans_table": [
+            {"loan_category": "Crop Loan (KCC)", "loan_amount": 100000, "current_outstanding": 80000, "bank_name": "State Bank of India"}
+        ],
+        # 10. Income
+        "family_income_table": [
+            {"income_source": "Agriculture / Farming", "monthly_amount": 12000, "annual_amount": 144000}
+        ],
+        # 11. Expenditure
+        "family_expenditure_table": [
+            {"expenditure_category": "Agriculture Operations", "monthly_amount": 5000, "annual_amount": 60000}
+        ]
+    }).insert(ignore_permissions=True)
+
+    assert survey.name.startswith("BLS-")
+    assert survey.household_members == 3
+    assert survey.livestock_count == 6
+    assert len(survey.household_members_table) == 3
+    assert len(survey.crops_table) == 2
+    assert len(survey.irrigation_sources_table) == 1
+    assert len(survey.irrigation_equipment_table) == 1
+    assert len(survey.farm_conservation_works_table) == 1
+    assert len(survey.nullah_conservation_structures_table) == 1
+    assert len(survey.livestock_table) == 2
+    assert len(survey.family_assets_table) == 2
+    assert len(survey.loans_table) == 1
+    assert len(survey.family_income_table) == 1
+    assert len(survey.family_expenditure_table) == 1
+
+    survey.submit()
+    assert survey.docstatus == 1
+    print(f"  -> Created Baseline Survey Doc with all 11 PDF Child Tables: {survey.name} (Auto-calculated: {survey.household_members} members, {survey.livestock_count} animals)")
+    print("  -> Baseline Survey submitted and validated successfully.")
+
+    # 4. Test Web Wizard API Submission with Full PDF Tables
+    api_res = submit_baseline_survey({
+        "farmer_name": "Sunita Rahul Shinde",
+        "contact_number": "9765432101",
+        "village": "Sonapur",
+        "total_landholding_acres": 3.0,
+        "irrigated_land_acres": 1.5,
+        "rainfed_land_acres": 1.5,
+        "primary_irrigation_source": "Farm Pond",
+        "confirmation_consent": True,
+        "submit_now": True,
+        "household_members_table": [
+            {"member_name": "Sunita Shinde", "relation": "Self", "gender": "Female", "age": 38, "occupation": "Agriculture"},
+            {"member_name": "Rahul Shinde", "relation": "Spouse", "gender": "Male", "age": 42, "occupation": "Agriculture"}
+        ],
+        "crops_table": [
+            {"season": "Kharif", "crop_name": "Cotton", "area_irrigated_acres": 1.0, "area_dryland_acres": 0.0, "yield_quintals": 12.0, "market_rate_per_qtl": 6000, "total_income": 72000, "cost_of_production": 20000}
+        ],
+        "livestock_table": [
+            {"livestock_type": "Buffalo", "count": 1, "daily_milk_production_liters": 8.0, "income_generated": 48000}
+        ],
+        "family_assets_table": [
+            {"asset_description": "Other Farm Implements", "quantity": 1, "estimated_value": 35000}
+        ],
+        "loans_table": [
+            {"loan_category": "Crop Loan (KCC)", "loan_amount": 50000, "current_outstanding": 30000, "bank_name": "Gramin Bank"}
+        ],
+        "family_income_table": [
+            {"income_source": "Agriculture / Farming", "monthly_amount": 6000, "annual_amount": 72000}
+        ],
+        "family_expenditure_table": [
+            {"expenditure_category": "Groceries & Household Expenses", "monthly_amount": 3000, "annual_amount": 36000}
+        ]
+    })
+
+    assert api_res["success"] is True
+    assert api_res["name"].startswith("BLS-")
+    print(f"  -> Web Wizard Multi-Table Baseline API submission successful: {api_res['name']}")
+
+    # 5. Test Direct Raw Nested Questionnaire JSON Submission
+    raw_user_json_payload = {
+        "organization_name": "Institute of Agriculture Development and Rural Training",
+        "form_title": "Family Survey Form",
+        "basic_information": {
+            "1.head_of_family_name": "Anil Dagadu Shinde",
+            "1.mobile_number": "9822334455",
+            "2.village_name": "Rampur",
+            "2.age": 48,
+            "2.category": ["OBC"],
+            "3.house_type": ["Pucca (Permanent)"],
+            "4.has_toilet": ["Yes"],
+            "5.is_below_poverty_line": ["No"],
+            "6.is_migrated_from_village_for_livelihood": ["No"],
+            "7.if_yes_migration_details": {"where": "", "duration_days_or_months": ""}
+        },
+        "family_details": {
+            "8.family_members_list_table": [
+                {"serial_no": 1, "name": "Anil Shinde", "gender": "Male", "age": 48, "education": "Graduate", "occupation": "Agriculture"},
+                {"serial_no": 2, "name": "Kavita Shinde", "gender": "Female", "age": 44, "education": "12th Pass", "occupation": "Household work"}
+            ]
+        },
+        "self_help_group_shg_details": {
+            "9.is_family_member_in_shg": ["Yes"],
+            "10.if_yes_shg_name": "Pragati Mahila Bachat Gat",
+            "11.if_yes_has_taken_loan_through_shg": ["Yes"],
+            "12.if_loan_taken_has_started_business": ["Yes"],
+            "13.type_of_business": "Goat Rearing"
+        },
+        "agricultural_details": {
+            "14.total_land_acres": 4.5,
+            "14.irrigated_land_acres": 2.5,
+            "14.dryland_acres": 2.0,
+            "15.do_you_conduct_soil_testing": ["Yes"],
+            "15.when_was_last_soil_test_done": "May 2024",
+            "16.were_fertilizer_doses_applied_according_to_soil_test": ["Yes"],
+            "17.if_yes_increase_in_production": ["2 Quintals"],
+            "18.is_agricultural_produce_sold_after_grading": ["Yes"],
+            "19.source_of_modern_technology_information": ["Krishi Vigyan Kendra (KVK)"],
+            "20.is_organic_fertilizer_adopted": ["Yes"],
+            "20.crop_production_details_table": {
+                "rows": [
+                    {"season": "Kharif", "crop": "Soybean", "area_irrigated": 2.0, "area_dryland": 0.5, "production": 22.0, "place_of_sale": "APMC", "market_rate": 4800, "total_income": 105600, "production_cost": 28000, "profit": 77600},
+                    {"season": "Vegetables (Bhaji Pala)", "crop": "Tomato", "area_irrigated": 0.5, "area_dryland": 0.0, "production": 50.0, "place_of_sale": "Local", "market_rate": 1500, "total_income": 75000, "production_cost": 20000, "profit": 55000}
+                ]
+            },
+            "21.irrigation_details": {
+                "sources_table": [
+                    {"source": "Well (Vihir)", "count": 1, "depth": 45, "water_availability_months": 10}
+                ],
+                "equipment_table": [
+                    {"equipment": "Electric Pump", "count_and_capacity_hp": "1 - 5 HP"}
+                ]
+            },
+            "22.awareness_of_govt_water_schemes_e.g._PMKSY_Jalyukt_Shivar_Watershed": ["Yes"],
+            "23.if_yes_benefited_from_water_structures_under_govt_schemes_e.g._well_repair_CNB_desilting": ["Yes"],
+            "24.if_yes_soil_and_water_conservation_work_done_in_farm_table": [
+                {"structure": "Farm Bunding (Shet Bandh Bandisti)", "done": ["Yes"], "length_or_count": "400 m", "department": "Agri Dept", "maintained": ["Yes"]}
+            ],
+            "25.participation_in_GP_PDP_Gram_Panchayat_Development_Plan_or_local_schemes_for_water_management": ["Yes"],
+            "26.if_yes_type_of_participation": ["Suggesting development works in village"],
+            "27.has_water_related_awareness_programs_e.g._Farmer_Exposure_Visit_IEC_happened_in_village": ["Yes"],
+            "28.is_there_a_stream_or_rivulet_nala_odha_near_your_farm": ["Yes"],
+            "29.if_yes_has_soil_and_water_conservation_work_been_done_on_it": ["Yes"],
+            "30.if_yes_types_and_numbers_of_structures_table": [
+                {"structure": "Cement Nala Bund (CNB)", "count": 1, "length_or_count": "15m", "scheme_name": "Jalyukt Shivar", "maintained": ["Yes"]}
+            ]
+        },
+        "drinking_water_details": {
+            "31.is_there_a_water_committee_Pani_Samiti_in_the_village": ["Yes"],
+            "32.do_you_participate_in_village_water_supply_management": ["Yes"],
+            "33.main_source_of_drinking_water": ["Tap (Nal)"],
+            "34.type_of_drinking_water_source": ["Public"],
+            "35.is_there_a_water_supply_scheme_tap_water_scheme_in_village": ["Yes"],
+            "36.if_yes_is_maintenance_of_scheme_done_regularly": ["Yes"],
+            "37.is_drinking_water_available_up_to_the_house": ["Yes"],
+            "38.how_many_days_a_week_does_water_come": ["Daily"],
+            "39.duration_of_water_supply_per_day": ["1 Hour"],
+            "40.is_drinking_water_available_throughout_the_year": ["Yes"],
+            "41.if_no_how_many_months_is_it_available": "",
+            "42.how_is_water_supplied_in_remaining_months": ["Private Borewell"],
+            "43.distance_traveled_to_fetch_drinking_water": ["Near House"],
+            "44.awareness_of_Water_Security_Plan_for_ensuring_year-round_water": ["Yes"],
+            "45.if_yes_source_of_information": ["Krishi Vigyan Kendra (KVK)"],
+            "46.has_your_family_participated_in_preparing_village_Water_Security_Plan": ["Yes"],
+            "47.if_yes_was_the_Water_Security_Plan_adopted_during_water_scarcity": ["Yes"],
+            "48.practices_adopted_by_family_for_water_security_or_budgeting": ["Drip Irrigation"]
+        },
+        "livestock_details": {
+            "49.does_family_own_livestock": ["Yes"],
+            "50.if_yes_livestock_inventory_table": [
+                {"livestock_type": "Cow (Gay)", "count": 2, "milk_production_per_day_liters": 12.0, "domestic_milk_consumption_liters": 2.0, "available_for_sale_liters": 10.0, "income_earned_INR": 42000},
+                {"livestock_type": "Goat (Sheli)", "count": 5, "milk_production_per_day_liters": "NA", "domestic_milk_consumption_liters": 0, "available_for_sale_liters": 0, "income_earned_INR": 25000}
+            ],
+            "51.is_there_a_cowshed": ["Pucca (Permanent)"],
+            "52.where_is_milk_sold": ["Dairy"]
+        },
+        "asset_details_table": {
+            "53.assets_list": [
+                {"sr_no": 1, "asset_name": "House", "count": 1, "estimated_value_INR": 500000},
+                {"sr_no": 2, "asset_name": "T.V.", "count": 1, "estimated_value_INR": 18000},
+                {"sr_no": 9, "asset_name": "Tractor", "count": 1, "estimated_value_INR": 600000}
+            ]
+        },
+        "loan_details_table": {
+            "54.loan_particulars": [
+                {"sr_no": 1, "loan_type": "Crop Loan (Pik Karja)", "amount_INR": 120000, "current_status": "Active", "bank_name": "SBI"}
+            ]
+        },
+        "income_and_expenditure_table": {
+            "family_income": [
+                {"source": "Agriculture (Sheti)", "monthly_income_INR": 18000, "annual_income_INR": 216000}
+            ],
+            "family_expenditure": [
+                {"sr_no": 1, "category": "Agriculture (Sheti)", "monthly_expense_INR": 6000, "annual_expense_INR": 72000}
+            ]
+        },
+        "other_necessary_information": "Participates actively in village water committee.",
+        "signatures": {
+            "name_of_surveyor_questionnaire_filler": "Field Officer Sunil",
+            "signature_of_family_head": "Anil Shinde"
+        }
+    }
+
+    raw_api_res = submit_baseline_survey(raw_user_json_payload)
+    assert raw_api_res["success"] is True
+    assert raw_api_res["name"].startswith("BLS-")
+    print(f"  -> Successfully verified and inserted Direct User JSON Payload into Baseline Survey: {raw_api_res['name']}")
+
+    # 6. Test Excel/CSV Export
+    from krushi_vikas.api import export_baseline_survey_excel
+    export_baseline_survey_excel(survey.name)
+    assert frappe.response.get("type") == "csv"
+    assert "AGRICULTURAL DEVELOPMENT AND RURAL TRAINING INSTITUTE" in frappe.response.get("result", "")
+    print(f"  -> Verified Excel/CSV multi-table export structure for {survey.name}")
+
+
+
+
 
 
 

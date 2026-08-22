@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "livestock_type",
+  "count",
+  "daily_milk_production_liters",
+  "domestic_use_liters",
+  "sale_liters",
+  "income_generated"
+ ],
+ "fields": [
+  {
+   "default": "Cow (Gay)",
+   "fieldname": "livestock_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Livestock Type",
+   "options": "Cow (Gay)\nCow\nBuffalo (Mhais)\nBuffalo\nBullock (Bail)\nBullock\nGoat (Sheli)\nGoat / Sheep\nHen/Poultry (Kombdi)\nPoultry / Hen\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Count / Qty",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "daily_milk_production_liters",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Daily Milk Prod. (Ltr)"
+  },
+  {
+   "default": "0",
+   "fieldname": "domestic_use_liters",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Self Consumption (Ltr)"
+  },
+  {
+   "default": "0",
+   "fieldname": "sale_liters",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Available for Sale (Ltr)"
+  },
+  {
+   "default": "0",
+   "fieldname": "income_generated",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Monthly Income (Rs.)"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Baseline Livestock Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
