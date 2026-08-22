@@ -207,37 +207,88 @@
       const respondentType = document.getElementById('respondent_type');
       const otherInput = document.getElementById('respondent_type_other');
 
-      if (!village.value.trim()) { showError(village, 'Please select or enter village/location'); isValid = false; }
-      if (!dateOfVisit.value.trim()) { showError(dateOfVisit, 'Please select date of visit'); isValid = false; }
-      if (!officer.value.trim()) { showError(officer, 'Please select field officer'); isValid = false; }
-      if (!activity.value.trim()) { showError(activity, 'Please select activity'); isValid = false; }
-      if (!respondentType.value.trim()) { showError(respondentType, 'Please select respondent type'); isValid = false; }
-      if (respondentType.value === 'Other' && (!otherInput || !otherInput.value.trim())) {
-        showError(otherInput, 'Please specify the respondent type');
+      if (!village.value.trim()) { 
+        showError(village, 'Please select or enter a Village / Location'); 
+        isValid = false; 
+      }
+      if (!dateOfVisit.value.trim()) { 
+        showError(dateOfVisit, 'Please select the Date of Visit'); 
+        isValid = false; 
+      } else {
+        const selectedDate = new Date(dateOfVisit.value);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (selectedDate > today) {
+          showError(dateOfVisit, 'Date of Visit cannot be in the future');
+          isValid = false;
+        }
+      }
+      if (!officer.value.trim()) { 
+        showError(officer, 'Please select a Field Officer / Facilitator'); 
+        isValid = false; 
+      }
+      if (!activity.value.trim()) { 
+        showError(activity, 'Please select an Activity / Intervention'); 
+        isValid = false; 
+      }
+      if (!respondentType.value.trim()) { 
+        showError(respondentType, 'Please select the Respondent Type'); 
+        isValid = false; 
+      }
+      if (respondentType.value === 'Other' && (!otherInput || otherInput.value.trim().length < 2)) {
+        showError(otherInput, 'Please specify the respondent type (at least 2 characters)');
         isValid = false;
       }
     } else if (currentStep === 2) {
       const participants = document.getElementById('total_participants');
+      const households = document.getElementById('households_involved');
+      const sessions = document.getElementById('sessions_conducted');
       const adoption = document.getElementById('adoption_percentage');
 
-      if (!participants.value.trim() || parseInt(participants.value, 10) < 0) {
-        showError(participants, 'Please enter valid total participants (0 or more)');
+      const pVal = parseInt(participants.value, 10);
+      if (!participants.value.trim() || isNaN(pVal) || pVal < 0) {
+        showError(participants, 'Total Participants must be a valid number (0 or greater)');
         isValid = false;
       }
-      if (!adoption.value.trim() || parseFloat(adoption.value) < 0 || parseFloat(adoption.value) > 100) {
-        showError(adoption, 'Please enter a valid adoption percentage (0 to 100%)');
+
+      if (households && households.value.trim()) {
+        const hVal = parseInt(households.value, 10);
+        if (isNaN(hVal) || hVal < 0) {
+          showError(households, 'Households involved cannot be negative');
+          isValid = false;
+        } else if (!isNaN(pVal) && pVal > 0 && hVal > pVal) {
+          showError(households, `Households involved (${hVal}) cannot exceed Total Participants (${pVal})`);
+          isValid = false;
+        }
+      }
+
+      if (sessions && sessions.value.trim()) {
+        const sVal = parseInt(sessions.value, 10);
+        if (isNaN(sVal) || sVal < 0) {
+          showError(sessions, 'Sessions conducted cannot be negative');
+          isValid = false;
+        }
+      }
+
+      const aVal = parseFloat(adoption.value);
+      if (!adoption.value.trim() || isNaN(aVal) || aVal < 0 || aVal > 100) {
+        showError(adoption, 'Adoption / Usage percentage must be between 0% and 100%');
         isValid = false;
       }
     } else if (currentStep === 3) {
       const change = document.getElementById('significant_change');
-      if (!change.value.trim()) {
-        showError(change, 'Most Significant Change / Success Story is required');
+      if (!change.value.trim() || change.value.trim().length < 10) {
+        showError(change, 'Most Significant Change / Success Story is required (at least 10 characters)');
+        isValid = false;
+      }
+      if (!formData.overall_rating) {
+        alert('Please select an Overall Qualitative Rating (1 to 5).');
         isValid = false;
       }
     } else if (currentStep === 4) {
       const confirmCheck = document.getElementById('confirmation_accuracy');
       if (confirmCheck && !confirmCheck.checked) {
-        alert('Please confirm that the information provided is accurate before submitting.');
+        alert('Please check the confirmation box to verify that information is accurate before submitting.');
         isValid = false;
       }
     }
@@ -255,9 +306,17 @@
       hint.style.color = '#ef4444';
       hint.style.fontSize = '12px';
       hint.style.marginTop = '4px';
+      hint.style.fontWeight = '500';
       element.parentNode.appendChild(hint);
     }
     hint.textContent = msg;
+
+    // Auto clear error on user input
+    element.addEventListener('input', function onInputClear() {
+      element.style.borderColor = '';
+      if (hint) hint.remove();
+      element.removeEventListener('input', onInputClear);
+    }, { once: true });
   }
 
   function clearErrors() {
