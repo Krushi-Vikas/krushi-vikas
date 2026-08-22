@@ -78,3 +78,144 @@ def get_baseline_endline_comparison(project, template=None):
             "delta": delta
         })
     return comparison
+
+@frappe.whitelist(allow_guest=True)
+def get_feedback_survey_options():
+    """Returns dropdown options for the Feedback Survey Web Form"""
+    options = {
+        "villages": [
+            "Rampur", "Sonapur", "Kalyanpur", "Shivaji Nagar", "Krushnagiri", 
+            "Ganeshpur", "Vikas Nagar", "Adarsh Gram", "Sundarpur", "Navgaon"
+        ],
+        "field_officers": [],
+        "activities": [
+            "Kitchen Garden Initiative",
+            "Drip Irrigation Demonstration",
+            "Organic Fertilizer Distribution",
+            "Soil Health Assessment & Testing",
+            "Watershed Bunding & Contour Trenching",
+            "SHG Capacity Building Workshop",
+            "Seed Distribution & Training",
+            "Post-Harvest Storage Guidance"
+        ],
+        "respondent_types": [
+            "Community Member",
+            "Farmer",
+            "SHG Leader",
+            "Village Elder",
+            "Beneficiary",
+            "Other"
+        ]
+    }
+    
+    # Dynamically fetch users if available
+    try:
+        users = frappe.get_all(
+            "User",
+            filters={"enabled": 1, "user_type": "System User"},
+            fields=["name", "full_name"],
+            limit=20
+        )
+        if users:
+            options["field_officers"] = [
+                {"name": u.name, "full_name": u.full_name or u.name}
+                for u in users if u.name not in ("Guest",)
+            ]
+    except Exception:
+        pass
+        
+    if not options["field_officers"]:
+        options["field_officers"] = [
+            {"name": "Administrator", "full_name": "Anita Sharma (Lead Officer)"},
+            {"name": "fo_rahul", "full_name": "Rahul Deshmukh (Field Officer)"},
+            {"name": "fo_priya", "full_name": "Priya Patil (Facilitator)"},
+            {"name": "fo_vikas", "full_name": "Vikas Shinde (Watershed Coordinator)"}
+        ]
+        
+    return options
+
+@frappe.whitelist(allow_guest=True)
+def submit_feedback_survey(data):
+    """Submits a Feedback Survey from the Web Wizard / API"""
+    import json
+    if isinstance(data, str):
+        data = json.loads(data)
+        
+    doc = frappe.get_doc({
+        "doctype": "Feedback Survey",
+        "village": data.get("village"),
+        "date_of_visit": data.get("date_of_visit") or frappe.utils.today(),
+        "field_officer": data.get("field_officer") or "Administrator",
+        "activity": data.get("activity"),
+        "respondent_type": data.get("respondent_type"),
+        "respondent_type_other": data.get("respondent_type_other"),
+        "project": data.get("project"),
+        "beneficiary": data.get("beneficiary"),
+        "total_participants": int(data.get("total_participants") or 0),
+        "households_involved": int(data.get("households_involved") or 0) if data.get("households_involved") else None,
+        "sessions_conducted": int(data.get("sessions_conducted") or 0) if data.get("sessions_conducted") else None,
+        "adoption_percentage": float(data.get("adoption_percentage") or 0),
+        "outputs_achieved": data.get("outputs_achieved"),
+        "significant_change": data.get("significant_change"),
+        "community_voice": data.get("community_voice"),
+        "barriers_challenges": data.get("barriers_challenges"),
+        "facilitator_observations": data.get("facilitator_observations"),
+        "overall_rating": str(data.get("overall_rating") or "3"),
+        "confirmation_accuracy": 1 if data.get("confirmation_accuracy") else 0,
+        "submission_status": "Submitted"
+    })
+    
+    doc.insert(ignore_permissions=True)
+    if data.get("submit_now", True):
+        doc.submit()
+        
+    return {
+        "success": True,
+        "name": doc.name,
+        "message": _("Feedback survey submitted successfully.")
+    }
+
+@frappe.whitelist()
+def get_feedback_analytics(project=None):
+    """Aggregates feedback survey statistics and impact metrics"""
+    filters = {"docstatus": 1}
+    if project:
+        filters["project"] = project
+        
+    surveys = frappe.get_all(
+        "Feedback Survey",
+        filters=filters,
+        fields=[
+            "name", "village", "date_of_visit", "activity", "respondent_type",
+            "total_participants", "adoption_percentage", "overall_rating"
+        ]
+    )
+    
+    total_count = len(surveys)
+    if total_count == 0:
+        return {
+            "total_surveys": 0,
+            "avg_rating": 0,
+            "total_participants": 0,
+            "avg_adoption": 0,
+            "rating_breakdown": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        }
+        
+    total_participants = sum([s.total_participants or 0 for s in surveys])
+    avg_adoption = sum([s.adoption_percentage or 0 for s in surveys]) / total_count
+    ratings = [int(s.overall_rating or 3) for s in surveys]
+    avg_rating = sum(ratings) / total_count
+    
+    rating_breakdown = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    for r in ratings:
+        if r in rating_breakdown:
+            rating_breakdown[r] += 1
+            
+    return {
+        "total_surveys": total_count,
+        "avg_rating": round(avg_rating, 2),
+        "total_participants": total_participants,
+        "avg_adoption": round(avg_adoption, 1),
+        "rating_breakdown": rating_breakdown
+    }
+

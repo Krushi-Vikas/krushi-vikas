@@ -1,0 +1,279 @@
+{
+ "actions": [],
+ "autoname": "FS-.YYYY.-.#####",
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_respondent",
+  "village",
+  "date_of_visit",
+  "field_officer",
+  "activity",
+  "column_break_1",
+  "respondent_type",
+  "respondent_type_other",
+  "project",
+  "beneficiary",
+  "section_quantitative",
+  "total_participants",
+  "households_involved",
+  "sessions_conducted",
+  "column_break_2",
+  "adoption_percentage",
+  "outputs_achieved",
+  "section_qualitative",
+  "significant_change",
+  "community_voice",
+  "column_break_3",
+  "barriers_challenges",
+  "facilitator_observations",
+  "overall_rating",
+  "section_review",
+  "confirmation_accuracy",
+  "submission_status",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_respondent",
+   "fieldtype": "Section Break",
+   "label": "Respondent & Activity Details"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Village / Location",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date_of_visit",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date of Visit",
+   "reqd": 1
+  },
+  {
+   "fieldname": "field_officer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Field Officer / Facilitator",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "activity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Activity / Intervention",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "respondent_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Respondent Type",
+   "options": "Community Member\nFarmer\nSHG Leader\nVillage Elder\nBeneficiary\nOther",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.respondent_type=='Other'",
+   "fieldname": "respondent_type_other",
+   "fieldtype": "Data",
+   "label": "Other (please specify)"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "fieldname": "beneficiary",
+   "fieldtype": "Link",
+   "label": "Linked Beneficiary (Optional)",
+   "options": "Beneficiary"
+  },
+  {
+   "description": "Please share numbers and key indicators related to the activity.",
+   "fieldname": "section_quantitative",
+   "fieldtype": "Section Break",
+   "label": "Quantitative Inputs"
+  },
+  {
+   "fieldname": "total_participants",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Participants / Beneficiaries Reached",
+   "reqd": 1
+  },
+  {
+   "fieldname": "households_involved",
+   "fieldtype": "Int",
+   "label": "Number of Households Involved"
+  },
+  {
+   "fieldname": "sessions_conducted",
+   "fieldtype": "Int",
+   "label": "Number of Sessions / Meetings Conducted"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "adoption_percentage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Adoption / Usage (%)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "outputs_achieved",
+   "fieldtype": "Small Text",
+   "label": "Outputs Achieved / Products Distributed"
+  },
+  {
+   "description": "Please share observations, stories and feedback from the community.",
+   "fieldname": "section_qualitative",
+   "fieldtype": "Section Break",
+   "label": "Qualitative Feedback"
+  },
+  {
+   "fieldname": "significant_change",
+   "fieldtype": "Small Text",
+   "label": "Most Significant Change / Success Story",
+   "reqd": 1
+  },
+  {
+   "description": "Capture a quote that reflects the change in the community.",
+   "fieldname": "community_voice",
+   "fieldtype": "Small Text",
+   "label": "Community Voice / Quote"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "barriers_challenges",
+   "fieldtype": "Small Text",
+   "label": "Barriers / Challenges Observed"
+  },
+  {
+   "fieldname": "facilitator_observations",
+   "fieldtype": "Small Text",
+   "label": "Facilitator Observations"
+  },
+  {
+   "default": "3",
+   "fieldname": "overall_rating",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Overall Qualitative Rating (1-5)",
+   "options": "1\n2\n3\n4\n5",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_review",
+   "fieldtype": "Section Break",
+   "label": "Review & Confirmation"
+  },
+  {
+   "default": "0",
+   "fieldname": "confirmation_accuracy",
+   "fieldtype": "Check",
+   "label": "I confirm that the information provided is accurate to the best of my knowledge.",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "submission_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nReviewed\nApproved"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Feedback Survey",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Feedback Survey",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Officer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

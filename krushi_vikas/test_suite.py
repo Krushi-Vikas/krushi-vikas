@@ -26,6 +26,7 @@ def run():
     test_kre_calculation_and_outcome_push(company)
     test_survey_template_api()
     test_project_goal_weightage(company)
+    test_feedback_survey_lifecycle(company)
     frappe.db.rollback()
     print("=== ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ===")
 
@@ -197,3 +198,71 @@ def test_project_goal_weightage(company):
     print(f"  -> Rolled-up Goal Achievement: {goal.actual_completion_pct:.2f}% (Expected: 68.00%)")
     assert abs(goal.actual_completion_pct - 68.0) < 0.01
     print("  -> Goal OKR weightage rollup validated successfully!")
+
+def test_feedback_survey_lifecycle(company):
+    print("\n[Test 5] Testing Feedback Survey DocType, Validations, and Submission API...")
+    from krushi_vikas.api import submit_feedback_survey, get_feedback_survey_options, get_feedback_analytics
+    
+    # 1. Test Options API
+    opts = get_feedback_survey_options()
+    assert "villages" in opts and len(opts["villages"]) > 0
+    assert "activities" in opts and len(opts["activities"]) > 0
+    print(f"  -> Fetched {len(opts['villages'])} villages and {len(opts['activities'])} activities for Web Wizard.")
+    
+    # 2. Test Direct DocType Creation and Validation
+    survey = frappe.get_doc({
+        "doctype": "Feedback Survey",
+        "village": "Rampur",
+        "date_of_visit": "2024-05-20",
+        "field_officer": "Administrator",
+        "activity": "Kitchen Garden Initiative",
+        "respondent_type": "Community Member",
+        "total_participants": 45,
+        "households_involved": 32,
+        "sessions_conducted": 4,
+        "adoption_percentage": 78.0,
+        "outputs_achieved": "45 Seed Kits & 30 Compost Kits distributed",
+        "significant_change": "Families harvesting fresh greens daily.",
+        "community_voice": "Earlier we had to travel 7km to buy vegetables.",
+        "barriers_challenges": "Minor water scarcity in lower hamlet.",
+        "facilitator_observations": "Women SHG members showed great ownership.",
+        "overall_rating": "5",
+        "confirmation_accuracy": 1
+    }).insert(ignore_permissions=True)
+    
+    assert survey.name.startswith("FS-")
+    assert survey.submission_status == "Draft"
+    print(f"  -> Created Feedback Survey Doc: {survey.name}")
+    
+    # 3. Test Submit
+    survey.submit()
+    survey.reload()
+    assert survey.docstatus == 1
+    assert survey.submission_status == "Submitted"
+    print("  -> Survey submitted and validated successfully.")
+    
+    # 4. Test Submission via Whitelisted Web API
+    api_res = submit_feedback_survey({
+        "village": "Sonapur",
+        "date_of_visit": "2024-05-21",
+        "field_officer": "Administrator",
+        "activity": "Drip Irrigation Demonstration",
+        "respondent_type": "Farmer",
+        "total_participants": 20,
+        "adoption_percentage": 85.0,
+        "significant_change": "Water usage cut down by half with drip systems.",
+        "overall_rating": "4",
+        "confirmation_accuracy": True,
+        "submit_now": True
+    })
+    
+    assert api_res["success"] is True
+    assert api_res["name"].startswith("FS-")
+    print(f"  -> Web Wizard API submission successful: {api_res['name']}")
+    
+    # 5. Test Analytics API
+    analytics = get_feedback_analytics()
+    assert analytics["total_surveys"] >= 2
+    assert analytics["avg_rating"] >= 4.0
+    print(f"  -> Aggregated Feedback Analytics: Avg Rating = {analytics['avg_rating']}, Total Reached = {analytics['total_participants']}")
+

@@ -126,6 +126,10 @@ krushi-vikas-dev/
     │
     └── krushi_vikas/           # Core module folder
         ├── doctype/            # All custom DocTypes (Database Tables & Models)
+        │   ├── feedback_survey/
+        │   │   ├── feedback_survey.json    # Schema definition (Respondent, Quantitative, Qualitative, Rating, Status)
+        │   │   ├── feedback_survey.py      # Controller logic (validations, bounds checking, submission lifecycle)
+        │   │   └── feedback_survey.js      # Desk interaction hooks
         │   ├── concept_note/
         │   │   ├── concept_note.json       # Schema definition (fields, types, permissions)
         │   │   └── concept_note.py         # Controller logic (validation, lifecycle hooks)
@@ -143,6 +147,10 @@ krushi-vikas-dev/
         │   ├── survey_response/
         │   ├── survey_answer/
         │   └── user_target/
+        │
+        ├── www/                # Portal Web Forms & Frontend Wizards
+        │   ├── feedback_survey.html        # 4-step responsive Feedback Survey Web Wizard
+        │   └── feedback_survey.py          # Portal page context provider
         │
         └── workspace/          # Desk Workspaces & navigation pages
             └── krushi_vikas/
