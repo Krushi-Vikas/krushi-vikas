@@ -7,8 +7,9 @@ def run():
     setup_custom_fields()
     setup_workspace()
     setup_workflows()
+    seed_sample_data()
     frappe.db.commit()
-    print("All site configurations and workflows completed successfully!")
+    print("All site configurations, workflows, and demo seed data completed successfully!")
 
 def setup_roles():
     print("Setting up Roles...")
@@ -257,6 +258,7 @@ def json_workspace_content():
             {"type": "Link", "link_type": "DocType", "link_to": "User Target", "label": "User Targets & Achievements"}
         ]}},
         {"type": "card", "data": {"card_name": "Surveys & Appraisals", "links": [
+            {"type": "Link", "link_type": "DocType", "link_to": "Feedback Survey", "label": "Feedback Surveys"},
             {"type": "Link", "link_type": "DocType", "link_to": "Concept Note", "label": "Concept Notes"},
             {"type": "Link", "link_type": "DocType", "link_to": "Survey Template", "label": "Survey Templates"},
             {"type": "Link", "link_type": "DocType", "link_to": "Survey Response", "label": "Survey Responses (RRA / Baseline / Endline)"}
@@ -268,3 +270,122 @@ def json_workspace_content():
         ]}}
     ]
     return json.dumps(content)
+
+def seed_sample_data():
+    """Seeds realistic demonstration data matching the UI designs"""
+    print("Seeding demo data...")
+    company = frappe.db.get_value("Company", {"is_group": 0}, "name")
+    if not company:
+        c = frappe.get_doc({
+            "doctype": "Company",
+            "company_name": "Krushi Vikas Organization",
+            "abbr": "KVO",
+            "default_currency": "INR",
+            "country": "India"
+        }).insert(ignore_permissions=True)
+        company = c.name
+
+    # 1. Project Themes
+    themes = [
+        ("Watershed Management", "WM", 1, None),
+        ("Contour Trenching", "WM-CT", 0, "Watershed Management"),
+        ("Farm Ponds & Check Dams", "WM-FP", 0, "Watershed Management"),
+        ("Sustainable Agriculture", "SA", 1, None),
+        ("Micro-Irrigation (Drip/Sprinkler)", "SA-MI", 0, "Sustainable Agriculture"),
+        ("Kitchen Gardens & Nutrition", "SA-KG", 0, "Sustainable Agriculture"),
+        ("Organic Bio-Fertilizer", "SA-OF", 0, "Sustainable Agriculture"),
+        ("Livelihood & Women SHGs", "LW", 1, None)
+    ]
+    for t_name, t_code, is_grp, parent in themes:
+        if not frappe.db.exists("Project Theme", t_name):
+            frappe.get_doc({
+                "doctype": "Project Theme",
+                "theme_name": t_name,
+                "theme_code": t_code,
+                "is_group": is_grp,
+                "parent_project_theme": parent
+            }).insert(ignore_permissions=True)
+
+    # 2. Concept Notes
+    if not frappe.db.exists("Concept Note", {"title": "Kalyanpur Integrated Watershed Development"}):
+        cn1 = frappe.get_doc({
+            "doctype": "Concept Note",
+            "title": "Kalyanpur Integrated Watershed Development",
+            "thematic_area": "Watershed Management",
+            "status": "Approved",
+            "target_geography": "Kalyanpur Block, Vidarbha Region",
+            "beneficiary_estimate": 450,
+            "estimated_budget": 1250000.0,
+            "duration_months": 12,
+            "rationale": "<p>Address critical groundwater depletion and enhance agricultural productivity across 450 smallholder farm families through integrated watershed structures.</p>",
+            "raised_by": "Administrator"
+        }).insert(ignore_permissions=True)
+        cn1.submit()
+
+    if not frappe.db.exists("Concept Note", {"title": "Village Nutrition & Kitchen Garden Initiative"}):
+        cn2 = frappe.get_doc({
+            "doctype": "Concept Note",
+            "title": "Village Nutrition & Kitchen Garden Initiative",
+            "thematic_area": "Sustainable Agriculture",
+            "status": "Under Review",
+            "target_geography": "Rampur & Sonapur Villages",
+            "beneficiary_estimate": 180,
+            "estimated_budget": 350000.0,
+            "duration_months": 6,
+            "rationale": "<p>Promote dietary diversity and fresh vegetable access for 180 tribal households through homestead kitchen gardens and organic compost training.</p>",
+            "raised_by": "Administrator"
+        }).insert(ignore_permissions=True)
+
+    # 3. Beneficiaries
+    sample_bens = [
+        ("BEN-2026-001", "Ramesh Tukaram Patil", "Male", "Small Farmer", "Rampur"),
+        ("BEN-2026-002", "Sunita Rahul Shinde", "Female", "Small Farmer", "Rampur"),
+        ("BEN-2026-003", "Ganesh Vithal Deshmukh", "Male", "Marginal Farmer", "Sonapur")
+    ]
+    for b_id, b_name, gen, cat, vil in sample_bens:
+        if not frappe.db.exists("Beneficiary", b_id):
+            frappe.get_doc({
+                "doctype": "Beneficiary",
+                "name": b_id,
+                "beneficiary_name": b_name,
+                "gender": gen,
+                "category": cat,
+                "village": vil
+            }).insert(ignore_permissions=True)
+
+    # 4. KREs (Key Result Expectations)
+    proj_name = frappe.db.get_value("Project", {"project_name": "Kalyanpur Integrated Watershed Development"}, "name")
+    if not proj_name:
+        p = frappe.get_doc({
+            "doctype": "Project",
+            "project_name": "Kalyanpur Integrated Watershed Development",
+            "company": company,
+            "custom_project_phase": "Execution",
+            "custom_thematic_area": "Watershed Management"
+        }).insert(ignore_permissions=True)
+        proj_name = p.name
+
+    if not frappe.db.exists("KRE", {"kre_name": "Area brought under soil conservation bunding"}):
+        kre1 = frappe.get_doc({
+            "doctype": "KRE",
+            "kre_name": "Area brought under soil conservation bunding",
+            "project": proj_name,
+            "unit": "Hectares",
+            "baseline_value": 0.0,
+            "current_value": 85.0,
+            "target_value": 150.0
+        }).insert(ignore_permissions=True)
+
+    if not frappe.db.exists("KRE", {"kre_name": "Smallholder farmers adopting micro-irrigation"}):
+        kre2 = frappe.get_doc({
+            "doctype": "KRE",
+            "kre_name": "Smallholder farmers adopting micro-irrigation",
+            "project": proj_name,
+            "unit": "Farmers",
+            "baseline_value": 10.0,
+            "current_value": 65.0,
+            "target_value": 100.0
+        }).insert(ignore_permissions=True)
+
+    print("Demo data seeded successfully!")
+
