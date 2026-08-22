@@ -818,7 +818,29 @@ def test_project_activity_task_hierarchy(company):
     assert kvp_res["name"].startswith("KVP-")
     assert kvp_res["remaining_funds"] == 1700000.0
     print(f"  -> Submitted KV Project Web Form successfully: {kvp_res['name']} ({kvp_res['project_name']}) | Remaining Funds: Rs. {kvp_res['remaining_funds']}")
+
+    # 8. Test Modifying Activity and adding Tasks via child table
+    act_to_modify = frappe.get_doc("Activity", first_act.name)
+    act_to_modify.append("tasks", {
+        "subject": "Community Water Quality Testing via Jal Kit",
+        "status": "Open",
+        "priority": "High",
+        "exp_start_date": "2026-02-15",
+        "exp_end_date": "2026-03-15",
+        "description": "Test fluoride and nitrate levels across 10 open wells."
+    })
+    act_to_modify.save(ignore_permissions=True)
+    act_to_modify.reload()
+    
+    # Verify the new task was created in Task DocType and linked back
+    linked_task_id = act_to_modify.tasks[-1].linked_task
+    assert linked_task_id is not None, "Expected new Task record to be created and linked"
+    created_task = frappe.get_doc("Task", linked_task_id)
+    assert created_task.subject == "Community Water Quality Testing via Jal Kit"
+    assert created_task.custom_activity == act_to_modify.name
+    print(f"  -> Successfully added Task via Activity child table: {created_task.name} ('{created_task.subject}') linked to Activity {act_to_modify.name}")
     print("  -> Project, Activity & Task 3-tier hierarchy and financial tracking validated successfully!")
+
 
 
 

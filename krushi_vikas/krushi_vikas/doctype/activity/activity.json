@@ -27,7 +27,9 @@
   "financial_section",
   "planned_budget",
   "column_break_3",
-  "actual_expenditure"
+  "actual_expenditure",
+  "tasks_section",
+  "tasks"
  ],
  "fields": [
   {
@@ -161,6 +163,17 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Actual Expenditure (INR)"
+  },
+  {
+   "fieldname": "tasks_section",
+   "fieldtype": "Section Break",
+   "label": "Activity Tasks & Sub-tasks"
+  },
+  {
+   "fieldname": "tasks",
+   "fieldtype": "Table",
+   "label": "Tasks",
+   "options": "Activity Task Detail"
   }
  ],
  "links": [],
