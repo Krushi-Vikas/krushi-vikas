@@ -219,3 +219,186 @@ def get_feedback_analytics(project=None):
         "rating_breakdown": rating_breakdown
     }
 
+@frappe.whitelist(allow_guest=True)
+def get_village_profile_options():
+    """Returns dynamic dropdown options and metadata for Village Profile"""
+    districts = ["Akola", "Washim", "Amravati", "Buldhana", "Yavatmal", "Wardha", "Nagpur", "Chhatrapati Sambhajinagar"]
+    talukas = ["Akot", "Telhara", "Balapur", "Patur", "Murtizapur", "Barshitakli", "Malegaon", "Risod", "Karanja"]
+    
+    field_officers = []
+    try:
+        users = frappe.get_all(
+            "User",
+            filters={"enabled": 1, "user_type": "System User"},
+            fields=["name", "full_name"],
+            limit=20
+        )
+        if users:
+            field_officers = [
+                {"name": u.name, "full_name": u.full_name or u.name}
+                for u in users if u.name not in ("Guest",)
+            ]
+    except Exception:
+        pass
+        
+    if not field_officers:
+        field_officers = [
+            {"name": "Administrator", "full_name": "Anita Sharma (Lead Officer)"},
+            {"name": "fo_rahul", "full_name": "Rahul Deshmukh (Field Officer)"},
+            {"name": "fo_priya", "full_name": "Priya Patil (Watershed Facilitator)"},
+            {"name": "fo_vikas", "full_name": "Vikas Shinde (Agronomist)"}
+        ]
+
+    projects = []
+    try:
+        projs = frappe.get_all("Project", fields=["name", "project_name"], limit=20)
+        projects = [{"name": p.name, "title": p.project_name or p.name} for p in projs]
+    except Exception:
+        pass
+
+    if not projects:
+        projects = [
+            {"name": "PROJ-0001", "title": "Kalyanpur Integrated Watershed Development"},
+            {"name": "PROJ-0002", "title": "Village Nutrition & Kitchen Garden Initiative"}
+        ]
+
+    return {
+        "districts": districts,
+        "talukas": talukas,
+        "field_officers": field_officers,
+        "projects": projects,
+        "soil_types": [
+            "Deep Black Soil",
+            "Medium Black Soil",
+            "Red Sandy Soil",
+            "Loamy Soil",
+            "Laterite Soil",
+            "Mixed Soil"
+        ],
+        "drinking_water_sources": [
+            "GP Piped Water Supply",
+            "Community Open Wells",
+            "Handpumps / Borewells",
+            "Water Tankers (Seasonal)",
+            "River / Canal"
+        ],
+        "water_scarcity_levels": [
+            "Severe / Tanker Dependent",
+            "Moderate Scarcity",
+            "Minor Scarcity",
+            "Adequate / No Scarcity"
+        ],
+        "irrigation_practices": [
+            "Flood Irrigation",
+            "Drip & Sprinkler Micro-Irrigation",
+            "Mixed"
+        ]
+    }
+
+@frappe.whitelist(allow_guest=True)
+def submit_village_profile(data):
+    """Submits or creates a Village Profile document"""
+    import json
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    doc = frappe.get_doc({
+        "doctype": "Village Profile",
+        "village_name": data.get("village_name"),
+        "village_code": data.get("village_code"),
+        "gram_panchayat": data.get("gram_panchayat") or data.get("village_name"),
+        "block_taluka": data.get("block_taluka"),
+        "district": data.get("district"),
+        "state": data.get("state") or "Maharashtra",
+        "pincode": data.get("pincode"),
+        "field_officer": data.get("field_officer") or "Administrator",
+        "project": data.get("project") or None,
+        "date_of_survey": data.get("date_of_survey") or frappe.utils.today(),
+        "geo_coordinates": data.get("geo_coordinates"),
+        
+        # Demographics
+        "total_population": int(data.get("total_population") or 0),
+        "male_population": int(data.get("male_population") or 0),
+        "female_population": int(data.get("female_population") or 0),
+        "total_households": int(data.get("total_households") or 0),
+        "sc_households": int(data.get("sc_households") or 0),
+        "st_households": int(data.get("st_households") or 0),
+        "obc_general_households": int(data.get("obc_general_households") or 0),
+        "bpl_households": int(data.get("bpl_households") or 0),
+        "female_headed_households": int(data.get("female_headed_households") or 0),
+        "literacy_rate_pct": float(data.get("literacy_rate_pct") or 0) if data.get("literacy_rate_pct") else None,
+        
+        # Land & Agriculture
+        "total_geographical_area_ha": float(data.get("total_geographical_area_ha") or 0),
+        "cultivable_land_ha": float(data.get("cultivable_land_ha") or 0),
+        "irrigated_area_ha": float(data.get("irrigated_area_ha") or 0),
+        "rainfed_area_ha": float(data.get("rainfed_area_ha") or 0),
+        "forest_wasteland_ha": float(data.get("forest_wasteland_ha") or 0),
+        "marginal_farmers_count": int(data.get("marginal_farmers_count") or 0),
+        "small_farmers_count": int(data.get("small_farmers_count") or 0),
+        "medium_large_farmers_count": int(data.get("medium_large_farmers_count") or 0),
+        "landless_households_count": int(data.get("landless_households_count") or 0),
+        "soil_type": data.get("soil_type") or "Medium Black Soil",
+        "major_crops_kharif": data.get("major_crops_kharif"),
+        "major_crops_rabi": data.get("major_crops_rabi"),
+        "horticulture_crops": data.get("horticulture_crops"),
+        
+        # Water Resources
+        "watershed_name": data.get("watershed_name"),
+        "primary_drinking_water_source": data.get("primary_drinking_water_source") or "GP Piped Water Supply",
+        "summer_water_scarcity_status": data.get("summer_water_scarcity_status") or "Moderate Scarcity",
+        "primary_irrigation_practice": data.get("primary_irrigation_practice") or "Mixed",
+        "open_wells_count": int(data.get("open_wells_count") or 0),
+        "borewells_count": int(data.get("borewells_count") or 0),
+        "check_dams_count": int(data.get("check_dams_count") or 0),
+        "farm_ponds_count": int(data.get("farm_ponds_count") or 0),
+        "percolation_tanks_count": int(data.get("percolation_tanks_count") or 0),
+        
+        # Institutions & Facilities
+        "total_shgs_count": int(data.get("total_shgs_count") or 0),
+        "active_fpos_count": int(data.get("active_fpos_count") or 0),
+        "fpo_name": data.get("fpo_name"),
+        "has_primary_school": 1 if data.get("has_primary_school") else 0,
+        "has_secondary_school": 1 if data.get("has_secondary_school") else 0,
+        "has_primary_health_center": 1 if data.get("has_primary_health_center") else 0,
+        "has_veterinary_clinic": 1 if data.get("has_veterinary_clinic") else 0,
+        "has_milk_chilling_center": 1 if data.get("has_milk_chilling_center") else 0,
+        "has_custom_hiring_center": 1 if data.get("has_custom_hiring_center") else 0,
+        "has_bank_csc": 1 if data.get("has_bank_csc") else 0,
+        "all_weather_road_connectivity": 1 if data.get("all_weather_road_connectivity") else 0,
+        
+        # Needs Assessment
+        "key_development_priorities": data.get("key_development_priorities"),
+        "water_conservation_interventions": data.get("water_conservation_interventions"),
+        "livelihood_interventions": data.get("livelihood_interventions"),
+        "surveyor_observations": data.get("surveyor_observations"),
+        "profile_status": "Verified" if data.get("submit_now") else "Draft"
+    })
+
+    doc.insert(ignore_permissions=True)
+    if data.get("submit_now", True):
+        doc.submit()
+
+    return {
+        "success": True,
+        "name": doc.name,
+        "village_name": doc.village_name,
+        "message": _("Village Profile created successfully.")
+    }
+
+@frappe.whitelist()
+def get_village_profiles_list():
+    """Returns summarized list of village profiles for dashboards and selector maps"""
+    profiles = frappe.get_all(
+        "Village Profile",
+        fields=[
+            "name", "village_name", "village_code", "gram_panchayat", "block_taluka", "district",
+            "total_population", "total_households", "cultivable_land_ha", "summer_water_scarcity_status",
+            "docstatus", "profile_status"
+        ],
+        order_by="village_name asc"
+    )
+    return profiles
+
+
+

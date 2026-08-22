@@ -27,6 +27,7 @@ def run():
     test_survey_template_api()
     test_project_goal_weightage(company)
     test_feedback_survey_lifecycle(company)
+    test_village_profile_lifecycle(company)
     frappe.db.rollback()
     print("=== ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ===")
 
@@ -265,4 +266,102 @@ def test_feedback_survey_lifecycle(company):
     assert analytics["total_surveys"] >= 2
     assert analytics["avg_rating"] >= 4.0
     print(f"  -> Aggregated Feedback Analytics: Avg Rating = {analytics['avg_rating']}, Total Reached = {analytics['total_participants']}")
+
+def test_village_profile_lifecycle(company):
+    print("\n[Test 6] Testing Village Profile DocType, Validations, and Submission API...")
+    from krushi_vikas.api import submit_village_profile, get_village_profile_options, get_village_profiles_list
+
+    # 1. Test Options API
+    opts = get_village_profile_options()
+    assert "districts" in opts and len(opts["districts"]) > 0
+    assert "soil_types" in opts and len(opts["soil_types"]) > 0
+    print(f"  -> Fetched {len(opts['districts'])} districts and {len(opts['soil_types'])} soil types for Village Profile.")
+
+    # 2. Test Direct DocType Creation and Validation
+    profile = frappe.get_doc({
+        "doctype": "Village Profile",
+        "village_name": "Rampur",
+        "village_code": "MH-AKL-001",
+        "gram_panchayat": "Rampur Gram Panchayat",
+        "block_taluka": "Akot",
+        "district": "Akola",
+        "state": "Maharashtra",
+        "pincode": "444101",
+        "field_officer": "Administrator",
+        "date_of_survey": "2024-05-20",
+        "total_population": 1450,
+        "male_population": 740,
+        "female_population": 710,
+        "total_households": 280,
+        "sc_households": 45,
+        "st_households": 30,
+        "bpl_households": 85,
+        "female_headed_households": 18,
+        "literacy_rate_pct": 74.5,
+        "total_geographical_area_ha": 520.0,
+        "cultivable_land_ha": 420.0,
+        "irrigated_area_ha": 130.0,
+        "rainfed_area_ha": 290.0,
+        "forest_wasteland_ha": 100.0,
+        "marginal_farmers_count": 95,
+        "small_farmers_count": 80,
+        "medium_large_farmers_count": 45,
+        "landless_households_count": 60,
+        "soil_type": "Medium Black Soil",
+        "watershed_name": "Manjara Sub-basin Watershed",
+        "primary_drinking_water_source": "GP Piped Water Supply",
+        "summer_water_scarcity_status": "Moderate Scarcity",
+        "primary_irrigation_practice": "Mixed",
+        "open_wells_count": 42,
+        "borewells_count": 68,
+        "check_dams_count": 3,
+        "farm_ponds_count": 12,
+        "total_shgs_count": 14,
+        "active_fpos_count": 1,
+        "has_primary_school": 1,
+        "has_bank_csc": 1,
+        "all_weather_road_connectivity": 1,
+        "key_development_priorities": "Deepening of main drainage nalla and micro-irrigation expansion."
+    }).insert(ignore_permissions=True)
+
+    assert profile.name.startswith("VP-")
+    assert profile.profile_status == "Draft"
+    print(f"  -> Created Village Profile Doc: {profile.name} for {profile.village_name}")
+
+    # 3. Test Submit
+    profile.submit()
+    profile.reload()
+    assert profile.docstatus == 1
+    assert profile.profile_status == "Verified"
+    print("  -> Village Profile submitted and marked as Verified successfully.")
+
+    # 4. Test Web Wizard API Submission
+    api_res = submit_village_profile({
+        "village_name": "Sonapur",
+        "village_code": "MH-AKL-002",
+        "gram_panchayat": "Sonapur Gram Panchayat",
+        "block_taluka": "Telhara",
+        "district": "Akola",
+        "state": "Maharashtra",
+        "total_population": 980,
+        "total_households": 190,
+        "total_geographical_area_ha": 380.0,
+        "cultivable_land_ha": 310.0,
+        "irrigated_area_ha": 90.0,
+        "rainfed_area_ha": 220.0,
+        "summer_water_scarcity_status": "Severe / Tanker Dependent",
+        "key_development_priorities": "Urgent construction of 2 cement nalla bunds to alleviate summer water tanker dependency.",
+        "submit_now": True
+    })
+
+    assert api_res["success"] is True
+    assert api_res["name"].startswith("VP-")
+    print(f"  -> Web Wizard Village Profile API submission successful: {api_res['name']} ({api_res['village_name']})")
+
+    # 5. Test Listing API
+    profiles_list = get_village_profiles_list()
+    assert len(profiles_list) >= 2
+    print(f"  -> Retrieved {len(profiles_list)} village profiles successfully!")
+
+
 
