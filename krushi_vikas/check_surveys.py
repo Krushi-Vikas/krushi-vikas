@@ -13,3 +13,15 @@ def show():
     print(f"Total Feedback Surveys stored in database: {len(surveys)}")
     for s in surveys:
         print(f"  • [{s.name}] Village: {s.village} | Date: {s.date_of_visit} | Officer: {s.field_officer} | Rating: {s.overall_rating}/5 | Status: {s.submission_status} | Created: {s.creation}")
+
+def show_schema():
+    meta = frappe.get_meta("Feedback Survey")
+    table_name = "tab" + meta.name
+    print(f"\n=== SCHEMA FOR DOCTYPE: {meta.name} (Table: {table_name}) ===")
+    print(f"{'Fieldname':<26} | {'Fieldtype':<12} | {'Reqd':<5} | {'Label'}")
+    print("-" * 75)
+    for df in meta.fields:
+        if df.fieldtype not in ("Section Break", "Column Break"):
+            print(f"{df.fieldname:<26} | {df.fieldtype:<12} | {str(df.reqd):<5} | {df.label}")
+
+
