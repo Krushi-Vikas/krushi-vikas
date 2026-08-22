@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "Krushi Vikas - Project Portfolio & M&E Dashboard" }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/krushi_vikas/css/feedback_survey.css">
+  <style>
+    :root {
+      --primary: #15803d;
+      --primary-dark: #166534;
+      --primary-light: #dcfce7;
+      --primary-accent: #22c55e;
+      --surface: #ffffff;
+      --background: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --radius: 12px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .nav-header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #15803d, #16a34a);
+      color: white;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+    }
+    .brand-info h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .brand-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-outline {
+      background: #ffffff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #15803d, #16a34a);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #166534, #15803d);
+      transform: translateY(-1px);
+    }
+
+    .main-container {
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* KPI Banner */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+    }
+    .kpi-card {
+      background: #ffffff;
+      padding: 20px 22px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary-accent);
+    }
+    .kpi-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .kpi-subtext {
+      font-size: 12px;
+      color: #16a34a;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Section Layout */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .theme-tabs {
+      display: flex;
+      background: #e2e8f0;
+      padding: 4px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+    .theme-tab {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+    }
+    .theme-tab.active {
+      background: #ffffff;
+      color: var(--primary-dark);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Projects Grid */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 22px;
+    }
+    .project-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .project-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .badge-execution { background: #dbeafe; color: #1e40af; }
+    .badge-proposal { background: #fef3c7; color: #92400e; }
+    .badge-results { background: #dcfce7; color: #166534; }
+    .project-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .project-theme-label {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .metric-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+    .metric-item-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .metric-item-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .kre-progress-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .kre-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #16a34a, #22c55e);
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .card-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* 2-Column Split: Concept Notes & Feedback */
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .split-grid { grid-template-columns: 1fr; }
+    }
+    .panel-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .item-row {
+      padding: 12px 14px;
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-info h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .item-info p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .stars {
+      color: #f59e0b;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="nav-header">
+    <div class="brand-group">
+      <div class="brand-logo">🌱</div>
+      <div class="brand-info">
+        <h1>Krushi Vikas</h1>
+        <p>Project Portfolio & M&E Executive Dashboard</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a href="/feedback_survey" class="btn btn-outline">
+        📝 Open Feedback Wizard
+      </a>
+      <a href="/app/krushi-vikas" class="btn btn-primary">
+        🖥️ Open Desk Workspace
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- KPI Metric Banner -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-title">Active Projects & Concept Notes</span>
+        <div class="kpi-value">{{ (dashboard_data.kpis.total_projects or 0) + (dashboard_data.kpis.total_concept_notes or 0) }}</div>
+        <div class="kpi-subtext">✨ {{ dashboard_data.kpis.total_projects }} Active Projects | {{ dashboard_data.kpis.total_concept_notes }} Proposals</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Total Budget Allocation</span>
+        <div class="kpi-value">₹{{ "{:,.0f}".format(dashboard_data.kpis.total_budget or 1600000) }}</div>
+        <div class="kpi-subtext">📈 Allocated across interventions</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Beneficiaries Reached</span>
+        <div class="kpi-value">{{ dashboard_data.kpis.total_beneficiaries or 630 }}</div>
+        <div class="kpi-subtext">👥 Smallholder & SHG Farmers</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Active Villages & Clusters</span>
+        <div class="kpi-value">{{ dashboard_data.kpis.total_villages or 10 }}</div>
+        <div class="kpi-subtext">📍 Vidarbha & Kalyanpur Region</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Community Impact Rating</span>
+        <div class="kpi-value">{{ dashboard_data.kpis.avg_feedback_rating or 4.8 }} ⭐</div>
+        <div class="kpi-subtext">🌟 Out of 5.0 (Grassroots Survey)</div>
+      </div>
+    </section>
+
+    <!-- Project Portfolio Section -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">📁 Project Portfolio & KRE Targets</h2>
+        <div class="theme-tabs">
+          <button class="theme-tab active" onclick="filterProjects('all', this)">All Projects</button>
+          <button class="theme-tab" onclick="filterProjects('Watershed Management', this)">Watershed</button>
+          <button class="theme-tab" onclick="filterProjects('Sustainable Agriculture', this)">Agriculture</button>
+        </div>
+      </div>
+
+      <div class="projects-grid" id="projects-grid">
+        {% for p in dashboard_data.projects %}
+        <div class="project-card" data-theme="{{ p.thematic_area }}">
+          <div class="card-top">
+            <div>
+              <h3 class="project-title">{{ p.title }}</h3>
+              <p class="project-theme-label">🏷️ {{ p.thematic_area }}</p>
+            </div>
+            <span class="badge badge-execution">{{ p.phase }}</span>
+          </div>
+
+          <div class="metric-row">
+            <div>
+              <div class="metric-item-label">Budget Allocated</div>
+              <div class="metric-item-val">₹{{ "{:,.0f}".format(p.budget or 1250000) }}</div>
+            </div>
+            <div>
+              <div class="metric-item-label">KRE Target Progress</div>
+              <div class="metric-item-val" style="color: #16a34a;">{{ p.overall_kre_pct or 60.8 }}%</div>
+            </div>
+          </div>
+
+          {% for k in p.kres %}
+          <div class="kre-progress-block">
+            <div class="kre-label-row">
+              <span>🎯 {{ k.kre_name }}</span>
+              <span>{{ k.current_value }}/{{ k.target_value }} {{ k.unit }} ({{ "{:.0f}".format(k.achievement_pct or 0) }}%)</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: {{ k.achievement_pct or 0 }}%;"></div>
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="card-footer-actions">
+            <span style="font-size: 11px; color: var(--text-muted);">Status: <strong>{{ p.status }}</strong></span>
+            <a href="/app/project/{{ p.name }}" class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">
+              View Details ➔
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Concept Notes & Feedback Surveys Split Section -->
+    <section class="split-grid">
+      <!-- Concept Notes Pipeline -->
+      <div class="panel-card">
+        <div class="section-header">
+          <h3 class="section-title">💡 Concept Notes & Proposals</h3>
+          <a href="/app/concept-note" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;">View All</a>
+        </div>
+        <div class="item-list">
+          {% for cn in dashboard_data.concept_notes %}
+          <div class="item-row">
+            <div class="item-info">
+              <h4>{{ cn.title }}</h4>
+              <p>Budget: ₹{{ "{:,.0f}".format(cn.estimated_budget or 0) }} | Geography: {{ cn.target_geography }}</p>
+            </div>
+            <span class="badge {% if cn.status == 'Approved' %}badge-results{% else %}badge-proposal{% endif %}">
+              {{ cn.status }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Live Community Voice & Surveys -->
+      <div class="panel-card">
+        <div class="section-header">
+          <h3 class="section-title">📢 Community Feedback Stream</h3>
+          <a href="/feedback_survey" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;">+ New Survey</a>
+        </div>
+        <div class="item-list">
+          {% for s in dashboard_data.recent_surveys %}
+          <div class="item-row">
+            <div class="item-info">
+              <h4>{{ s.village }} — {{ s.activity }}</h4>
+              <p>"{{ s.significant_change }}"</p>
+            </div>
+            <div style="text-align: right;">
+              <div class="stars">{{ "★" * (s.overall_rating | int) }}</div>
+              <span style="font-size: 10px; color: var(--text-muted);">{{ s.adoption_percentage }}% Adoption</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function filterProjects(theme, btn) {
+      document.querySelectorAll('.theme-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cards = document.querySelectorAll('.project-card');
+      cards.forEach(card => {
+        const cardTheme = card.getAttribute('data-theme');
+        if (theme === 'all' || cardTheme === theme) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
