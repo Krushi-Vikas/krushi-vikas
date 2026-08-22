@@ -9,217 +9,165 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/krushi_vikas/css/feedback_survey.css">
-  <style>
-    .badge-village {
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      display: inline-block;
-      margin-bottom: 8px;
-    }
-    .check-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-top: 10px;
-    }
-    .check-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .check-card:hover {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
-    }
-    .check-card input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: #1a73e8;
-    }
-    .check-card label {
-      margin: 0;
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: #334155;
-      cursor: pointer;
-    }
-    .stat-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 8px;
-      background: #f0fdf4;
-      color: #166534;
-    }
-  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/portal_common.css">
+  <link rel="stylesheet" href="/assets/krushi_vikas/css/form_wizard.css">
 </head>
 <body>
-  <!-- Header Bar -->
-  <header class="app-header">
-    <div class="brand-section">
-      <div class="logo-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          <polyline points="9 22 9 12 15 12 15 22"></polyline>
-        </svg>
+
+  <!-- TOP HEADER -->
+  <header class="wizard-header">
+    <a href="/structured_forms" class="header-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-leaf"></i>
       </div>
-      <div class="brand-text">
-        <span class="brand-title">Krushi Vikas</span>
-        <span class="brand-subtitle">Village Profile & Baseline Assessment</span>
+      <div class="brand-info">
+        <span class="brand-name">Krushi Vikas</span>
+        <span class="brand-sub">Village Profile & Needs Assessment</span>
       </div>
+    </a>
+    <div class="header-breadcrumbs">
+      <a href="/structured_forms">Structured Forms</a>
+      <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+      <span class="crumb-current">Village Profile Form</span>
     </div>
     <div class="header-actions">
-      <a href="/dashboard" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 14px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        Dashboard
+      <a href="/structured_forms" class="btn-header-outline">
+        <i class="fa-solid fa-arrow-left"></i> Forms Hub
       </a>
-      <a href="/app/village-profile" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 14px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-        Desk View
+      <a href="/projects" class="btn-header-outline">
+        <i class="fa-solid fa-diagram-project"></i> Projects
+      </a>
+      <a href="/app/village-profile" class="btn-header-primary">
+        <i class="fa-solid fa-table-cells"></i> Open Desk
       </a>
     </div>
   </header>
 
-  <!-- Main Container -->
+  <!-- MAIN WIZARD LAYOUT -->
   <main class="wizard-container">
-    <!-- Stepper Sidebar -->
-    <aside class="stepper-sidebar">
-      <div class="stepper-header">
-        <div class="badge-village">Phase 2: Feasibility & Baseline</div>
-        <h2>Village Profile Setup</h2>
-        <p>Comprehensive demographic, landholding, water resources and infrastructure assessment.</p>
+    
+    <!-- LEFT SIDEBAR STEPPER -->
+    <aside class="wizard-sidebar">
+      <div class="stepper-card">
+        <div class="stepper-header">
+          <span class="stepper-phase-pill"><i class="fa-solid fa-map-location-dot"></i> Baseline Module</span>
+          <h2 class="stepper-title">Village Profile Setup</h2>
+          <p class="stepper-desc">Comprehensive demographic, landholding, water resources and infrastructure assessment.</p>
+        </div>
+
+        <nav class="stepper-nav">
+          <div class="step-nav-item active" id="stepNavItem1" onclick="window.VillageWizard.goToStep(1)">
+            <div class="step-icon-badge" id="stepBadge1">1</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Location & Demographics</span>
+              <span class="step-nav-sub">Admin details & population</span>
+            </div>
+          </div>
+
+          <div class="step-nav-item" id="stepNavItem2" onclick="window.VillageWizard.goToStep(2)">
+            <div class="step-icon-badge" id="stepBadge2">2</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Land & Agriculture</span>
+              <span class="step-nav-sub">Acreage, crops & soil type</span>
+            </div>
+          </div>
+
+          <div class="step-nav-item" id="stepNavItem3" onclick="window.VillageWizard.goToStep(3)">
+            <div class="step-icon-badge" id="stepBadge3">3</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Water & Infrastructure</span>
+              <span class="step-nav-sub">Watershed, scarcity & SHGs</span>
+            </div>
+          </div>
+
+          <div class="step-nav-item" id="stepNavItem4" onclick="window.VillageWizard.goToStep(4)">
+            <div class="step-icon-badge" id="stepBadge4">4</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Needs & Review</span>
+              <span class="step-nav-sub">Priorities & submission</span>
+            </div>
+          </div>
+        </nav>
       </div>
 
-      <nav class="stepper-nav" aria-label="Survey Steps">
-        <div class="step-item active" data-step="1" id="nav-step-1">
-          <div class="step-indicator">
-            <span class="step-number">1</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Location & Demographics</span>
-            <span class="step-desc">Admin details & population</span>
-          </div>
+      <div class="sidebar-help-card">
+        <i class="fa-solid fa-lightbulb"></i>
+        <div>
+          <div class="sidebar-help-title">Survey Tip</div>
+          <div class="sidebar-help-desc">This village profile establishes the pre-intervention baseline for watershed impact calculations and resource planning.</div>
         </div>
-
-        <div class="step-item" data-step="2" id="nav-step-2">
-          <div class="step-indicator">
-            <span class="step-number">2</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Land & Agriculture</span>
-            <span class="step-desc">Acreage, crops & soil type</span>
-          </div>
-        </div>
-
-        <div class="step-item" data-step="3" id="nav-step-3">
-          <div class="step-indicator">
-            <span class="step-number">3</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Water & Infrastructure</span>
-            <span class="step-desc">Watershed, water scarcity & SHGs</span>
-          </div>
-        </div>
-
-        <div class="step-item" data-step="4" id="nav-step-4">
-          <div class="step-indicator">
-            <span class="step-number">4</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Needs & Review</span>
-            <span class="step-desc">Priorities & submission</span>
-          </div>
-        </div>
-      </nav>
-
-      <div class="stepper-footer-box">
-        <div class="info-icon">💡</div>
-        <p>This village profile establishes the pre-intervention baseline for watershed impact calculations.</p>
       </div>
     </aside>
 
-    <!-- Wizard Form Area -->
-    <section class="wizard-content">
-      <form id="villageProfileForm" novalidate>
-        
+    <!-- RIGHT MAIN FORM PANEL -->
+    <section class="wizard-main">
+      <form id="villageProfileForm" onsubmit="return false;" novalidate>
+
         <!-- STEP 1: Location & Demographics -->
-        <div class="form-step active" id="step-1">
-          <div class="step-header">
-            <span class="step-badge">Step 1 of 4</span>
-            <h1>Village Identification & Demographics</h1>
-            <p>Enter the administrative location and census/household demographics.</p>
+        <div class="wizard-step-panel active" id="stepPanel1">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 1 of 4</span>
+            <h1 class="step-heading">Village Identification & Demographics</h1>
+            <p class="step-subheading">Enter the administrative location and census/household demographics.</p>
           </div>
 
           <div class="form-card">
-            <h3 class="card-section-title">A. Administrative Location</h3>
+            <h3 class="form-section-title"><i class="fa-solid fa-location-dot"></i> Administrative Location</h3>
             
-            <div class="form-grid">
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="village_name" class="required">Village Name</label>
-                <input type="text" id="village_name" name="village_name" class="form-control" placeholder="e.g. Rampur / Sonapur" required>
-                <span class="error-msg" id="err-village_name"></span>
+                <label class="form-label">Village Name <span class="req">*</span></label>
+                <input type="text" id="village_name" name="village_name" class="form-control" placeholder="e.g. Rampur" required>
               </div>
 
               <div class="form-group">
-                <label for="village_code">Census / Revenue Code</label>
+                <label class="form-label">Census / Revenue Code</label>
                 <input type="text" id="village_code" name="village_code" class="form-control" placeholder="e.g. MH-AKL-0045">
               </div>
 
               <div class="form-group">
-                <label for="gram_panchayat" class="required">Gram Panchayat</label>
-                <input type="text" id="gram_panchayat" name="gram_panchayat" class="form-control" placeholder="e.g. Rampur Gram Panchayat" required>
-                <span class="error-msg" id="err-gram_panchayat"></span>
+                <label class="form-label">Gram Panchayat</label>
+                <input type="text" id="gram_panchayat" name="gram_panchayat" class="form-control" placeholder="e.g. Rampur Gram Panchayat">
               </div>
+            </div>
 
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="block_taluka" class="required">Block / Taluka</label>
-                <select id="block_taluka" name="block_taluka" class="form-control" required>
+                <label class="form-label">Taluka / Block <span class="req">*</span></label>
+                <select id="block_taluka" name="block_taluka" class="form-select" required>
                   <option value="">Select Taluka...</option>
                   {% for t in options.talukas %}
                   <option value="{{ t }}">{{ t }}</option>
                   {% endfor %}
                 </select>
-                <span class="error-msg" id="err-block_taluka"></span>
               </div>
 
               <div class="form-group">
-                <label for="district" class="required">District</label>
-                <select id="district" name="district" class="form-control" required>
+                <label class="form-label">District <span class="req">*</span></label>
+                <select id="district" name="district" class="form-select" required>
                   <option value="">Select District...</option>
                   {% for d in options.districts %}
-                  <option value="{{ d }}">{{ d }}</option>
+                  <option value="{{ d }}" {% if d == 'Akola' %}selected{% endif %}>{{ d }}</option>
                   {% endfor %}
                 </select>
-                <span class="error-msg" id="err-district"></span>
               </div>
 
               <div class="form-group">
-                <label for="pincode">PIN Code</label>
-                <input type="text" id="pincode" name="pincode" class="form-control" placeholder="e.g. 444101" maxlength="6">
+                <label class="form-label">State</label>
+                <input type="text" id="state" name="state" class="form-control" value="Maharashtra">
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Pincode</label>
+                <input type="text" id="pincode" name="pincode" class="form-control" placeholder="e.g. 444001" maxlength="6">
               </div>
 
               <div class="form-group">
-                <label for="field_officer">Field Officer / Surveyor</label>
-                <select id="field_officer" name="field_officer" class="form-control">
+                <label class="form-label">Field Officer / Facilitator</label>
+                <select id="field_officer" name="field_officer" class="form-select">
                   {% for fo in options.field_officers %}
                   <option value="{{ fo.name }}">{{ fo.full_name }}</option>
                   {% endfor %}
@@ -227,397 +175,459 @@
               </div>
 
               <div class="form-group">
-                <label for="project">Linked Project (Optional)</label>
-                <select id="project" name="project" class="form-control">
-                  <option value="">-- Direct Village Baseline (No Project) --</option>
+                <label class="form-label">Linked Project</label>
+                <select id="project" name="project" class="form-select">
+                  <option value="">None (General Baseline)</option>
                   {% for p in options.projects %}
                   <option value="{{ p.name }}">{{ p.title }}</option>
                   {% endfor %}
                 </select>
               </div>
+            </div>
 
+            <div class="form-grid-2">
               <div class="form-group">
-                <label for="date_of_survey" class="required">Date of Survey</label>
-                <input type="date" id="date_of_survey" name="date_of_survey" class="form-control" value="{{ today_date }}" max="{{ today_date }}" required>
-                <span class="error-msg" id="err-date_of_survey"></span>
+                <label class="form-label">Date of Survey <span class="req">*</span></label>
+                <input type="date" id="date_of_survey" name="date_of_survey" class="form-control" value="{{ today_date }}" required>
               </div>
 
               <div class="form-group">
-                <label for="geo_coordinates">GPS Coordinates (Lat, Long)</label>
+                <label class="form-label">GPS Coordinates</label>
                 <input type="text" id="geo_coordinates" name="geo_coordinates" class="form-control" placeholder="e.g. 20.7002° N, 77.0082° E">
               </div>
             </div>
+          </div>
 
-            <h3 class="card-section-title" style="margin-top: 24px;">B. Population & Social Demographics</h3>
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-users"></i> Population & Social Demographics</h3>
             
-            <div class="form-grid">
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="total_population" class="required">Total Population</label>
-                <input type="number" id="total_population" name="total_population" class="form-control" placeholder="e.g. 1450" min="1" required>
-                <span class="error-msg" id="err-total_population"></span>
+                <label class="form-label">Total Population <span class="req">*</span></label>
+                <input type="number" id="total_population" name="total_population" class="form-control" placeholder="e.g. 1450" min="0" required>
               </div>
 
               <div class="form-group">
-                <label for="total_households" class="required">Total Households</label>
-                <input type="number" id="total_households" name="total_households" class="form-control" placeholder="e.g. 280" min="1" required>
-                <span class="error-msg" id="err-total_households"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="male_population">Male Population</label>
+                <label class="form-label">Male Population</label>
                 <input type="number" id="male_population" name="male_population" class="form-control" placeholder="e.g. 740" min="0">
               </div>
 
               <div class="form-group">
-                <label for="female_population">Female Population</label>
+                <label class="form-label">Female Population</label>
                 <input type="number" id="female_population" name="female_population" class="form-control" placeholder="e.g. 710" min="0">
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Total Households <span class="req">*</span></label>
+                <input type="number" id="total_households" name="total_households" class="form-control" placeholder="e.g. 280" min="0" required>
               </div>
 
               <div class="form-group">
-                <label for="sc_households">SC Households</label>
+                <label class="form-label">SC Households</label>
                 <input type="number" id="sc_households" name="sc_households" class="form-control" placeholder="e.g. 45" min="0">
               </div>
 
               <div class="form-group">
-                <label for="st_households">ST Households</label>
-                <input type="number" id="st_households" name="st_households" class="form-control" placeholder="e.g. 30" min="0">
+                <label class="form-label">ST Households</label>
+                <input type="number" id="st_households" name="st_households" class="form-control" placeholder="e.g. 20" min="0">
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">OBC / General Households</label>
+                <input type="number" id="obc_general_households" name="obc_general_households" class="form-control" placeholder="e.g. 215" min="0">
               </div>
 
               <div class="form-group">
-                <label for="bpl_households">BPL Households</label>
-                <input type="number" id="bpl_households" name="bpl_households" class="form-control" placeholder="e.g. 85" min="0">
+                <label class="form-label">BPL Households</label>
+                <input type="number" id="bpl_households" name="bpl_households" class="form-control" placeholder="e.g. 90" min="0">
               </div>
 
               <div class="form-group">
-                <label for="female_headed_households">Female Headed Households</label>
+                <label class="form-label">Female-Headed Households</label>
                 <input type="number" id="female_headed_households" name="female_headed_households" class="form-control" placeholder="e.g. 18" min="0">
               </div>
+            </div>
 
+            <div class="form-grid-2">
               <div class="form-group">
-                <label for="literacy_rate_pct">Estimated Literacy Rate (%)</label>
-                <input type="number" id="literacy_rate_pct" name="literacy_rate_pct" class="form-control" placeholder="e.g. 74.5" min="0" max="100" step="0.1">
+                <label class="form-label">Literacy Rate (%)</label>
+                <div class="input-with-addon">
+                  <input type="number" id="literacy_rate_pct" name="literacy_rate_pct" class="form-control" placeholder="e.g. 78.5" min="0" max="100" step="0.1">
+                  <span class="input-addon">%</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="wizard-buttons">
+          <div class="wizard-footer-nav">
             <div></div>
-            <button type="button" class="btn btn-primary" onclick="window.VillageWizard.goToStep(2)">
-              Next: Land & Agriculture →
+            <button type="button" class="btn-wizard-next" onclick="window.VillageWizard.goToStep(2)">
+              Next: Land & Agriculture <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
 
-        <!-- STEP 2: Landholding & Agricultural Profile -->
-        <div class="form-step" id="step-2">
-          <div class="step-header">
-            <span class="step-badge">Step 2 of 4</span>
-            <h1>Landholding & Cropping Profile</h1>
-            <p>Record the village land distribution, farming categories, and seasonal crops.</p>
+        <!-- STEP 2: Land & Agriculture -->
+        <div class="wizard-step-panel" id="stepPanel2">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 2 of 4</span>
+            <h1 class="step-heading">Landholding, Soil & Agriculture</h1>
+            <p class="step-subheading">Acreage breakdown, farmer classification, soil characteristics, and major crops.</p>
           </div>
 
           <div class="form-card">
-            <h3 class="card-section-title">A. Land Area Distribution (Hectares)</h3>
+            <h3 class="form-section-title"><i class="fa-solid fa-chart-pie"></i> Land Area Breakdown (Hectares)</h3>
             
-            <div class="form-grid">
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="total_geographical_area_ha" class="required">Total Geographical Area (Ha)</label>
-                <input type="number" id="total_geographical_area_ha" name="total_geographical_area_ha" class="form-control" placeholder="e.g. 520.0" min="0.1" step="0.1" required>
-                <span class="error-msg" id="err-total_geographical_area_ha"></span>
+                <label class="form-label">Total Geographical Area <span class="req">*</span></label>
+                <div class="input-with-addon">
+                  <input type="number" id="total_geographical_area_ha" name="total_geographical_area_ha" class="form-control" placeholder="e.g. 650.0" min="0" step="0.1" required>
+                  <span class="input-addon">Ha</span>
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="cultivable_land_ha" class="required">Total Cultivable Land (Ha)</label>
-                <input type="number" id="cultivable_land_ha" name="cultivable_land_ha" class="form-control" placeholder="e.g. 420.0" min="0.1" step="0.1" required>
-                <span class="error-msg" id="err-cultivable_land_ha"></span>
+                <label class="form-label">Cultivable Land <span class="req">*</span></label>
+                <div class="input-with-addon">
+                  <input type="number" id="cultivable_land_ha" name="cultivable_land_ha" class="form-control" placeholder="e.g. 520.0" min="0" step="0.1" required>
+                  <span class="input-addon">Ha</span>
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="irrigated_area_ha">Net Irrigated Land (Ha)</label>
-                <input type="number" id="irrigated_area_ha" name="irrigated_area_ha" class="form-control" placeholder="e.g. 130.0" min="0" step="0.1">
+                <label class="form-label">Irrigated Land</label>
+                <div class="input-with-addon">
+                  <input type="number" id="irrigated_area_ha" name="irrigated_area_ha" class="form-control" placeholder="e.g. 180.0" min="0" step="0.1">
+                  <span class="input-addon">Ha</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Rainfed / Dryland Area</label>
+                <div class="input-with-addon">
+                  <input type="number" id="rainfed_area_ha" name="rainfed_area_ha" class="form-control" placeholder="e.g. 340.0" min="0" step="0.1">
+                  <span class="input-addon">Ha</span>
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="rainfed_area_ha">Rainfed / Dryland Area (Ha)</label>
-                <input type="number" id="rainfed_area_ha" name="rainfed_area_ha" class="form-control" placeholder="e.g. 290.0" min="0" step="0.1">
+                <label class="form-label">Forest / Wasteland Area</label>
+                <div class="input-with-addon">
+                  <input type="number" id="forest_wasteland_ha" name="forest_wasteland_ha" class="form-control" placeholder="e.g. 130.0" min="0" step="0.1">
+                  <span class="input-addon">Ha</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-wheat-awn"></i> Farmer Landholding Distribution</h3>
+            
+            <div class="form-grid-4">
+              <div class="form-group">
+                <label class="form-label">Marginal (< 1 Ha)</label>
+                <input type="number" id="marginal_farmers_count" name="marginal_farmers_count" class="form-control" placeholder="e.g. 110" min="0">
               </div>
 
               <div class="form-group">
-                <label for="forest_wasteland_ha">Forest / Common / Waste Land (Ha)</label>
-                <input type="number" id="forest_wasteland_ha" name="forest_wasteland_ha" class="form-control" placeholder="e.g. 100.0" min="0" step="0.1">
+                <label class="form-label">Small (1 - 2 Ha)</label>
+                <input type="number" id="small_farmers_count" name="small_farmers_count" class="form-control" placeholder="e.g. 85" min="0">
               </div>
 
               <div class="form-group">
-                <label for="soil_type">Dominant Soil Type</label>
-                <select id="soil_type" name="soil_type" class="form-control">
+                <label class="form-label">Medium & Large (> 2 Ha)</label>
+                <input type="number" id="medium_large_farmers_count" name="medium_large_farmers_count" class="form-control" placeholder="e.g. 45" min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Landless Households</label>
+                <input type="number" id="landless_households_count" name="landless_households_count" class="form-control" placeholder="e.g. 40" min="0">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-seedling"></i> Soil & Cropping Patterns</h3>
+            
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Dominant Soil Type</label>
+                <select id="soil_type" name="soil_type" class="form-select">
                   {% for st in options.soil_types %}
                   <option value="{{ st }}">{{ st }}</option>
                   {% endfor %}
                 </select>
               </div>
-            </div>
-
-            <h3 class="card-section-title" style="margin-top: 24px;">B. Farmer Demographics</h3>
-            
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="marginal_farmers_count">Marginal Farmers (&lt; 1 Ha)</label>
-                <input type="number" id="marginal_farmers_count" name="marginal_farmers_count" class="form-control" placeholder="e.g. 95" min="0">
-              </div>
 
               <div class="form-group">
-                <label for="small_farmers_count">Small Farmers (1 - 2 Ha)</label>
-                <input type="number" id="small_farmers_count" name="small_farmers_count" class="form-control" placeholder="e.g. 80" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="medium_large_farmers_count">Medium & Large Farmers (&gt; 2 Ha)</label>
-                <input type="number" id="medium_large_farmers_count" name="medium_large_farmers_count" class="form-control" placeholder="e.g. 45" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="landless_households_count">Landless Agri Labourers</label>
-                <input type="number" id="landless_households_count" name="landless_households_count" class="form-control" placeholder="e.g. 60" min="0">
+                <label class="form-label">Major Kharif Crops</label>
+                <input type="text" id="major_crops_kharif" name="major_crops_kharif" class="form-control" placeholder="e.g. Cotton, Soybean, Tur, Maize">
               </div>
             </div>
 
-            <h3 class="card-section-title" style="margin-top: 24px;">C. Cropping Patterns</h3>
-            
-            <div class="form-grid">
-              <div class="form-group full-width">
-                <label for="major_crops_kharif">Major Kharif Crops</label>
-                <input type="text" id="major_crops_kharif" name="major_crops_kharif" class="form-control" value="Soybean, Cotton, Tur (Pigeonpea), Green Gram" placeholder="e.g. Soybean, Cotton, Tur">
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Major Rabi Crops</label>
+                <input type="text" id="major_crops_rabi" name="major_crops_rabi" class="form-control" placeholder="e.g. Wheat, Gram, Jowar">
               </div>
 
-              <div class="form-group full-width">
-                <label for="major_crops_rabi">Major Rabi Crops</label>
-                <input type="text" id="major_crops_rabi" name="major_crops_rabi" class="form-control" value="Wheat, Gram (Chickpea), Jowar" placeholder="e.g. Wheat, Gram">
-              </div>
-
-              <div class="form-group full-width">
-                <label for="horticulture_crops">Horticulture / Cash Crops</label>
-                <input type="text" id="horticulture_crops" name="horticulture_crops" class="form-control" value="Vegetables, Sweet Orange (Mosambi), Pomegranate" placeholder="e.g. Vegetables, Mosambi">
+              <div class="form-group">
+                <label class="form-label">Horticulture / Cash Crops</label>
+                <input type="text" id="horticulture_crops" name="horticulture_crops" class="form-control" placeholder="e.g. Orange, Banana, Pomegranate">
               </div>
             </div>
           </div>
 
-          <div class="wizard-buttons">
-            <button type="button" class="btn btn-secondary" onclick="window.VillageWizard.goToStep(1)">
-              ← Back
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-prev" onclick="window.VillageWizard.goToStep(1)">
+              <i class="fa-solid fa-arrow-left"></i> Back to Step 1
             </button>
-            <button type="button" class="btn btn-primary" onclick="window.VillageWizard.goToStep(3)">
-              Next: Water & Infrastructure →
+            <button type="button" class="btn-wizard-next" onclick="window.VillageWizard.goToStep(3)">
+              Next: Water & Infrastructure <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
 
-        <!-- STEP 3: Water Resources & Community Infrastructure -->
-        <div class="form-step" id="step-3">
-          <div class="step-header">
-            <span class="step-badge">Step 3 of 4</span>
-            <h1>Water Resources & Community Institutions</h1>
-            <p>Document water bodies, summer scarcity levels, and local village institutions.</p>
+        <!-- STEP 3: Water & Infrastructure -->
+        <div class="wizard-step-panel" id="stepPanel3">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 3 of 4</span>
+            <h1 class="step-heading">Water Resources & Community Infrastructure</h1>
+            <p class="step-subheading">Watershed status, water structures, SHG/FPO institutions, and village amenities.</p>
           </div>
 
           <div class="form-card">
-            <h3 class="card-section-title">A. Water Resources & Scarcity Assessment</h3>
+            <h3 class="form-section-title"><i class="fa-solid fa-droplet"></i> Watershed & Water Resources</h3>
             
-            <div class="form-grid">
+            <div class="form-grid-2">
               <div class="form-group">
-                <label for="watershed_name">Watershed / Drainage Basin Name</label>
-                <input type="text" id="watershed_name" name="watershed_name" class="form-control" placeholder="e.g. Manjara Sub-basin Watershed">
+                <label class="form-label">Watershed Basin / Stream Name</label>
+                <input type="text" id="watershed_name" name="watershed_name" class="form-control" placeholder="e.g. Purna River Sub-basin">
               </div>
 
               <div class="form-group">
-                <label for="primary_drinking_water_source">Primary Drinking Water Source</label>
-                <select id="primary_drinking_water_source" name="primary_drinking_water_source" class="form-control">
+                <label class="form-label">Primary Drinking Water Source</label>
+                <select id="primary_drinking_water_source" name="primary_drinking_water_source" class="form-select">
                   {% for ws in options.drinking_water_sources %}
                   <option value="{{ ws }}">{{ ws }}</option>
                   {% endfor %}
                 </select>
               </div>
+            </div>
 
+            <div class="form-grid-2">
               <div class="form-group">
-                <label for="summer_water_scarcity_status" class="required">Summer Water Scarcity Severity</label>
-                <select id="summer_water_scarcity_status" name="summer_water_scarcity_status" class="form-control" required>
+                <label class="form-label">Summer Water Scarcity Status</label>
+                <select id="summer_water_scarcity_status" name="summer_water_scarcity_status" class="form-select">
                   {% for sc in options.water_scarcity_levels %}
-                  <option value="{{ sc }}" {% if sc == 'Moderate Scarcity' %}selected{% endif %}>{{ sc }}</option>
+                  <option value="{{ sc }}">{{ sc }}</option>
                   {% endfor %}
                 </select>
-                <span class="error-msg" id="err-summer_water_scarcity_status"></span>
               </div>
 
               <div class="form-group">
-                <label for="primary_irrigation_practice">Dominant Irrigation Method</label>
-                <select id="primary_irrigation_practice" name="primary_irrigation_practice" class="form-control">
+                <label class="form-label">Primary Irrigation Practice</label>
+                <select id="primary_irrigation_practice" name="primary_irrigation_practice" class="form-select">
                   {% for ip in options.irrigation_practices %}
-                  <option value="{{ ip }}" {% if ip == 'Mixed' %}selected{% endif %}>{{ ip }}</option>
+                  <option value="{{ ip }}">{{ ip }}</option>
                   {% endfor %}
                 </select>
-              </div>
-
-              <div class="form-group">
-                <label for="open_wells_count">Open Agricultural Wells Count</label>
-                <input type="number" id="open_wells_count" name="open_wells_count" class="form-control" placeholder="e.g. 42" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="borewells_count">Borewells Count</label>
-                <input type="number" id="borewells_count" name="borewells_count" class="form-control" placeholder="e.g. 68" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="check_dams_count">Check Dams / Nalla Bunds Count</label>
-                <input type="number" id="check_dams_count" name="check_dams_count" class="form-control" placeholder="e.g. 3" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="farm_ponds_count">Existing Farm Ponds Count</label>
-                <input type="number" id="farm_ponds_count" name="farm_ponds_count" class="form-control" placeholder="e.g. 12" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="percolation_tanks_count">Percolation Tanks / KT Weirs</label>
-                <input type="number" id="percolation_tanks_count" name="percolation_tanks_count" class="form-control" placeholder="e.g. 1" min="0">
-              </div>
-            </div>
-
-            <h3 class="card-section-title" style="margin-top: 24px;">B. Community Institutions & Infrastructure</h3>
-            
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="total_shgs_count">Women SHGs (Self Help Groups)</label>
-                <input type="number" id="total_shgs_count" name="total_shgs_count" class="form-control" placeholder="e.g. 14" min="0">
-              </div>
-
-              <div class="form-group">
-                <label for="active_fpos_count">Active FPOs / FPCs</label>
-                <input type="number" id="active_fpos_count" name="active_fpos_count" class="form-control" placeholder="e.g. 1" min="0">
-              </div>
-
-              <div class="form-group full-width">
-                <label for="fpo_name">FPO / Cooperative Name</label>
-                <input type="text" id="fpo_name" name="fpo_name" class="form-control" placeholder="e.g. Krushi Vikas Farmer Producer Co. Ltd.">
-              </div>
-            </div>
-
-            <div style="margin-top: 16px;">
-              <label style="font-weight: 600; font-size: 0.9rem; color: #1e293b; display: block; margin-bottom: 8px;">Available Village Amenities & Facilities</label>
-              <div class="check-grid">
-                <div class="check-card">
-                  <input type="checkbox" id="has_primary_school" name="has_primary_school" checked>
-                  <label for="has_primary_school">Primary / ZP School</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="has_secondary_school" name="has_secondary_school">
-                  <label for="has_secondary_school">High / Secondary School</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="has_primary_health_center" name="has_primary_health_center">
-                  <label for="has_primary_health_center">PHC / Health Sub-Center</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="has_veterinary_clinic" name="has_veterinary_clinic">
-                  <label for="has_veterinary_clinic">Veterinary Clinic</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="has_milk_chilling_center" name="has_milk_chilling_center">
-                  <label for="has_milk_chilling_center">Milk Collection Center</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="has_custom_hiring_center" name="has_custom_hiring_center">
-                  <label for="has_custom_hiring_center">Custom Hiring Center (CHC)</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="has_bank_csc" name="has_bank_csc" checked>
-                  <label for="has_bank_csc">Bank Branch / CSC Point</label>
-                </div>
-                <div class="check-card">
-                  <input type="checkbox" id="all_weather_road_connectivity" name="all_weather_road_connectivity" checked>
-                  <label for="all_weather_road_connectivity">All-Weather Pucca Road</label>
-                </div>
               </div>
             </div>
           </div>
 
-          <div class="wizard-buttons">
-            <button type="button" class="btn btn-secondary" onclick="window.VillageWizard.goToStep(2)">
-              ← Back
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-faucet-drip"></i> Water Structures Inventory (Count)</h3>
+            
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Open Wells</label>
+                <input type="number" id="open_wells_count" name="open_wells_count" class="form-control" placeholder="e.g. 35" min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Borewells / Tube Wells</label>
+                <input type="number" id="borewells_count" name="borewells_count" class="form-control" placeholder="e.g. 50" min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Check Dams / CNB</label>
+                <input type="number" id="check_dams_count" name="check_dams_count" class="form-control" placeholder="e.g. 4" min="0">
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Farm Ponds (Shet Tale)</label>
+                <input type="number" id="farm_ponds_count" name="farm_ponds_count" class="form-control" placeholder="e.g. 8" min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Percolation Tanks / KT Weirs</label>
+                <input type="number" id="percolation_tanks_count" name="percolation_tanks_count" class="form-control" placeholder="e.g. 2" min="0">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-people-roof"></i> Community Collectives (SHGs & FPOs)</h3>
+            
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Women SHGs Count</label>
+                <input type="number" id="total_shgs_count" name="total_shgs_count" class="form-control" placeholder="e.g. 12" min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Active FPOs Count</label>
+                <input type="number" id="active_fpos_count" name="active_fpos_count" class="form-control" placeholder="e.g. 1" min="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">FPO Name (if applicable)</label>
+                <input type="text" id="fpo_name" name="fpo_name" class="form-control" placeholder="e.g. Akot Farmer Producer Co.">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-building-columns"></i> Village Infrastructure & Amenities</h3>
+            
+            <div class="amenities-grid">
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_primary_school" name="has_primary_school" value="1">
+                <span class="amenity-label">Primary School (Z.P.)</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_secondary_school" name="has_secondary_school" value="1">
+                <span class="amenity-label">Secondary / High School</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_primary_health_center" name="has_primary_health_center" value="1">
+                <span class="amenity-label">Primary Health Center / Sub-Center</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_veterinary_clinic" name="has_veterinary_clinic" value="1">
+                <span class="amenity-label">Veterinary Dispensary / AI Center</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_milk_chilling_center" name="has_milk_chilling_center" value="1">
+                <span class="amenity-label">Milk Collection / Chilling Center</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_custom_hiring_center" name="has_custom_hiring_center" value="1">
+                <span class="amenity-label">Custom Hiring Center (Farm Machinery)</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="has_bank_csc" name="has_bank_csc" value="1">
+                <span class="amenity-label">Bank Branch / CSC Digital Seva</span>
+              </label>
+
+              <label class="amenity-checkbox-card">
+                <input type="checkbox" id="all_weather_road_connectivity" name="all_weather_road_connectivity" value="1">
+                <span class="amenity-label">All-Weather Tar Road Connectivity</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-prev" onclick="window.VillageWizard.goToStep(2)">
+              <i class="fa-solid fa-arrow-left"></i> Back to Step 2
             </button>
-            <button type="button" class="btn btn-primary" onclick="window.VillageWizard.goToStep(4)">
-              Next: Needs Assessment & Review →
+            <button type="button" class="btn-wizard-next" onclick="window.VillageWizard.goToStep(4)">
+              Next: Needs Assessment & Review <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
 
         <!-- STEP 4: Needs Assessment & Review -->
-        <div class="form-step" id="step-4">
-          <div class="step-header">
-            <span class="step-badge">Step 4 of 4</span>
-            <h1>Needs Assessment & Final Review</h1>
-            <p>Review village baseline summary and record prioritized PRA interventions.</p>
+        <div class="wizard-step-panel" id="stepPanel4">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 4 of 4</span>
+            <h1 class="step-heading">Needs Assessment & Final Review</h1>
+            <p class="step-subheading">Key development priorities and summary verification before submission.</p>
           </div>
 
           <div class="form-card">
-            <h3 class="card-section-title">A. Participatory Rural Appraisal (PRA) & Priorities</h3>
+            <h3 class="form-section-title"><i class="fa-solid fa-list-check"></i> Village Development Priorities</h3>
             
-            <div class="form-grid">
-              <div class="form-group full-width">
-                <label for="key_development_priorities">Key Village Development Priorities</label>
-                <textarea id="key_development_priorities" name="key_development_priorities" class="form-control" rows="2" placeholder="e.g. Deepening of main nalla stream, establishing drip irrigation on small plots, forming farmer producer groups."></textarea>
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="form-label">Key Village Priorities & Gaps</label>
+              <textarea id="key_development_priorities" name="key_development_priorities" class="form-textarea" placeholder="e.g. Desilting of community check dam, drip irrigation adoption on cotton, drinking water pipeline extension..."></textarea>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Proposed Soil & Water Interventions</label>
+                <textarea id="water_conservation_interventions" name="water_conservation_interventions" class="form-textarea" placeholder="e.g. 5 Continuous Contour Trenches, 2 Cement Nala Bund repairs..."></textarea>
               </div>
 
-              <div class="form-group full-width">
-                <label for="water_conservation_interventions">Proposed Water Conservation & Watershed Treatments</label>
-                <textarea id="water_conservation_interventions" name="water_conservation_interventions" class="form-control" rows="2" placeholder="e.g. 2 Cement Nalla Bunds, 15 Farm Ponds, Continuous Contour Trenches on upper ridge."></textarea>
-              </div>
-
-              <div class="form-group full-width">
-                <label for="livelihood_interventions">Proposed Farm & Non-Farm Livelihood Interventions</label>
-                <textarea id="livelihood_interventions" name="livelihood_interventions" class="form-control" rows="2" placeholder="e.g. Kitchen garden kits for 50 women SHG members, organic bio-input training."></textarea>
-              </div>
-
-              <div class="form-group full-width">
-                <label for="surveyor_observations">Surveyor / Field Team Observations</label>
-                <textarea id="surveyor_observations" name="surveyor_observations" class="form-control" rows="2" placeholder="e.g. Gram Panchayat is very cooperative; strong potential for women-led dairy cooperative."></textarea>
+              <div class="form-group">
+                <label class="form-label">Proposed Livelihood Interventions</label>
+                <textarea id="livelihood_interventions" name="livelihood_interventions" class="form-textarea" placeholder="e.g. Goat rearing training for 20 landless women, kitchen garden kits..."></textarea>
               </div>
             </div>
 
-            <!-- Review Summary Cards -->
-            <h3 class="card-section-title" style="margin-top: 24px;">B. Profile Summary Review</h3>
-            <div id="reviewCardsContainer" class="review-container">
-              <!-- Dynamically rendered by JS -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Surveyor / Facilitator Observations</label>
+              <textarea id="surveyor_observations" name="surveyor_observations" class="form-textarea" placeholder="Any special observations or social dynamics noted during Gram Sabha..."></textarea>
             </div>
           </div>
 
-          <div class="wizard-buttons">
-            <button type="button" class="btn btn-secondary" onclick="window.VillageWizard.goToStep(3)">
-              ← Back
+          <!-- Review Cards Container -->
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-magnifying-glass"></i> Summary Verification</h3>
+            <div id="villageReviewGrid" class="review-grid">
+              <!-- Dynamically populated by village_profile.js -->
+            </div>
+
+            <div class="consent-card">
+              <label class="consent-label">
+                <input type="checkbox" id="confirmation_consent" name="confirmation_consent" required>
+                <span><strong>Verification Statement:</strong> I hereby certify that the demographic, landholding, water resources, and infrastructure details recorded in this profile were collected and verified with local Gram Panchayat representatives.</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-prev" onclick="window.VillageWizard.goToStep(3)">
+              <i class="fa-solid fa-arrow-left"></i> Back to Step 3
             </button>
-            <button type="button" id="submitBtn" class="btn btn-submit" onclick="window.VillageWizard.submitForm()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              Save & Create Village Profile
+            <button type="button" id="submitBtn" class="btn-wizard-submit" onclick="window.VillageWizard.submitForm()">
+              <i class="fa-solid fa-check"></i> Save & Register Village Profile
             </button>
           </div>
         </div>
 
       </form>
 
-      <!-- Success Card -->
-      <div class="success-card" id="successCard" style="display: none;">
-        <div class="success-icon">✓</div>
-        <h2 id="successTitle">Village Profile Created!</h2>
-        <p id="successMsg">The village baseline profile has been saved and registered successfully in the system.</p>
-        
+      <!-- SUCCESS CONFIRMATION SCREEN -->
+      <div class="success-screen" id="successScreen">
+        <div class="success-icon-wrap">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h2 class="success-title" id="successTitle">Village Profile Created!</h2>
+        <p class="success-desc" id="successMsg">The village baseline record has been successfully registered and verified in the database.</p>
+        <div class="success-ref-pill" id="successRefPill">Profile Code: VP-2026-0001</div>
         <div class="success-actions">
-          <button type="button" class="btn btn-primary" onclick="window.location.reload()">
-            Create Another Village Profile
+          <button type="button" class="btn-header-outline" onclick="window.location.reload()">
+            <i class="fa-solid fa-plus"></i> Create Another Profile
           </button>
-          <a href="/dashboard" class="btn btn-secondary">
-            Go to Dashboard
-          </a>
-          <a href="/app/village-profile" class="btn btn-secondary">
-            View in Desk
+          <a href="/structured_forms" class="btn-header-primary">
+            <i class="fa-solid fa-table-list"></i> View All Forms
           </a>
         </div>
       </div>

@@ -9,23 +9,38 @@
   let currentStep = 1;
   const totalSteps = 4;
 
+  function getCsrfToken() {
+    if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+      return window.csrf_token;
+    }
+    if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+      return window.frappe.csrf_token;
+    }
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (match && match[1] && match[1] !== 'None') {
+      return decodeURIComponent(match[1]);
+    }
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content && meta.content !== 'None') {
+      return meta.content;
+    }
+    return '';
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '-';
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   window.VillageWizard = {
     init: function() {
-      this.bindEvents();
       this.setupAutoCalculations();
-    },
-
-    bindEvents: function() {
-      // Clear errors on input
-      document.querySelectorAll('input, select, textarea').forEach(el => {
-        el.addEventListener('input', function() {
-          const errEl = document.getElementById('err-' + this.id);
-          if (errEl) {
-            errEl.textContent = '';
-            el.classList.remove('is-invalid');
-          }
-        });
-      });
+      this.updateStepperUI();
     },
 
     setupAutoCalculations: function() {
@@ -36,17 +51,17 @@
       const wasteLand = document.getElementById('forest_wasteland_ha');
 
       const calcLand = function() {
-        const total = parseFloat(totalGeo.value) || 0;
-        const cult = parseFloat(cultLand.value) || 0;
-        const irri = parseFloat(irriLand.value) || 0;
+        const total = parseFloat(totalGeo ? totalGeo.value : 0) || 0;
+        const cult = parseFloat(cultLand ? cultLand.value : 0) || 0;
+        const irri = parseFloat(irriLand ? irriLand.value : 0) || 0;
 
-        if (cult > 0 && irri >= 0 && (!rainfedLand.value || rainfedLand.dataset.auto === "1")) {
+        if (cult > 0 && irri >= 0 && rainfedLand && (!rainfedLand.value || rainfedLand.dataset.auto === "1")) {
           const autoRainfed = Math.max(0, cult - irri);
           rainfedLand.value = autoRainfed.toFixed(1);
           rainfedLand.dataset.auto = "1";
         }
 
-        if (total > 0 && cult > 0 && (!wasteLand.value || wasteLand.dataset.auto === "1")) {
+        if (total > 0 && cult > 0 && wasteLand && (!wasteLand.value || wasteLand.dataset.auto === "1")) {
           const autoWaste = Math.max(0, total - cult);
           wasteLand.value = autoWaste.toFixed(1);
           wasteLand.dataset.auto = "1";
@@ -61,32 +76,17 @@
     },
 
     goToStep: function(targetStep) {
+      if (targetStep < 1 || targetStep > totalSteps) return;
+
+      // If progressing forward, validate current step
       if (targetStep > currentStep) {
         if (!this.validateStep(currentStep)) {
           return;
         }
       }
 
-      // Hide all steps
-      for (let i = 1; i <= totalSteps; i++) {
-        const stepEl = document.getElementById('step-' + i);
-        const navEl = document.getElementById('nav-step-' + i);
-        if (stepEl) stepEl.classList.remove('active');
-        if (navEl) {
-          navEl.classList.remove('active');
-          if (i < targetStep) {
-            navEl.classList.add('completed');
-          } else {
-            navEl.classList.remove('completed');
-          }
-        }
-      }
-
       currentStep = targetStep;
-      const targetEl = document.getElementById('step-' + currentStep);
-      const targetNav = document.getElementById('nav-step-' + currentStep);
-      if (targetEl) targetEl.classList.add('active');
-      if (targetNav) targetNav.classList.add('active');
+      this.updateStepperUI();
 
       if (currentStep === 4) {
         this.renderReviewSummary();
@@ -95,156 +95,184 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
-    validateStep: function(step) {
-      let isValid = true;
+    updateStepperUI: function() {
+      for (let i = 1; i <= totalSteps; i++) {
+        const panel = document.getElementById(`stepPanel${i}`);
+        const navItem = document.getElementById(`stepNavItem${i}`);
+        const badge = document.getElementById(`stepBadge${i}`);
 
-      const markError = (id, message) => {
-        const input = document.getElementById(id);
-        const err = document.getElementById('err-' + id);
-        if (input) input.classList.add('is-invalid');
-        if (err) err.textContent = message;
-        isValid = false;
-      };
-
-      if (step === 1) {
-        const village = document.getElementById('village_name').value.trim();
-        const gp = document.getElementById('gram_panchayat').value.trim();
-        const taluka = document.getElementById('block_taluka').value;
-        const district = document.getElementById('district').value;
-        const surveyDate = document.getElementById('date_of_survey').value;
-        const pop = parseInt(document.getElementById('total_population').value, 10);
-        const households = parseInt(document.getElementById('total_households').value, 10);
-
-        if (!village) markError('village_name', 'Village name is required.');
-        if (!gp) markError('gram_panchayat', 'Gram Panchayat is required.');
-        if (!taluka) markError('block_taluka', 'Please select a Block / Taluka.');
-        if (!district) markError('district', 'Please select a District.');
-        if (!surveyDate) {
-          markError('date_of_survey', 'Survey date is required.');
-        } else {
-          const today = new Date().toISOString().split('T')[0];
-          if (surveyDate > today) {
-            markError('date_of_survey', 'Survey date cannot be in the future.');
+        if (panel) {
+          if (i === currentStep) {
+            panel.classList.add('active');
+          } else {
+            panel.classList.remove('active');
           }
         }
 
-        if (isNaN(pop) || pop <= 0) {
-          markError('total_population', 'Please enter a valid total population.');
-        }
-        if (isNaN(households) || households <= 0) {
-          markError('total_households', 'Please enter a valid total household count.');
-        }
-      }
-
-      if (step === 2) {
-        const totalGeo = parseFloat(document.getElementById('total_geographical_area_ha').value);
-        const cult = parseFloat(document.getElementById('cultivable_land_ha').value);
-
-        if (isNaN(totalGeo) || totalGeo <= 0) {
-          markError('total_geographical_area_ha', 'Total geographical area is required.');
-        }
-        if (isNaN(cult) || cult <= 0) {
-          markError('cultivable_land_ha', 'Cultivable land area is required.');
-        } else if (totalGeo > 0 && cult > totalGeo) {
-          markError('cultivable_land_ha', 'Cultivable land cannot exceed total geographical area.');
+        if (navItem && badge) {
+          navItem.classList.remove('active', 'completed');
+          if (i === currentStep) {
+            navItem.classList.add('active');
+            badge.innerHTML = i;
+          } else if (i < currentStep) {
+            navItem.classList.add('completed');
+            badge.innerHTML = '<i class="fa-solid fa-check"></i>';
+          } else {
+            badge.innerHTML = i;
+          }
         }
       }
+    },
 
-      if (step === 3) {
-        const scarcity = document.getElementById('summer_water_scarcity_status').value;
-        if (!scarcity) {
-          markError('summer_water_scarcity_status', 'Please select summer water scarcity status.');
+    validateStep: function(step) {
+      let isValid = true;
+      let firstInvalidEl = null;
+
+      const markInvalid = function(id, msg) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.borderColor = '#ef4444';
+          el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.15)';
+          if (!firstInvalidEl) firstInvalidEl = el;
+          isValid = false;
         }
+      };
+
+      // Reset styles
+      document.querySelectorAll('.form-control, .form-select').forEach(el => {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      });
+
+      if (step === 1) {
+        const vName = document.getElementById('village_name');
+        const taluka = document.getElementById('block_taluka');
+        const district = document.getElementById('district');
+        const pop = document.getElementById('total_population');
+        const hh = document.getElementById('total_households');
+
+        if (!vName || !vName.value.trim()) markInvalid('village_name');
+        if (!taluka || !taluka.value.trim()) markInvalid('block_taluka');
+        if (!district || !district.value.trim()) markInvalid('district');
+        if (!pop || !pop.value.trim() || parseInt(pop.value, 10) <= 0) markInvalid('total_population');
+        if (!hh || !hh.value.trim() || parseInt(hh.value, 10) <= 0) markInvalid('total_households');
+
+      } else if (step === 2) {
+        const totalGeo = document.getElementById('total_geographical_area_ha');
+        const cultLand = document.getElementById('cultivable_land_ha');
+
+        if (!totalGeo || !totalGeo.value.trim() || parseFloat(totalGeo.value) <= 0) markInvalid('total_geographical_area_ha');
+        if (!cultLand || !cultLand.value.trim() || parseFloat(cultLand.value) <= 0) markInvalid('cultivable_land_ha');
+      }
+
+      if (!isValid) {
+        if (firstInvalidEl) {
+          firstInvalidEl.focus();
+          firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        alert('Please fill in all required fields highlighted in red before proceeding.');
       }
 
       return isValid;
     },
 
     renderReviewSummary: function() {
-      const container = document.getElementById('reviewCardsContainer');
+      const container = document.getElementById('villageReviewGrid');
       if (!container) return;
 
-      const getVal = id => {
+      const getVal = (id, fallback = '-') => {
         const el = document.getElementById(id);
-        if (!el) return '-';
-        if (el.type === 'checkbox') return el.checked ? 'Yes' : 'No';
+        if (!el) return fallback;
         if (el.tagName === 'SELECT' && el.selectedIndex >= 0) {
-          return el.options[el.selectedIndex].text;
+          return el.options[el.selectedIndex].text || fallback;
         }
-        return el.value.trim() || '-';
+        return el.value.trim() || fallback;
       };
 
-      const village = getVal('village_name');
-      const gp = getVal('gram_panchayat');
-      const taluka = getVal('block_taluka');
-      const district = getVal('district');
-      const pop = getVal('total_population');
-      const households = getVal('total_households');
-      const date = getVal('date_of_survey');
-      const totalGeo = getVal('total_geographical_area_ha');
-      const cultivable = getVal('cultivable_land_ha');
-      const irrigated = getVal('irrigated_area_ha');
-      const rainfed = getVal('rainfed_area_ha');
-      const soil = getVal('soil_type');
-      const scarcity = getVal('summer_water_scarcity_status');
-      const watershed = getVal('watershed_name');
-      const shgs = getVal('total_shgs_count');
-      const fpos = getVal('active_fpos_count');
+      const getChecked = (id, label) => {
+        const el = document.getElementById(id);
+        return el && el.checked ? label : null;
+      };
+
+      const amenities = [
+        getChecked('has_primary_school', 'Primary School'),
+        getChecked('has_secondary_school', 'Secondary School'),
+        getChecked('has_primary_health_center', 'PHC Health Center'),
+        getChecked('has_veterinary_clinic', 'Veterinary Clinic'),
+        getChecked('has_milk_chilling_center', 'Milk Chilling Center'),
+        getChecked('has_custom_hiring_center', 'Custom Hiring Center'),
+        getChecked('has_bank_csc', 'Bank / CSC'),
+        getChecked('all_weather_road_connectivity', 'Tar Road Connected')
+      ].filter(Boolean);
 
       container.innerHTML = `
         <div class="review-card">
           <div class="review-card-header">
-            <h4>1. Location & Demographics</h4>
-            <button type="button" class="btn-link" onclick="window.VillageWizard.goToStep(1)">Edit</button>
+            <h4><i class="fa-solid fa-location-dot" style="color:#2563eb;"></i> 1. Location & Demographics</h4>
+            <button type="button" class="btn-review-edit" onclick="window.VillageWizard.goToStep(1)">Edit</button>
           </div>
-          <div class="review-grid">
-            <div class="review-item"><span class="review-label">Village / GP</span><span class="review-val">${village} (${gp})</span></div>
-            <div class="review-item"><span class="review-label">Taluka / District</span><span class="review-val">${taluka}, ${district}</span></div>
-            <div class="review-item"><span class="review-label">Total Population</span><span class="review-val">${pop}</span></div>
-            <div class="review-item"><span class="review-label">Total Households</span><span class="review-val">${households}</span></div>
-            <div class="review-item"><span class="review-label">Survey Date</span><span class="review-val">${date}</span></div>
-          </div>
-        </div>
-
-        <div class="review-card">
-          <div class="review-card-header">
-            <h4>2. Land & Agriculture</h4>
-            <button type="button" class="btn-link" onclick="window.VillageWizard.goToStep(2)">Edit</button>
-          </div>
-          <div class="review-grid">
-            <div class="review-item"><span class="review-label">Total Geographical Area</span><span class="review-val">${totalGeo} Ha</span></div>
-            <div class="review-item"><span class="review-label">Cultivable Land</span><span class="review-val">${cultivable} Ha</span></div>
-            <div class="review-item"><span class="review-label">Irrigated / Rainfed</span><span class="review-val">${irrigated} Ha / ${rainfed} Ha</span></div>
-            <div class="review-item"><span class="review-label">Dominant Soil Type</span><span class="review-val">${soil}</span></div>
+          <div class="review-item-list">
+            <div class="review-row"><span class="review-lbl">Village Name:</span><span class="review-val">${escapeHtml(getVal('village_name'))} (${escapeHtml(getVal('gram_panchayat'))})</span></div>
+            <div class="review-row"><span class="review-lbl">Taluka / District:</span><span class="review-val">${escapeHtml(getVal('block_taluka'))}, ${escapeHtml(getVal('district'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Pincode / GPS:</span><span class="review-val">${escapeHtml(getVal('pincode'))} | ${escapeHtml(getVal('geo_coordinates'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Total Population:</span><span class="review-val">${escapeHtml(getVal('total_population'))} (${escapeHtml(getVal('male_population'))} M / ${escapeHtml(getVal('female_population'))} F)</span></div>
+            <div class="review-row"><span class="review-lbl">Total Households:</span><span class="review-val">${escapeHtml(getVal('total_households'))} (SC: ${escapeHtml(getVal('sc_households'))}, ST: ${escapeHtml(getVal('st_households'))})</span></div>
+            <div class="review-row"><span class="review-lbl">BPL / Women Headed:</span><span class="review-val">${escapeHtml(getVal('bpl_households'))} BPL / ${escapeHtml(getVal('female_headed_households'))} Women-headed</span></div>
           </div>
         </div>
 
         <div class="review-card">
           <div class="review-card-header">
-            <h4>3. Water & Infrastructure</h4>
-            <button type="button" class="btn-link" onclick="window.VillageWizard.goToStep(3)">Edit</button>
+            <h4><i class="fa-solid fa-wheat-awn" style="color:#2563eb;"></i> 2. Land & Agriculture</h4>
+            <button type="button" class="btn-review-edit" onclick="window.VillageWizard.goToStep(2)">Edit</button>
           </div>
-          <div class="review-grid">
-            <div class="review-item"><span class="review-label">Watershed Basin</span><span class="review-val">${watershed}</span></div>
-            <div class="review-item"><span class="review-label">Summer Water Scarcity</span><span class="review-val">${scarcity}</span></div>
-            <div class="review-item"><span class="review-label">Women SHGs Count</span><span class="review-val">${shgs}</span></div>
-            <div class="review-item"><span class="review-label">Active FPOs</span><span class="review-val">${fpos}</span></div>
+          <div class="review-item-list">
+            <div class="review-row"><span class="review-lbl">Total Geographical Area:</span><span class="review-val">${escapeHtml(getVal('total_geographical_area_ha'))} Ha</span></div>
+            <div class="review-row"><span class="review-lbl">Cultivable Land:</span><span class="review-val">${escapeHtml(getVal('cultivable_land_ha'))} Ha</span></div>
+            <div class="review-row"><span class="review-lbl">Irrigated / Rainfed:</span><span class="review-val">${escapeHtml(getVal('irrigated_area_ha'))} Ha / ${escapeHtml(getVal('rainfed_area_ha'))} Ha</span></div>
+            <div class="review-row"><span class="review-lbl">Dominant Soil Type:</span><span class="review-val">${escapeHtml(getVal('soil_type'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Major Kharif Crops:</span><span class="review-val">${escapeHtml(getVal('major_crops_kharif'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Major Rabi Crops:</span><span class="review-val">${escapeHtml(getVal('major_crops_rabi'))}</span></div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="review-card-header">
+            <h4><i class="fa-solid fa-droplet" style="color:#2563eb;"></i> 3. Water & Infrastructure</h4>
+            <button type="button" class="btn-review-edit" onclick="window.VillageWizard.goToStep(3)">Edit</button>
+          </div>
+          <div class="review-item-list">
+            <div class="review-row"><span class="review-lbl">Watershed Basin:</span><span class="review-val">${escapeHtml(getVal('watershed_name'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Drinking Water Source:</span><span class="review-val">${escapeHtml(getVal('primary_drinking_water_source'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Summer Water Scarcity:</span><span class="review-val">${escapeHtml(getVal('summer_water_scarcity_status'))}</span></div>
+            <div class="review-row"><span class="review-lbl">Water Structures:</span><span class="review-val">${escapeHtml(getVal('open_wells_count'))} Wells, ${escapeHtml(getVal('borewells_count'))} Borewells, ${escapeHtml(getVal('check_dams_count'))} Dams</span></div>
+            <div class="review-row"><span class="review-lbl">SHGs & FPOs:</span><span class="review-val">${escapeHtml(getVal('total_shgs_count'))} SHGs | ${escapeHtml(getVal('active_fpos_count'))} FPOs</span></div>
+            <div class="review-row"><span class="review-lbl">Facilities Available:</span><span class="review-val">${amenities.length > 0 ? amenities.join(', ') : 'None selected'}</span></div>
           </div>
         </div>
       `;
     },
 
     submitForm: function() {
+      const consentBox = document.getElementById('confirmation_consent');
+      if (consentBox && !consentBox.checked) {
+        alert('Please accept the verification statement before submitting.');
+        consentBox.focus();
+        return;
+      }
+
       const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = 'Submitting...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registering Profile...';
+      }
 
       const form = document.getElementById('villageProfileForm');
       const formData = new FormData(form);
       const payload = {};
 
-      formData.forEach((value, key) => {
-        payload[key] = value;
+      formData.forEach((val, key) => {
+        payload[key] = val;
       });
 
       // Handle checkboxes explicitly
@@ -258,24 +286,7 @@
         payload[cb] = el && el.checked ? 1 : 0;
       });
 
-      function getCsrfToken() {
-        if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
-          return window.csrf_token;
-        }
-        if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
-          return window.frappe.csrf_token;
-        }
-        const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
-        if (match && match[1] && match[1] !== 'None') {
-          return decodeURIComponent(match[1]);
-        }
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        if (meta && meta.content && meta.content !== 'None') {
-          return meta.content;
-        }
-        return '';
-      }
-
+      payload.submit_now = true;
       const csrf = getCsrfToken();
       const headers = {
         'Content-Type': 'application/json',
@@ -293,26 +304,33 @@
       })
       .then(res => res.json())
       .then(res => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Save & Create Village Profile';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save & Register Village Profile';
+        }
 
         if (res.message && res.message.success) {
           form.style.display = 'none';
-          const successCard = document.getElementById('successCard');
-          if (successCard) {
-            successCard.style.display = 'block';
-            document.getElementById('successTitle').textContent = 'Village Profile Created!';
-            document.getElementById('successMsg').textContent = `Profile for ${res.message.village_name} (${res.message.name}) has been saved and registered successfully.`;
+          const successScreen = document.getElementById('successScreen');
+          if (successScreen) {
+            successScreen.style.display = 'block';
+            document.getElementById('successTitle').textContent = 'Village Profile Registered!';
+            document.getElementById('successMsg').textContent = `Profile for ${res.message.village_name} (${res.message.name}) has been saved and verified successfully.`;
+            document.getElementById('successRefPill').textContent = `Profile ID: ${res.message.name}`;
           }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-          alert('Submission Error: ' + (res.message || 'An error occurred during submission.'));
+          const err = res.exc || res._server_messages || res.message || 'Submission failed.';
+          alert('Submission Error: ' + JSON.stringify(err));
         }
       })
       .catch(err => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Save & Create Village Profile';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save & Register Village Profile';
+        }
         console.error(err);
-        alert('Network error while creating Village Profile.');
+        alert('Network error while registering Village Profile: ' + err.message);
       });
     }
   };
