@@ -26,6 +26,8 @@
   "linked_baseline_survey",
   "column_break_4",
   "linked_field_tracking_form",
+  "feedback_surveys_section",
+  "feedback_surveys",
   "activities_section",
   "activities"
  ],
@@ -158,8 +160,19 @@
   {
    "fieldname": "linked_field_tracking_form",
    "fieldtype": "Link",
-   "label": "Linked Field Tracking Form",
+   "label": "Linked Feedback Survey / Field Tracking Form",
    "options": "Feedback Survey"
+  },
+  {
+   "fieldname": "feedback_surveys_section",
+   "fieldtype": "Section Break",
+   "label": "Feedback Surveys & Field Observations"
+  },
+  {
+   "fieldname": "feedback_surveys",
+   "fieldtype": "Table",
+   "label": "Feedback Surveys",
+   "options": "Project Feedback Detail"
   },
   {
    "fieldname": "activities_section",

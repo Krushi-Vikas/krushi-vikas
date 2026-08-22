@@ -200,20 +200,21 @@
             <!-- 4. Linked Structural Forms -->
             <div class="form-card">
                 <div class="section-header"><i class="fa-solid fa-link"></i> Linked Structural Forms</div>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: -12px; margin-bottom: 16px;">Connect structural survey instruments (Community Baseline & Field Feedback) to this project.</p>
                 <div class="form-grid-2">
                     <div class="form-group">
                         <label class="form-label">Linked Baseline Survey Form</label>
                         <select id="linked_baseline_survey" class="form-control">
-                            <option value="">-- None / Select Existing Baseline --</option>
+                            <option value="">-- None / Select Existing Baseline Form --</option>
                             {% for b in options.baseline_surveys %}
                             <option value="{{ b.name }}">{{ b.name }} ({{ b.farmer_name }} - {{ b.village }})</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Linked Field Tracking / Feedback Form</label>
+                        <label class="form-label">Linked Feedback Survey / Field Tracking Form</label>
                         <select id="linked_field_tracking_form" class="form-control">
-                            <option value="">-- None / Select Existing Field Survey --</option>
+                            <option value="">-- None / Select Existing Feedback Form --</option>
                             {% for f in options.feedback_surveys %}
                             <option value="{{ f.name }}">{{ f.name }} ({{ f.activity }} - {{ f.village }})</option>
                             {% endfor %}

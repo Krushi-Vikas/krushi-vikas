@@ -838,8 +838,18 @@ def test_project_activity_task_hierarchy(company):
     created_task = frappe.get_doc("Task", linked_task_id)
     assert created_task.subject == "Community Water Quality Testing via Jal Kit"
     assert created_task.custom_activity == act_to_modify.name
-    print(f"  -> Successfully added Task via Activity child table: {created_task.name} ('{created_task.subject}') linked to Activity {act_to_modify.name}")
+    # 9. Test Feedback Survey presence inside KV Project
+    kvp_doc = frappe.get_doc("KV Project", kvp_res["name"])
+    assert kvp_doc.linked_field_tracking_form == feedback_name
+    print(f"  -> Verified Structural Form linkage in KV Project: Linked Feedback Survey = {kvp_doc.linked_field_tracking_form}")
+    
+    # Link a feedback survey to this project and check table reload
+    frappe.db.set_value("Feedback Survey", feedback_name, "project", kvp_doc.name)
+    kvp_doc.onload()
+    assert len(kvp_doc.feedback_surveys) > 0, "Expected feedback survey to be loaded inside KV Project"
+    print(f"  -> Verified Feedback Surveys child table inside KV Project ({len(kvp_doc.feedback_surveys)} survey(s) found: {kvp_doc.feedback_surveys[0].feedback_survey})")
     print("  -> Project, Activity & Task 3-tier hierarchy and financial tracking validated successfully!")
+
 
 
 
