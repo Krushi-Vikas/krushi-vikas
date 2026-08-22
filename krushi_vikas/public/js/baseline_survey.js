@@ -477,16 +477,37 @@
           payload.income_sources_table.push({
             source_type: source,
             annual_amount: amount
-          });
+      function getCsrfToken() {
+        if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+          return window.csrf_token;
         }
-      });
+        if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+          return window.frappe.csrf_token;
+        }
+        const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+        if (match && match[1] && match[1] !== 'None') {
+          return decodeURIComponent(match[1]);
+        }
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content && meta.content !== 'None') {
+          return meta.content;
+        }
+        return '';
+      }
+
+      const csrf = getCsrfToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      if (csrf) {
+        headers['X-Frappe-CSRF-Token'] = csrf;
+        payload['csrf_token'] = csrf;
+      }
 
       fetch('/api/method/krushi_vikas.api.submit_baseline_survey', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-CSRF-Token': window.frappe ? window.frappe.csrf_token : ''
-        },
+        headers: headers,
         body: JSON.stringify({ data: payload })
       })
       .then(res => res.json())

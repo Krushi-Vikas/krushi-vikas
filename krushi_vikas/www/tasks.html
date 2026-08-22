@@ -260,6 +260,21 @@
     </div>
 
     <script>
+        window.csrf_token = "{{ frappe.session.csrf_token }}";
+        function getCsrfToken() {
+            if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+                return window.csrf_token;
+            }
+            if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+                return window.frappe.csrf_token;
+            }
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+            if (match && match[1] && match[1] !== 'None') {
+                return decodeURIComponent(match[1]);
+            }
+            return '';
+        }
+
         function openAddGlobalTaskModal() {
             document.getElementById('globalTaskModal').style.display = 'flex';
         }
@@ -304,11 +319,15 @@
 
         async function toggleTaskStatus(name, checked) {
             const status = checked ? 'Completed' : 'Open';
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.toggle_task_status', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, status: status })
+                    headers: headers,
+                    body: JSON.stringify({ name: name, status: status, csrf_token: csrf })
                 });
                 const result = await res.json();
                 if (result.message && result.message.success) {
@@ -327,11 +346,15 @@
         async function deleteGlobalTask(name, title) {
             if (!confirm(`Are you sure you want to delete Task "${title}" (${name})?`)) return;
 
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.delete_task_record', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
+                    headers: headers,
+                    body: JSON.stringify({ name: name, csrf_token: csrf })
                 });
                 const result = await res.json();
                 if (result.message && result.message.success) {
@@ -352,6 +375,10 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
             const payload = {
                 project: document.getElementById('gt_project').value,
                 custom_activity: document.getElementById('gt_activity').value,
@@ -361,13 +388,14 @@
                 custom_assignee: document.getElementById('gt_assignee').value,
                 exp_start_date: document.getElementById('gt_start').value,
                 exp_end_date: document.getElementById('gt_end').value,
-                description: document.getElementById('gt_desc').value
+                description: document.getElementById('gt_desc').value,
+                csrf_token: csrf
             };
 
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.save_task', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({ data: payload })
                 });
                 const result = await res.json();

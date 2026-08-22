@@ -477,61 +477,59 @@
 
     const payload = { ...formData, submit_now: true };
 
-    if (window.frappe && frappe.call) {
-      frappe.call({
-        method: 'krushi_vikas.api.submit_feedback_survey',
-        args: { data: payload },
-        callback: function (r) {
-          if (r.message && r.message.success) {
-            showSuccessScreen(r.message.name);
-          } else {
-            alert('Submission failed. Please check your inputs.');
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.innerHTML = 'Submit ✈';
-            }
-          }
-        },
-        error: function () {
-          alert('An error occurred during submission.');
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Submit ✈';
-          }
+    function getCsrfToken() {
+      if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+        return window.csrf_token;
+      }
+      if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+        return window.frappe.csrf_token;
+      }
+      const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+      if (match && match[1] && match[1] !== 'None') {
+        return decodeURIComponent(match[1]);
+      }
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta && meta.content && meta.content !== 'None') {
+        return meta.content;
+      }
+      return '';
+    }
+
+    const csrf = getCsrfToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (csrf) {
+      headers['X-Frappe-CSRF-Token'] = csrf;
+      payload['csrf_token'] = csrf;
+    }
+
+    fetch('/api/method/krushi_vikas.api.submit_feedback_survey', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ data: payload })
+    })
+    .then(res => res.json())
+    .then(resData => {
+      if (resData && resData.message && resData.message.success) {
+        showSuccessScreen(resData.message.name);
+      } else if (resData && resData.exc) {
+        alert('Submission error: ' + (resData._server_messages || 'Validation failed.'));
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Submit ✈';
         }
-      });
-    } else {
-      // Direct REST fetch to Frappe API endpoint
-      fetch('/api/method/krushi_vikas.api.submit_feedback_survey', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ data: payload })
-      })
-      .then(res => res.json())
-      .then(resData => {
-        if (resData && resData.message && resData.message.success) {
-          showSuccessScreen(resData.message.name);
-        } else if (resData && resData.exc) {
-          alert('Submission error: ' + (resData._server_messages || 'Validation failed.'));
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Submit ✈';
-          }
-        } else {
-          // Fallback if running completely offline/detached without web server
-          const mockRef = 'FS-2026-' + Math.floor(10000 + Math.random() * 90000);
-          showSuccessScreen(mockRef);
-        }
-      })
-      .catch(err => {
-        console.warn('Network submit failed, using local preview reference', err);
+      } else {
         const mockRef = 'FS-2026-' + Math.floor(10000 + Math.random() * 90000);
         showSuccessScreen(mockRef);
-      });
-    }
+      }
+    })
+    .catch(err => {
+      console.warn('Network submit failed, using local preview reference', err);
+      const mockRef = 'FS-2026-' + Math.floor(10000 + Math.random() * 90000);
+      showSuccessScreen(mockRef);
+    });
   }
 
   function showSuccessScreen(referenceId) {

@@ -382,17 +382,36 @@
             pendingDeleteAct = null;
         }
 
+        window.csrf_token = "{{ frappe.session.csrf_token }}";
+        function getCsrfToken() {
+            if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+                return window.csrf_token;
+            }
+            if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+                return window.frappe.csrf_token;
+            }
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+            if (match && match[1] && match[1] !== 'None') {
+                return decodeURIComponent(match[1]);
+            }
+            return '';
+        }
+
         document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
             if (!pendingDeleteAct) return;
             const btn = document.getElementById('btnConfirmDelete');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
 
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.delete_activity_record', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: pendingDeleteAct })
+                    headers: headers,
+                    body: JSON.stringify({ name: pendingDeleteAct, csrf_token: csrf })
                 });
                 const result = await res.json();
                 if (result.message && result.message.success) {
@@ -418,6 +437,10 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
             const payload = {
                 name: document.getElementById('act_name').value || undefined,
                 project: document.getElementById('act_project').value,
@@ -428,13 +451,14 @@
                 end_date: document.getElementById('act_end_date').value,
                 planned_budget: parseFloat(document.getElementById('act_planned_budget').value) || 0,
                 impact: document.getElementById('act_impact').value,
-                description: document.getElementById('act_description').value
+                description: document.getElementById('act_description').value,
+                csrf_token: csrf
             };
 
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.save_activity', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({ data: payload })
                 });
                 const result = await res.json();

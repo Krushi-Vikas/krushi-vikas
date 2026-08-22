@@ -411,12 +411,16 @@
             if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
                 return window.csrf_token;
             }
-            if (window.frappe && frappe.csrf_token) {
-                return frappe.csrf_token;
+            if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+                return window.frappe.csrf_token;
             }
-            const match = document.cookie.match(/csrf_token=([^;]+)/);
-            if (match && match[1]) {
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+            if (match && match[1] && match[1] !== 'None') {
                 return decodeURIComponent(match[1]);
+            }
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && meta.content && meta.content !== 'None') {
+                return meta.content;
             }
             return '';
         }
@@ -456,6 +460,8 @@
                 });
             });
 
+            const token = getCsrfToken();
+
             const payload = {
                 project_name: document.getElementById('project_name').value,
                 theme: document.getElementById('theme').value,
@@ -470,10 +476,10 @@
                 linked_baseline_survey: document.getElementById('linked_baseline_survey').value,
                 linked_field_tracking_form: document.getElementById('linked_field_tracking_form').value,
                 activities: activities,
-                feedback_surveys: feedback_surveys
+                feedback_surveys: feedback_surveys,
+                csrf_token: token
             };
 
-            const token = getCsrfToken();
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'

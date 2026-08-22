@@ -1244,7 +1244,7 @@ def get_project_detail(project_id=None):
         bl_docs = frappe.get_all(
             "Baseline Survey",
             filters={"project": ["in", [p_name, p_title]]},
-            fields=["name", "farmer_name", "village", "survey_date", "submission_status", "total_family_members", "total_animals"],
+            fields=["name", "farmer_name", "village", "survey_date", "submission_status", "household_members", "livestock_count"],
             order_by="creation desc"
         )
         if not bl_docs and project_data["custom_linked_baseline_survey"]:
@@ -1256,8 +1256,8 @@ def get_project_detail(project_id=None):
                     "village": bl.village or "Rampur",
                     "survey_date": bl.survey_date or "2026-01-15",
                     "submission_status": getattr(bl, "submission_status", "Submitted"),
-                    "total_family_members": getattr(bl, "total_family_members", 5),
-                    "total_animals": getattr(bl, "total_animals", 4)
+                    "household_members": getattr(bl, "household_members", 5),
+                    "livestock_count": getattr(bl, "livestock_count", 4)
                 }]
         baseline_surveys = bl_docs
         
@@ -1293,12 +1293,12 @@ def get_project_detail(project_id=None):
             village_profiles = frappe.get_all(
                 "Village Profile",
                 filters={"village_name": ["in", vp_names]},
-                fields=["name", "village_name", "district", "block_taluka", "total_population", "total_households", "verification_status"]
+                fields=["name", "village_name", "district", "block_taluka", "total_population", "total_households", "profile_status"]
             )
         if not village_profiles:
             village_profiles = frappe.get_all(
                 "Village Profile",
-                fields=["name", "village_name", "district", "block_taluka", "total_population", "total_households", "verification_status"],
+                fields=["name", "village_name", "district", "block_taluka", "total_population", "total_households", "profile_status"],
                 limit=3
             )
             
@@ -1377,7 +1377,7 @@ def get_activity_detail(activity_id=None):
     }
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def save_activity(data):
     """Create or Update an Activity record."""
     if isinstance(data, str):
@@ -1419,7 +1419,7 @@ def save_activity(data):
     }
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def delete_activity_record(name):
     """Delete an Activity record after checking for child tasks."""
     if not frappe.db.exists("Activity", name):
@@ -1435,7 +1435,7 @@ def delete_activity_record(name):
     return {"success": True, "message": f"Activity {name} and child tasks deleted successfully."}
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def save_task(data):
     """Create or Update a Task record."""
     if isinstance(data, str):
@@ -1471,7 +1471,7 @@ def save_task(data):
     }
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def delete_task_record(name):
     """Delete a Task record."""
     if not frappe.db.exists("Task", name):
@@ -1481,7 +1481,7 @@ def delete_task_record(name):
     return {"success": True, "message": f"Task {name} deleted successfully."}
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def toggle_task_status(name, status):
     """Update task status (validating dependency gate)."""
     if not frappe.db.exists("Task", name):
