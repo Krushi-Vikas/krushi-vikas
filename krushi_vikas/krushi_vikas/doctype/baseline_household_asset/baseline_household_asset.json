@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "asset_description",
+  "quantity",
+  "estimated_value"
+ ],
+ "fields": [
+  {
+   "default": "House",
+   "fieldname": "asset_description",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Asset Description",
+   "options": "House\nT.V.\nTelevision (TV)\nSmart Phone\nSmartphone\nAC\nAir Conditioner (AC)\nRefrigerator\nTwo Wheeler\nTwo-Wheeler (Bike/Scooter)\nFour Wheeler\nFour-Wheeler (Car/Jeep)\nBullock Cart (Bailgadi)\nBullock Cart\nTractor\nBio Gas\nBiogas Unit\nLPG Gas\nLPG Gas Connection\nOther Farm Implements (write names)\nOther Farm Implements\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty"
+  },
+  {
+   "default": "0",
+   "fieldname": "estimated_value",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Approx Value (Rs)"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Baseline Household Asset",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "value",
+  "source_activity",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_activity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Source Activity",
+   "options": "Task"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "KRE Measurement",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects | Krushi Vikas Admin Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item active"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" id="globalSearchInput" placeholder="Search projects, activities, tasks..." oninput="handleSearch(this.value)">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open Desk</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Projects</h1>
+                    <p class="page-subtitle">View and manage all organization projects, activities & financial budgets</p>
+                </div>
+                <div class="header-controls">
+                    <a href="/project_form" class="btn-primary"><i class="fa-solid fa-plus"></i> New Project</a>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div class="filter-pills">
+                    <button class="pill-btn active" onclick="filterProjects('all', this)">All ({{ projects|length }})</button>
+                    <button class="pill-btn" onclick="filterProjects('Deployed', this)">Deployed</button>
+                    <button class="pill-btn" onclick="filterProjects('In Progress', this)">In Progress</button>
+                    <button class="pill-btn" onclick="filterProjects('Planning', this)">Planning</button>
+                </div>
+            </div>
+
+            <!-- Projects Grid -->
+            <div class="projects-grid" id="projectsGrid">
+                {% for p in projects %}
+                <div class="project-card" data-status="{{ p.status or 'Planning' }}" data-name="{{ p.project_name | lower }}" onclick="window.location.href='/project_details?name={{ p.name }}'">
+                    <div>
+                        <div class="card-top">
+                            <div class="theme-icon-box" style="background: #e0f2fe; color: #0284c7;">
+                                <i class="fa-solid fa-diagram-project"></i>
+                            </div>
+                            <span class="badge-status {% if p.status == 'Completed' %}badge-deployed{% elif p.status == 'Open' or p.status == 'In Progress' %}badge-inprogress{% else %}badge-planning{% endif %}">
+                                {{ p.status or 'In Progress' }}
+                            </span>
+                        </div>
+                        <h3 class="card-title">{{ p.project_name }}</h3>
+                        <div class="card-phase">Phase: {{ p.custom_project_phase or 'Proposal' }} &bull; {{ p.custom_thematic_area or 'Watershed Management' }}</div>
+                        <div class="timeline-text">
+                            <i class="fa-regular fa-calendar" style="color: #94a3b8;"></i>
+                            {{ p.expected_start_date or '01-01-2026' }} to {{ p.expected_end_date or '31-12-2026' }}
+                        </div>
+                        
+                        <div class="progress-container">
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: {{ p.percent_complete or 65 }}%; background: {% if (p.percent_complete or 65) >= 70 %}#10b981{% else %}#f59e0b{% endif %};"></div>
+                            </div>
+                            <div class="progress-label">{{ p.percent_complete or 65 }}%</div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="meta-counts">
+                            <span><i class="fa-solid fa-list-check"></i> {{ p.activity_count or 0 }} Activities</span>
+                            <span><i class="fa-solid fa-bars-progress"></i> {{ p.task_count or 0 }} Tasks</span>
+                        </div>
+                        <a href="/project_details?name={{ p.name }}" class="view-details-link" onclick="event.stopPropagation();">View Details <i class="fa-solid fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if not projects %}
+            <div class="empty-state">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>No projects found in the system.</p>
+                <a href="/project_form" class="btn-primary" style="margin-top: 14px;"><i class="fa-solid fa-plus"></i> Create First Project</a>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        function filterProjects(status, btn) {
+            document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            document.querySelectorAll('.project-card').forEach(card => {
+                const cardStatus = card.dataset.status.toLowerCase();
+                if (status === 'all') {
+                    card.style.display = 'flex';
+                } else if (status === 'Deployed' && (cardStatus === 'completed' || cardStatus === 'deployed')) {
+                    card.style.display = 'flex';
+                } else if (status === 'In Progress' && (cardStatus === 'in progress' || cardStatus === 'open')) {
+                    card.style.display = 'flex';
+                } else if (status === 'Planning' && (cardStatus === 'planning' || cardStatus === 'draft')) {
+                    card.style.display = 'flex';
+                } else if (cardStatus === status.toLowerCase()) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function handleSearch(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('.project-card').forEach(card => {
+                const title = card.dataset.name || '';
+                if (title.includes(q)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structured Forms Hub | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" placeholder="Search forms and surveys...">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open Desk</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Structured Forms Hub</h1>
+                    <p class="page-subtitle">Centralized access to Village Profiles, Farmer Baseline Surveys, and Field Tracking Feedback Forms</p>
+                </div>
+            </div>
+
+            <!-- 3 Form Landing Cards -->
+            <div class="form-grid-3" style="margin-bottom: 28px;">
+                <!-- 1. Village Profile -->
+                <div class="section-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 14px;">
+                            <i class="fa-solid fa-tree-city"></i>
+                        </div>
+                        <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 6px;">Village Detail Form</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">
+                            Capture village demographic data, geographical landmarks, water sources, and soil profiles.
+                        </p>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 14px;">
+                            <i class="fa-solid fa-database"></i> {{ village_count }} Profiles Documented
+                        </div>
+                    </div>
+                    <a href="/village_profile" class="btn-primary" style="justify-content: center;"><i class="fa-solid fa-plus"></i> Fill Village Form</a>
+                </div>
+
+                <!-- 2. Baseline Survey -->
+                <div class="section-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 14px;">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </div>
+                        <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 6px;">Baseline Survey Form</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">
+                            Comprehensive 11-table socio-economic baseline for farmer households, crops, irrigation, and assets.
+                        </p>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 14px;">
+                            <i class="fa-solid fa-database"></i> {{ baseline_count }} Surveys Submitted
+                        </div>
+                    </div>
+                    <a href="/baseline_survey" class="btn-primary" style="justify-content: center;"><i class="fa-solid fa-plus"></i> Fill Baseline Form</a>
+                </div>
+
+                <!-- 3. Feedback Survey -->
+                <div class="section-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="width: 44px; height: 44px; border-radius: 10px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 14px;">
+                            <i class="fa-solid fa-comment-dots"></i>
+                        </div>
+                        <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 6px;">Feedback Survey Form</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">
+                            Beneficiary satisfaction, activity ratings, significant change stories, and field facilitator observations.
+                        </p>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 14px;">
+                            <i class="fa-solid fa-database"></i> {{ feedback_count }} Tracking Entries
+                        </div>
+                    </div>
+                    <a href="/feedback_survey" class="btn-primary" style="justify-content: center;"><i class="fa-solid fa-plus"></i> Fill Feedback Form</a>
+                </div>
+            </div>
+
+            <!-- Recent Submissions Overview -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <div class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color: #2563eb;"></i> Recent Field Form Submissions</div>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Form Type</th>
+                                <th>Record ID</th>
+                                <th>Target / Location</th>
+                                <th>Linked Project</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in recent_baseline %}
+                            <tr>
+                                <td><span class="badge-status badge-planning"><i class="fa-solid fa-clipboard-list"></i> Baseline</span></td>
+                                <td><strong>{{ b.name }}</strong></td>
+                                <td>{{ b.farmer_name or 'Farmer' }} ({{ b.village }})</td>
+                                <td>{{ b.project or 'General' }}</td>
+                                <td>{{ b.survey_date }}</td>
+                                <td><span class="badge-status badge-deployed">{{ b.submission_status or 'Submitted' }}</span></td>
+                            </tr>
+                            {% endfor %}
+                            {% for f in recent_feedback %}
+                            <tr>
+                                <td><span class="badge-status badge-deployed"><i class="fa-solid fa-comment-dots"></i> Feedback</span></td>
+                                <td><strong>{{ f.name }}</strong></td>
+                                <td>{{ f.activity }} ({{ f.village }})</td>
+                                <td>{{ f.project or 'General' }}</td>
+                                <td>{{ f.date_of_visit }}</td>
+                                <td>⭐ {{ f.overall_rating }}/5</td>
+                            </tr>
+                            {% endfor %}
+                            {% for v in recent_villages %}
+                            <tr>
+                                <td><span class="badge-status badge-inprogress"><i class="fa-solid fa-tree-city"></i> Village Profile</span></td>
+                                <td><strong>{{ v.name }}</strong></td>
+                                <td>{{ v.village_name }}, {{ v.district }}</td>
+                                <td>General</td>
+                                <td>--</td>
+                                <td><span class="badge-status badge-deployed">{{ v.profile_status or 'Verified' }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "objective_name",
+  "weightage",
+  "kre",
+  "achievement_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "objective_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Objective Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "weightage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Weightage %",
+   "reqd": 1
+  },
+  {
+   "fieldname": "kre",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Linked KRE",
+   "options": "KRE"
+  },
+  {
+   "fetch_from": "kre.achievement_pct",
+   "fieldname": "achievement_pct",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "KRE Achievement %",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Project Objective",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

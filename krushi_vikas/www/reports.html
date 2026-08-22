@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Analytics | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" placeholder="Search analytics & reports...">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app/query-report/Activity%20Outcome%20Summary" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open Desk Reports</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Reports & Analytics</h1>
+                    <p class="page-subtitle">Organizational KPIs, project financial rollups, and beneficiary feedback tracking</p>
+                </div>
+                <div class="header-controls">
+                    <a href="/projects" class="btn-secondary"><i class="fa-solid fa-folder-open"></i> Projects View</a>
+                </div>
+            </div>
+
+            <!-- Top KPIs Grid -->
+            <div class="details-overview-grid">
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-solid fa-folder-tree" style="color: #2563eb;"></i> Total Projects</div>
+                    <div class="stat-value">{{ kpis.total_projects }}</div>
+                    <div class="stat-sub">{{ kpis.total_activities }} Activities &bull; {{ kpis.total_tasks }} Tasks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-solid fa-coins" style="color: #059669;"></i> Total Organization Budget</div>
+                    <div class="stat-value">₹ {{ "{:,.2f}".format(kpis.total_budget or 0) }}</div>
+                    <div class="stat-sub">Spent: ₹ {{ "{:,.2f}".format(kpis.total_spent or 0) }}</div>
+                </div>
+                <div class="stat-card" style="background: #ecfdf5; border-color: #a7f3d0;">
+                    <div class="stat-label" style="color: #065f46;"><i class="fa-solid fa-piggy-bank"></i> Remaining Funds</div>
+                    <div class="stat-value" style="color: #047857;">₹ {{ "{:,.2f}".format(kpis.remaining_funds or 0) }}</div>
+                    <div class="stat-sub" style="color: #059669;">Available for Allocation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-solid fa-users" style="color: #d97706;"></i> Beneficiaries Reached</div>
+                    <div class="stat-value">{{ kpis.total_beneficiaries_reached }}</div>
+                    <div class="stat-sub">Avg Rating: ⭐ {{ kpis.avg_feedback_rating }}/5.0</div>
+                </div>
+            </div>
+
+            <!-- Analytics Sections Grid -->
+            <div class="form-grid-2" style="margin-bottom: 24px;">
+                <!-- Project Phase Breakdown -->
+                <div class="section-card" style="margin-bottom: 0;">
+                    <div class="section-card-header">
+                        <div class="section-title"><i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Projects by Phase</div>
+                    </div>
+                    <div style="padding-top: 10px;">
+                        {% for phase, count in phase_counts.items() %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.85rem;">
+                            <span style="font-weight: 600; color: #1e293b;"><i class="fa-solid fa-circle" style="color: #3b82f6; font-size: 0.6rem; margin-right: 8px;"></i> {{ phase }}</span>
+                            <span class="badge-status badge-planning">{{ count }} Projects</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Structured Surveys Rollup -->
+                <div class="section-card" style="margin-bottom: 0;">
+                    <div class="section-card-header">
+                        <div class="section-title"><i class="fa-solid fa-file-waveform" style="color: #059669;"></i> Structured Survey Totals</div>
+                    </div>
+                    <div style="padding-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.85rem;">
+                            <span><i class="fa-solid fa-clipboard-list" style="color: #2563eb; margin-right: 8px;"></i> Baseline Surveys</span>
+                            <strong style="color: #111827;">{{ kpis.total_baseline }} Submitted</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.85rem;">
+                            <span><i class="fa-solid fa-comment-dots" style="color: #059669; margin-right: 8px;"></i> Field Tracking Forms</span>
+                            <strong style="color: #111827;">{{ kpis.total_feedback }} Records</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; font-size: 0.85rem;">
+                            <span><i class="fa-solid fa-tree-city" style="color: #d97706; margin-right: 8px;"></i> Village Profiles Documented</span>
+                            <strong style="color: #111827;">{{ kpis.total_villages }} Villages</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Feedback Table -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <div class="section-title"><i class="fa-solid fa-comments" style="color: #059669;"></i> Recent Beneficiary Feedback & Field Observations</div>
+                    <a href="/feedback_survey" class="btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> New Feedback Entry</a>
+                </div>
+                {% if recent_feedback %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Survey ID</th>
+                                <th>Village</th>
+                                <th>Project</th>
+                                <th>Activity</th>
+                                <th>Date of Visit</th>
+                                <th>Rating</th>
+                                <th>Participants</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in recent_feedback %}
+                            <tr>
+                                <td><strong>{{ f.name }}</strong></td>
+                                <td>{{ f.village or 'Rampur' }}</td>
+                                <td>{{ f.project or 'General' }}</td>
+                                <td>{{ f.activity or 'Training Workshop' }}</td>
+                                <td>{{ f.date_of_visit or '2026-02-15' }}</td>
+                                <td>⭐ {{ f.overall_rating or '5' }} / 5</td>
+                                <td>{{ f.total_participants or 0 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-comment-dots"></i>
+                    <p>No feedback surveys logged yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

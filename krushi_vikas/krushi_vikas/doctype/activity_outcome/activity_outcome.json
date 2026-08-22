@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "autoname": "OUT-.YYYY.-.#####",
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "task",
+  "project",
+  "kre",
+  "is_milestone_activity",
+  "workflow_state",
+  "column_break_1",
+  "measurement_date",
+  "unit",
+  "baseline_value",
+  "actual_value",
+  "beneficiary_count",
+  "section_qualitative",
+  "satisfaction_rating",
+  "photo",
+  "qualitative_observations",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "task",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Activity / Task",
+   "options": "Task",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "task.project",
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "task.custom_kre",
+   "fieldname": "kre",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Linked KRE",
+   "options": "KRE"
+  },
+  {
+   "default": "0",
+   "fetch_from": "task.custom_is_milestone_activity",
+   "fieldname": "is_milestone_activity",
+   "fieldtype": "Check",
+   "label": "Is Milestone Activity"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Draft",
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Workflow State",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "measurement_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Measurement Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Unit"
+  },
+  {
+   "default": "0",
+   "fieldname": "baseline_value",
+   "fieldtype": "Float",
+   "label": "Baseline Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "actual_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Actual Value Achieved",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "beneficiary_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Beneficiary Count"
+  },
+  {
+   "fieldname": "section_qualitative",
+   "fieldtype": "Section Break",
+   "label": "Field Feedback & Media"
+  },
+  {
+   "fieldname": "satisfaction_rating",
+   "fieldtype": "Rating",
+   "in_list_view": 1,
+   "label": "Satisfaction Rating"
+  },
+  {
+   "fieldname": "photo",
+   "fieldtype": "Attach Image",
+   "label": "Field Photo / Media"
+  },
+  {
+   "fieldname": "qualitative_observations",
+   "fieldtype": "Text",
+   "label": "Qualitative Observations / Feedback"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Activity Outcome",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Activity Outcome",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

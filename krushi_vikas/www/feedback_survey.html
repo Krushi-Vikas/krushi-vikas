@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ frappe.session.csrf_token }}">
+  <title>Feedback Survey Form — Krushi Vikas</title>
+  <script>window.csrf_token = "{{ frappe.session.csrf_token }}";</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/krushi_vikas/css/feedback_survey.css">
+  <link rel="stylesheet" href="../public/css/feedback_survey.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          <path d="M9 14l2 2 4-4"></path>
+        </svg>
+      </div>
+      <span class="brand-title">Feedback Survey</span>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" title="Customize theme" aria-label="Theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 10 10 0 0 0 0-20"></path>
+        </svg>
+      </button>
+      <button class="header-btn" title="Preview" aria-label="Preview">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+      <button class="header-btn" title="Settings" aria-label="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+      <div class="user-avatar" title="Anita Sharma">A</div>
+    </div>
+  </header>
+
+  <!-- Mobile Top Stepper Bar -->
+  <div class="mobile-stepper-bar">
+    <span class="mobile-step-counter" id="mobileStepCounter">Step 1 of 4</span>
+    <div class="mobile-step-nav">
+      <div class="mobile-step-dot active"></div>
+      <div class="mobile-step-dot"></div>
+      <div class="mobile-step-dot"></div>
+      <div class="mobile-step-dot"></div>
+    </div>
+  </div>
+
+  <!-- Main Survey Layout -->
+  <main class="survey-layout">
+    
+    <!-- Left Sidebar -->
+    <aside class="survey-sidebar">
+      <div class="stepper-card">
+        <div class="stepper-list">
+          <div class="step-item active" data-step-nav="1">
+            <div class="step-badge">1</div>
+            <span class="step-label">Respondent & Activity Details</span>
+          </div>
+          <div class="step-item" data-step-nav="2">
+            <div class="step-badge">2</div>
+            <span class="step-label">Quantitative Inputs</span>
+          </div>
+          <div class="step-item" data-step-nav="3">
+            <div class="step-badge">3</div>
+            <span class="step-label">Qualitative Feedback</span>
+          </div>
+          <div class="step-item" data-step-nav="4">
+            <div class="step-badge">4</div>
+            <span class="step-label">Review & Submit</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-info-card">
+        <div class="illustration-box">🌱</div>
+        <h3 class="sidebar-info-title">Thank you!</h3>
+        <p class="sidebar-info-desc">
+          Your feedback helps us improve and create greater impact in the community.
+        </p>
+        <div class="security-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>Your responses are secure and confidential.</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Form Card -->
+    <section class="survey-main-card">
+      
+      <!-- Top Form Hero Header -->
+      <div class="form-hero-header">
+        <div class="form-hero-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="form-hero-title">Feedback Survey Form</h1>
+          <p class="form-hero-subtitle">
+            Please share your feedback to help us measure outcomes and improve our programs.
+          </p>
+        </div>
+      </div>
+
+      <!-- ================= STEP 1: RESPONDENT & ACTIVITY DETAILS ================= -->
+      <div class="form-step-panel active" data-step="1">
+        <div class="section-heading-row">
+          <h2 class="section-title">A. Respondent & Activity Details</h2>
+        </div>
+
+        <div class="form-grid-2">
+          <!-- Village / Location -->
+          <div class="form-group">
+            <label class="form-label" for="village">Village / Location <span class="req">*</span></label>
+            <select id="village" name="village" class="form-control" required>
+              <option value="">Select village</option>
+              <option value="Rampur" selected>Rampur</option>
+              <option value="Sonapur">Sonapur</option>
+              <option value="Kalyanpur">Kalyanpur</option>
+              <option value="Shivaji Nagar">Shivaji Nagar</option>
+              <option value="Krushnagiri">Krushnagiri</option>
+              <option value="Ganeshpur">Ganeshpur</option>
+              <option value="Vikas Nagar">Vikas Nagar</option>
+              <option value="Adarsh Gram">Adarsh Gram</option>
+              <option value="Sundarpur">Sundarpur</option>
+              <option value="Navgaon">Navgaon</option>
+            </select>
+          </div>
+
+          <!-- Date of Visit -->
+          <div class="form-group">
+            <label class="form-label" for="date_of_visit">Date of Visit <span class="req">*</span></label>
+            <input type="date" id="date_of_visit" name="date_of_visit" class="form-control" value="2024-05-20" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <!-- Field Officer / Facilitator -->
+          <div class="form-group">
+            <label class="form-label" for="field_officer">Field Officer / Facilitator <span class="req">*</span></label>
+            <select id="field_officer" name="field_officer" class="form-control" required>
+              <option value="">Select name</option>
+              <option value="Administrator" selected>Anita Sharma</option>
+              <option value="fo_rahul">Rahul Deshmukh</option>
+              <option value="fo_priya">Priya Patil</option>
+              <option value="fo_vikas">Vikas Shinde</option>
+            </select>
+          </div>
+
+          <!-- Activity / Intervention -->
+          <div class="form-group">
+            <label class="form-label" for="activity">Activity / Intervention <span class="req">*</span></label>
+            <select id="activity" name="activity" class="form-control" required>
+              <option value="">Select activity</option>
+              <option value="Kitchen Garden Initiative" selected>Kitchen Garden Initiative</option>
+              <option value="Drip Irrigation Demonstration">Drip Irrigation Demonstration</option>
+              <option value="Organic Fertilizer Distribution">Organic Fertilizer Distribution</option>
+              <option value="Soil Health Assessment & Testing">Soil Health Assessment & Testing</option>
+              <option value="Watershed Bunding & Contour Trenching">Watershed Bunding & Contour Trenching</option>
+              <option value="SHG Capacity Building Workshop">SHG Capacity Building Workshop</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <!-- Respondent Type -->
+          <div class="form-group">
+            <label class="form-label" for="respondent_type">Respondent Type <span class="req">*</span></label>
+            <select id="respondent_type" name="respondent_type" class="form-control" required>
+              <option value="">Select type</option>
+              <option value="Community Member" selected>Community Member</option>
+              <option value="Farmer">Farmer</option>
+              <option value="SHG Leader">SHG Leader</option>
+              <option value="Village Elder">Village Elder</option>
+              <option value="Beneficiary">Beneficiary</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <!-- Other (please specify) -->
+          <div class="form-group" id="group_other_specify" style="display: none;">
+            <label class="form-label" for="respondent_type_other">Other (please specify)</label>
+            <input type="text" id="respondent_type_other" name="respondent_type_other" class="form-control" placeholder="Short answer">
+          </div>
+        </div>
+
+        <!-- Info callout box -->
+        <div class="info-callout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Please provide information about the activity and the person who is giving feedback.</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions-bar">
+          <button type="button" class="btn btn-primary" data-action="next">
+            <span>Next</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= STEP 2: QUANTITATIVE INPUTS ================= -->
+      <div class="form-step-panel" data-step="2">
+        <div class="panel-stepper-header">
+          <div class="panel-stepper-line"></div>
+          <div class="panel-step-dot completed" data-dot-step="1">✓</div>
+          <div class="panel-step-dot active" data-dot-step="2">2</div>
+          <div class="panel-step-dot" data-dot-step="3">3</div>
+          <div class="panel-step-dot" data-dot-step="4">4</div>
+        </div>
+
+        <div class="section-heading-row">
+          <h2 class="section-title">B. Quantitative Inputs</h2>
+          <p class="section-subtitle">Please share numbers and key indicators related to the activity.</p>
+        </div>
+
+        <!-- Total Participants -->
+        <div class="form-group">
+          <label class="form-label" for="total_participants">Total Participants / Beneficiaries Reached <span class="req">*</span></label>
+          <input type="number" id="total_participants" name="total_participants" class="form-control" placeholder="Enter number" min="0" value="45" required>
+        </div>
+
+        <!-- Households Involved -->
+        <div class="form-group">
+          <label class="form-label" for="households_involved">Number of Households Involved</label>
+          <input type="number" id="households_involved" name="households_involved" class="form-control" placeholder="Enter number" min="0" value="32">
+        </div>
+
+        <!-- Sessions Conducted -->
+        <div class="form-group">
+          <label class="form-label" for="sessions_conducted">Number of Sessions / Meetings Conducted</label>
+          <input type="number" id="sessions_conducted" name="sessions_conducted" class="form-control" placeholder="Enter number" min="0" value="4">
+        </div>
+
+        <!-- Adoption Percentage -->
+        <div class="form-group">
+          <label class="form-label" for="adoption_percentage">Adoption / Usage (e.g., % of households adopting) <span class="req">*</span></label>
+          <div class="input-with-suffix">
+            <input type="number" id="adoption_percentage" name="adoption_percentage" class="form-control" placeholder="Enter percentage" min="0" max="100" step="0.1" value="78" required>
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+
+        <!-- Outputs Achieved -->
+        <div class="form-group">
+          <label class="form-label" for="outputs_achieved">Outputs Achieved / Products Distributed</label>
+          <input type="text" id="outputs_achieved" name="outputs_achieved" class="form-control" placeholder="Short answer" value="45 Seed Kits & 30 Compost Kits distributed">
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions-bar">
+          <button type="button" class="btn btn-secondary" data-action="back">Back</button>
+          <button type="button" class="btn btn-primary" data-action="next">
+            <span>Next</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= STEP 3: QUALITATIVE FEEDBACK ================= -->
+      <div class="form-step-panel" data-step="3">
+        <div class="panel-stepper-header">
+          <div class="panel-stepper-line"></div>
+          <div class="panel-step-dot completed" data-dot-step="1">✓</div>
+          <div class="panel-step-dot completed" data-dot-step="2">✓</div>
+          <div class="panel-step-dot active" data-dot-step="3">3</div>
+          <div class="panel-step-dot" data-dot-step="4">4</div>
+        </div>
+
+        <div class="section-heading-row">
+          <h2 class="section-title">C. Qualitative Feedback</h2>
+          <p class="section-subtitle">Please share observations, stories and feedback from the community.</p>
+        </div>
+
+        <!-- Significant Change -->
+        <div class="form-group">
+          <label class="form-label" for="significant_change">Most Significant Change / Success Story <span class="req">*</span></label>
+          <textarea id="significant_change" name="significant_change" class="form-control" placeholder="Long answer" rows="3" required>Families have started harvesting fresh green vegetables daily from their own kitchen gardens, reducing weekly market expenditures by nearly 40%.</textarea>
+        </div>
+
+        <!-- Community Voice -->
+        <div class="form-group">
+          <label class="form-label" for="community_voice">Community Voice / Quote</label>
+          <textarea id="community_voice" name="community_voice" class="form-control" placeholder="Long answer" rows="2">"Earlier we had to travel 7km to buy vegetables. Now our children get fresh greens right from our backyard."</textarea>
+          <div class="form-label-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
+              <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
+            </svg>
+            <span>Capture a quote that reflects the change in the community.</span>
+          </div>
+        </div>
+
+        <!-- Barriers / Challenges -->
+        <div class="form-group">
+          <label class="form-label" for="barriers_challenges">Barriers / Challenges Observed</label>
+          <textarea id="barriers_challenges" name="barriers_challenges" class="form-control" placeholder="Long answer" rows="2">Minor water scarcity observed during peak summer months in lower hamlet.</textarea>
+        </div>
+
+        <!-- Facilitator Observations -->
+        <div class="form-group">
+          <label class="form-label" for="facilitator_observations">Facilitator Observations</label>
+          <textarea id="facilitator_observations" name="facilitator_observations" class="form-control" placeholder="Long answer" rows="2">Women self-help group members demonstrated high ownership and peer learning.</textarea>
+        </div>
+
+        <!-- Overall Rating -->
+        <div class="rating-scale-container">
+          <label class="form-label">Overall Qualitative Rating <span class="req">*</span></label>
+          <p class="section-subtitle" style="font-size: 13px;">Rate the overall impact of this activity</p>
+
+          <div class="rating-scale-options">
+            <span class="rating-scale-label">Low Impact</span>
+            
+            <div class="rating-pill-wrapper">
+              <label class="rating-item">
+                <span class="rating-number">1</span>
+                <input type="radio" name="overall_rating" value="1">
+                <div class="rating-circle">1</div>
+              </label>
+              <label class="rating-item">
+                <span class="rating-number">2</span>
+                <input type="radio" name="overall_rating" value="2">
+                <div class="rating-circle">2</div>
+              </label>
+              <label class="rating-item">
+                <span class="rating-number">3</span>
+                <input type="radio" name="overall_rating" value="3">
+                <div class="rating-circle">3</div>
+              </label>
+              <label class="rating-item">
+                <span class="rating-number">4</span>
+                <input type="radio" name="overall_rating" value="4">
+                <div class="rating-circle">4</div>
+              </label>
+              <label class="rating-item">
+                <span class="rating-number">5</span>
+                <input type="radio" name="overall_rating" value="5" checked>
+                <div class="rating-circle">5</div>
+              </label>
+            </div>
+
+            <span class="rating-scale-label">High Impact</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions-bar">
+          <button type="button" class="btn btn-secondary" data-action="back">Back</button>
+          <button type="button" class="btn btn-primary" data-action="next">
+            <span>Next</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= STEP 4: REVIEW & SUBMIT ================= -->
+      <div class="form-step-panel" data-step="4">
+        <div class="panel-stepper-header">
+          <div class="panel-stepper-line"></div>
+          <div class="panel-step-dot completed" data-dot-step="1">✓</div>
+          <div class="panel-step-dot completed" data-dot-step="2">✓</div>
+          <div class="panel-step-dot completed" data-dot-step="3">✓</div>
+          <div class="panel-step-dot active" data-dot-step="4">4</div>
+        </div>
+
+        <div class="section-heading-row">
+          <h2 class="section-title">D. Review & Submit</h2>
+          <p class="section-subtitle">Please review your responses before submitting.</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="review-cards-list">
+          
+          <!-- Card 1: Respondent & Activity Details -->
+          <div class="review-card">
+            <div class="review-card-header">
+              <span class="review-card-title">Respondent & Activity Details</span>
+              <button type="button" class="btn-edit-jump" data-jump-step="1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+            </div>
+            <div class="review-card-body">
+              <div class="review-field-pair">
+                <span class="review-field-key">Village / Location</span>
+                <span class="review-field-val" id="rev_village">Rampur</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Date of Visit</span>
+                <span class="review-field-val" id="rev_date">20 / 05 / 2024</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Field Officer / Facilitator</span>
+                <span class="review-field-val" id="rev_officer">Anita Sharma</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Activity / Intervention</span>
+                <span class="review-field-val" id="rev_activity">Kitchen Garden Initiative</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Respondent Type</span>
+                <span class="review-field-val" id="rev_respondent_type">Community Member</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Other</span>
+                <span class="review-field-val" id="rev_other">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Quantitative Inputs -->
+          <div class="review-card">
+            <div class="review-card-header">
+              <span class="review-card-title">Quantitative Inputs</span>
+              <button type="button" class="btn-edit-jump" data-jump-step="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+            </div>
+            <div class="review-card-body">
+              <div class="review-field-pair">
+                <span class="review-field-key">Total Participants Reached</span>
+                <span class="review-field-val" id="rev_participants">45</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Households Involved</span>
+                <span class="review-field-val" id="rev_households">32</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Sessions Conducted</span>
+                <span class="review-field-val" id="rev_sessions">4</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Adoption / Usage Rate</span>
+                <span class="review-field-val" id="rev_adoption">78%</span>
+              </div>
+              <div class="review-field-pair" style="grid-column: 1 / -1;">
+                <span class="review-field-key">Outputs Achieved / Distributed</span>
+                <span class="review-field-val" id="rev_outputs">45 Seed Kits & 30 Compost Kits distributed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Qualitative Feedback -->
+          <div class="review-card">
+            <div class="review-card-header">
+              <span class="review-card-title">Qualitative Feedback</span>
+              <button type="button" class="btn-edit-jump" data-jump-step="3">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+            </div>
+            <div class="review-card-body">
+              <div class="review-field-pair" style="grid-column: 1 / -1;">
+                <span class="review-field-key">Success Story</span>
+                <span class="review-field-val" id="rev_story">Families have started harvesting fresh green vegetables daily from their own kitchen gardens.</span>
+              </div>
+              <div class="review-field-pair" style="grid-column: 1 / -1;">
+                <span class="review-field-key">Community Voice / Quote</span>
+                <span class="review-field-val" id="rev_quote">"Earlier we had to travel 7km to buy vegetables. Now our children get fresh greens right from our backyard."</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Challenges</span>
+                <span class="review-field-val" id="rev_challenges">Minor water scarcity observed.</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Facilitator Observations</span>
+                <span class="review-field-val" id="rev_observations">High community ownership.</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Overall Rating</span>
+                <span class="review-field-val" id="rev_rating" style="color: var(--primary); font-weight: 700;">5 / 5 (High Impact)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Confirmation Checkbox -->
+        <div class="confirmation-box">
+          <input type="checkbox" id="confirmation_accuracy" name="confirmation_accuracy" class="custom-checkbox" checked required>
+          <label for="confirmation_accuracy" class="confirmation-label">
+            I confirm that the information provided is accurate to the best of my knowledge.
+          </label>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions-bar">
+          <button type="button" class="btn btn-secondary" data-action="back">Back</button>
+          <button type="button" class="btn btn-primary" id="submitSurveyBtn">
+            <span>Submit</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <p class="submit-note">Your response will be recorded once you submit this form.</p>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    Never submit passwords through Google Forms. This form was created inside your organization. <strong>Google Forms</strong>
+  </footer>
+
+  <script src="/assets/krushi_vikas/js/feedback_survey.js"></script>
+  <script>
+    if (!window.feedbackSurveyLoaded) {
+      const s = document.createElement('script');
+      s.src = '../public/js/feedback_survey.js';
+      document.body.appendChild(s);
+    }
+  </script>
+</body>
+</html>

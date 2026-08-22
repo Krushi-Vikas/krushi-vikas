@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "expenditure_category",
+  "monthly_amount",
+  "annual_amount"
+ ],
+ "fields": [
+  {
+   "default": "Agriculture Operations",
+   "fieldname": "expenditure_category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Expenditure Head",
+   "options": "Agriculture (Sheti)\nAgriculture Operations\nLivestock (Pashu Dhan)\nLivestock & Fodder\nEducation (Shikshan)\nEducation & Schooling\nGrocery & Household expenses (Kirana va ghar kharch)\nGroceries & Household Expenses\nAllied Business / Side Business (Jod Dhanda)\nAllied Business Expenses\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "monthly_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Monthly Exp. (Rs.)"
+  },
+  {
+   "default": "0",
+   "fieldname": "annual_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Annual Exp. (Rs.)"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Baseline Monthly Annual Expenditure",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

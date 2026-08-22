@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "source_type",
+  "annual_amount",
+  "percentage_share"
+ ],
+ "fields": [
+  {
+   "default": "Crop Agriculture",
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Income Source",
+   "options": "Crop Agriculture\nHorticulture / Fruits\nLivestock / Dairy\nPoultry\nAgricultural Labour\nNon-Farm Daily Wages\nRural Business / Shop\nSalary / Service\nRemittance / Family Support\nGovernment Scheme / Pension\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "annual_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Annual Income Amount (INR)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "percentage_share",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "% Share of Total Income"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Baseline Income Source",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "structure_type",
+  "status",
+  "length_or_count",
+  "implementing_dept",
+  "is_maintained"
+ ],
+ "fields": [
+  {
+   "default": "Farm Bunding (Shet Bandh Bandisti)",
+   "fieldname": "structure_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Structure Type",
+   "options": "Farm Bunding (Shet Bandh Bandisti)\nFarm Pond (Shet Tale)\nContinuous Contour Trench (CCT)\nContinuous Contour Trenches (CCT)\nWater Absorption Trench (WAT)\nWater Absorption Trenches (WAT)\nLoose Boulder Structure (LBS)\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "Yes",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Done? (Yes/No)",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "length_or_count",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Length / Count"
+  },
+  {
+   "fieldname": "implementing_dept",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Department / Agency"
+  },
+  {
+   "default": "Yes",
+   "fieldname": "is_maintained",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Maintained?",
+   "options": "Yes\nNo"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Baseline Farm Conservation Work",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
