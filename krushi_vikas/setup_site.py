@@ -259,17 +259,32 @@ def setup_custom_fields():
             },
             {
                 "fieldname": "custom_linked_field_tracking_form",
-                "label": "Linked Field Tracking Form",
+                "label": "Linked Feedback Survey / Field Tracking Form",
                 "fieldtype": "Link",
                 "options": "Feedback Survey",
                 "insert_after": "custom_col_forms_brk",
                 "module": "Krushi Vikas"
             },
             {
+                "fieldname": "custom_feedback_surveys_sec",
+                "label": "Feedback Surveys & Field Observations",
+                "fieldtype": "Section Break",
+                "insert_after": "custom_linked_field_tracking_form",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_feedback_surveys",
+                "label": "Feedback Surveys",
+                "fieldtype": "Table",
+                "options": "Project Feedback Detail",
+                "insert_after": "custom_feedback_surveys_sec",
+                "module": "Krushi Vikas"
+            },
+            {
                 "fieldname": "custom_activities_sec",
                 "label": "Activities",
                 "fieldtype": "Section Break",
-                "insert_after": "custom_linked_field_tracking_form",
+                "insert_after": "custom_feedback_surveys",
                 "module": "Krushi Vikas"
             },
             {
