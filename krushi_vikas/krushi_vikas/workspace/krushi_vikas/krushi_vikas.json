@@ -1,0 +1,75 @@
+{
+ "charts": [],
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<b>Krushi Vikas</b>\", \"level\": 4, \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"KRE\", \"link_type\": \"DocType\", \"link_to\": \"KRE\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Activity Outcome\", \"link_type\": \"DocType\", \"link_to\": \"Activity Outcome\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Krushi Vikas\", \"col\": 4}}]",
+ "creation": "2026-08-16 00:18:48.677235",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "plant",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Krushi Vikas",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "KRE",
+   "link_count": 0,
+   "link_to": "KRE",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity Outcome",
+   "link_count": 0,
+   "link_to": "Activity Outcome",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project",
+   "link_count": 0,
+   "link_to": "Project",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Task",
+   "link_count": 0,
+   "link_to": "Task",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-08-16 01:26:49.938489",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Krushi Vikas",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Administrator"
+  }
+ ],
+ "sequence_id": 0.0,
+ "shortcuts": [],
+ "title": "Krushi Vikas"
+}

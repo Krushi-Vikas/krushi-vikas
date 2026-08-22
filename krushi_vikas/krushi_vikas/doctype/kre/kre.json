@@ -1,0 +1,156 @@
+{
+ "actions": [],
+ "autoname": "format:KRE-{project}-{####}",
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "kre_name",
+  "project",
+  "project_objective",
+  "column_break_1",
+  "unit",
+  "status",
+  "section_values",
+  "baseline_value",
+  "current_value",
+  "column_break_2",
+  "target_value",
+  "stretch_value",
+  "achievement_pct",
+  "section_measurements",
+  "measurements"
+ ],
+ "fields": [
+  {
+   "fieldname": "kre_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "KRE Name / Metric",
+   "reqd": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "project_objective",
+   "fieldtype": "Link",
+   "label": "Project Objective",
+   "options": "Project Objective"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Unit (e.g. Ha, Qtl, Farmers, INR)"
+  },
+  {
+   "default": "Not Started",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Not Started\nOn Track\nAt Risk\nCritical\nCompleted"
+  },
+  {
+   "fieldname": "section_values",
+   "fieldtype": "Section Break",
+   "label": "Targets & Progress"
+  },
+  {
+   "default": "0",
+   "fieldname": "baseline_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Baseline Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "current_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Current Value"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "target_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "stretch_value",
+   "fieldtype": "Float",
+   "label": "Stretch Target"
+  },
+  {
+   "fieldname": "achievement_pct",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Achievement %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_measurements",
+   "fieldtype": "Section Break",
+   "label": "Measurement Log"
+  },
+  {
+   "fieldname": "measurements",
+   "fieldtype": "Table",
+   "label": "Measurements",
+   "options": "KRE Measurement"
+  }
+ ],
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "KRE",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
