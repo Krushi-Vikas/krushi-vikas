@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "autoname": "TGT-.YYYY.-.#####",
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "project",
+  "employee",
+  "user",
+  "activity",
+  "column_break_1",
+  "period",
+  "planned_amount",
+  "planned_pct",
+  "achieved_amount",
+  "achieved_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee / Officer",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Linked User",
+   "options": "User"
+  },
+  {
+   "fieldname": "activity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Assigned Activity / Task",
+   "options": "Task"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "period",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Period",
+   "options": "Monthly\nQuarterly\nAnnual"
+  },
+  {
+   "fieldname": "planned_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Planned Amount / Target"
+  },
+  {
+   "fieldname": "planned_pct",
+   "fieldtype": "Percent",
+   "label": "Planned %"
+  },
+  {
+   "fieldname": "achieved_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Achieved Amount"
+  },
+  {
+   "fieldname": "achieved_pct",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Achieved %"
+  }
+ ],
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "User Target",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

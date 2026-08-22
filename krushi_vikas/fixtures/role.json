@@ -1,0 +1,67 @@
+[
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-08-16 00:18:46.753631",
+  "name": "Field Officer",
+  "restrict_to_domain": null,
+  "role_name": "Field Officer",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-08-16 00:18:47.307579",
+  "name": "Project Coordinator",
+  "restrict_to_domain": null,
+  "role_name": "Project Coordinator",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-08-16 00:18:47.314955",
+  "name": "Project Manager",
+  "restrict_to_domain": null,
+  "role_name": "Project Manager",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-08-16 00:18:47.322772",
+  "name": "Project Director",
+  "restrict_to_domain": null,
+  "role_name": "Project Director",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-08-16 00:18:47.330122",
+  "name": "CEO",
+  "restrict_to_domain": null,
+  "role_name": "CEO",
+  "two_factor_auth": 0
+ }
+]

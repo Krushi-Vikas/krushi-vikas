@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "question_ref",
+  "question_text",
+  "answer_type",
+  "answer_value",
+  "answer_media"
+ ],
+ "fields": [
+  {
+   "fieldname": "question_ref",
+   "fieldtype": "Data",
+   "label": "Question Ref",
+   "read_only": 1
+  },
+  {
+   "fieldname": "question_text",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Question",
+   "read_only": 1
+  },
+  {
+   "fieldname": "answer_type",
+   "fieldtype": "Data",
+   "label": "Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "answer_value",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Answer Value"
+  },
+  {
+   "fieldname": "answer_media",
+   "fieldtype": "Attach Image",
+   "label": "Attach Photo / Media"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Survey Answer",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

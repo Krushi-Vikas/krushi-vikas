@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "feedback_survey",
+  "village",
+  "activity",
+  "date_of_visit",
+  "total_participants",
+  "overall_rating"
+ ],
+ "fields": [
+  {
+   "fieldname": "feedback_survey",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Feedback Survey ID",
+   "options": "Feedback Survey",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "feedback_survey.village",
+   "fieldname": "village",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Village / Location",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "feedback_survey.activity",
+   "fieldname": "activity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Activity Evaluated",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "feedback_survey.date_of_visit",
+   "fieldname": "date_of_visit",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date of Visit",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "feedback_survey.total_participants",
+   "fieldname": "total_participants",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Beneficiaries Reached",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "feedback_survey.overall_rating",
+   "fieldname": "overall_rating",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rating (1-5)",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Project Feedback Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

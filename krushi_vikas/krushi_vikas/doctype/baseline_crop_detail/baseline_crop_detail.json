@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "season",
+  "crop_name",
+  "area_irrigated_acres",
+  "area_dryland_acres",
+  "yield_quintals",
+  "place_of_sale",
+  "market_rate_per_qtl",
+  "total_income",
+  "cost_of_production",
+  "net_profit"
+ ],
+ "fields": [
+  {
+   "default": "Kharif",
+   "fieldname": "season",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Season / Category",
+   "options": "Kharif\nRabi\nPerennial (Baramahi)\nVegetables (Bhaji Pala)\nFloriculture (Phool Sheti)\nOrchard/Horticulture (Phalbag)\nPerennial\nVegetables\nFloriculture\nHorticulture (Orchards)\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "crop_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Crop Name",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "area_irrigated_acres",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Area (Acres) - Irrigated"
+  },
+  {
+   "default": "0",
+   "fieldname": "area_dryland_acres",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Area (Acres) - Rainfed"
+  },
+  {
+   "default": "0",
+   "fieldname": "yield_quintals",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Yield (Qtl)"
+  },
+  {
+   "fieldname": "place_of_sale",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Place of Sale"
+  },
+  {
+   "default": "0",
+   "fieldname": "market_rate_per_qtl",
+   "fieldtype": "Currency",
+   "label": "Market Rate (Rs./ Qtl)"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_income",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Income (Rs.)"
+  },
+  {
+   "default": "0",
+   "fieldname": "cost_of_production",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Cost of Prod. (Rs.)"
+  },
+  {
+   "default": "0",
+   "fieldname": "net_profit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Net Profit (Rs.)",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Baseline Crop Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

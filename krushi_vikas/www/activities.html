@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Activities | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item active"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" id="actSearch" placeholder="Search activities and parent projects..." oninput="filterActivityList()">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app/activity" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open in Desk</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Activities</h1>
+                    <p class="page-subtitle">Global repository of all project activities, impact metrics & milestones</p>
+                </div>
+                <div class="header-controls">
+                    <button class="btn-primary" onclick="openAddGlobalActivityModal()"><i class="fa-solid fa-plus"></i> Add Activity</button>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="filter-bar" style="background: #ffffff; padding: 14px 18px; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 20px;">
+                <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.84rem; color: #475569;"><i class="fa-solid fa-filter"></i> Filters:</div>
+                    
+                    <select id="filterProject" class="form-control" style="width: 240px; padding: 6px 10px; font-size: 0.82rem;" onchange="filterActivityList()">
+                        <option value="">All Projects ({{ options.projects|length }})</option>
+                        {% for p in options.projects %}
+                        <option value="{{ p.name }}" {% if selected_project == p.name %}selected{% endif %}>{{ p.project_name or p.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="filterStatus" class="form-control" style="width: 160px; padding: 6px 10px; font-size: 0.82rem;" onchange="filterActivityList()">
+                        <option value="">All Statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="actCountDisplay">
+                    Showing {{ activities|length }} Activities
+                </div>
+            </div>
+
+            <!-- Activities List -->
+            <div class="activities-list" id="activitiesContainer">
+                {% for a in activities %}
+                <div class="activity-row-card act-item" data-project="{{ a.project }}" data-project-title="{{ a.project_title | lower }}" data-name="{{ a.activity_name | lower }}" data-status="{{ a.status }}">
+                    <div class="activity-info-col">
+                        <div class="activity-header-line">
+                            <a href="/activity_details?name={{ a.name }}" class="activity-title-link">
+                                {{ a.activity_name }}
+                            </a>
+                            <span class="badge-status {% if a.status == 'Completed' %}badge-deployed{% elif a.status == 'In Progress' or a.status == 'Open' %}badge-inprogress{% else %}badge-planning{% endif %}">
+                                {{ a.status or 'Open' }}
+                            </span>
+                        </div>
+                        <div class="activity-meta-line" style="margin-top: 4px;">
+                            <span><i class="fa-solid fa-folder-open" style="color: #2563eb;"></i> Project: <strong><a href="/project_details?name={{ a.project }}" style="color: #2563eb; text-decoration: none;">{{ a.project_title }}</a></strong></span>
+                            <span><i class="fa-regular fa-user"></i> {{ a.assignee or 'Administrator' }}</span>
+                            <span><i class="fa-regular fa-calendar"></i> {{ a.start_date or '01-01-2026' }} to {{ a.end_date or '31-03-2026' }}</span>
+                            <span><i class="fa-solid fa-bars-progress"></i> {{ a.task_count or 0 }} Tasks</span>
+                        </div>
+                        {% if a.impact %}
+                        <div style="font-size: 0.76rem; color: #059669; margin-top: 4px;">
+                            <i class="fa-solid fa-bullseye"></i> {{ a.impact }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="activity-actions-col">
+                        <a href="/activity_details?name={{ a.name }}" class="btn-secondary btn-sm"><i class="fa-regular fa-eye"></i> View Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if not activities %}
+            <div class="empty-state">
+                <i class="fa-solid fa-list-check"></i>
+                <p>No activities found matching criteria.</p>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- ==========================================
+         MODAL: ADD GLOBAL ACTIVITY
+         ========================================== -->
+    <div class="modal-backdrop" id="globalActivityModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-list-check" style="color: #2563eb;"></i> Add New Activity</div>
+                <button type="button" class="btn-close-modal" onclick="closeGlobalActivityModal()">&times;</button>
+            </div>
+            <form id="globalActivityForm" onsubmit="handleSaveGlobalActivity(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Select Parent Project <span class="req">*</span></label>
+                        <select id="g_act_project" class="form-control" required>
+                            {% for p in options.projects %}
+                            <option value="{{ p.name }}">{{ p.project_name or p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Activity Name <span class="req">*</span></label>
+                        <input type="text" id="g_act_name" class="form-control" placeholder="e.g. Organic Bio-Fertilizer Workshop" required>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Assignee</label>
+                            <select id="g_act_assignee" class="form-control">
+                                <option value="Administrator">Administrator</option>
+                                {% for u in options.users %}
+                                <option value="{{ u.name }}">{{ u.full_name or u.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="g_act_status" class="form-control">
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="g_act_start" class="form-control" value="2026-01-01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date</label>
+                            <input type="date" id="g_act_end" class="form-control" value="2026-03-31">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Expected Impact</label>
+                        <input type="text" id="g_act_impact" class="form-control" placeholder="e.g. 50 farmers certified in composting">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeGlobalActivityModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="btnSaveGlobalAct"><i class="fa-solid fa-check"></i> Save Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.csrf_token = "{{ frappe.session.csrf_token }}";
+        function getCsrfToken() {
+            if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+                return window.csrf_token;
+            }
+            if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+                return window.frappe.csrf_token;
+            }
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+            if (match && match[1] && match[1] !== 'None') {
+                return decodeURIComponent(match[1]);
+            }
+            return '';
+        }
+
+        function openAddGlobalActivityModal() {
+            document.getElementById('globalActivityModal').style.display = 'flex';
+        }
+
+        function closeGlobalActivityModal() {
+            document.getElementById('globalActivityModal').style.display = 'none';
+        }
+
+        function filterActivityList() {
+            const pVal = document.getElementById('filterProject').value.toLowerCase();
+            const sVal = document.getElementById('filterStatus').value.toLowerCase();
+            const qVal = document.getElementById('actSearch').value.toLowerCase();
+
+            let count = 0;
+            document.querySelectorAll('.act-item').forEach(item => {
+                const actName = item.dataset.name || '';
+                const projName = item.dataset.projectTitle || '';
+                const projId = item.dataset.project.toLowerCase() || '';
+                const actStatus = item.dataset.status.toLowerCase() || '';
+
+                const matchProj = !pVal || projId === pVal || projName.includes(pVal);
+                const matchStatus = !sVal || actStatus === sVal;
+                const matchSearch = !qVal || actName.includes(qVal) || projName.includes(qVal);
+
+                if (matchProj && matchStatus && matchSearch) {
+                    item.style.display = 'flex';
+                    count++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            document.getElementById('actCountDisplay').innerText = `Showing ${count} Activities`;
+        }
+
+        async function handleSaveGlobalActivity(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSaveGlobalAct');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            const payload = {
+                project: document.getElementById('g_act_project').value,
+                activity_name: document.getElementById('g_act_name').value,
+                assignee: document.getElementById('g_act_assignee').value,
+                status: document.getElementById('g_act_status').value,
+                start_date: document.getElementById('g_act_start').value,
+                end_date: document.getElementById('g_act_end').value,
+                impact: document.getElementById('g_act_impact').value,
+                csrf_token: csrf
+            };
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.save_activity', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ data: payload })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    closeGlobalActivityModal();
+                    alert(`Activity "${result.message.activity_name}" created successfully!`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + JSON.stringify(result));
+                }
+            } catch (err) {
+                alert('Save failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Activity';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,596 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_admin",
+  "village_name",
+  "village_code",
+  "gram_panchayat",
+  "block_taluka",
+  "district",
+  "column_admin_2",
+  "state",
+  "pincode",
+  "field_officer",
+  "project",
+  "date_of_survey",
+  "geo_coordinates",
+  "section_demographics",
+  "total_population",
+  "male_population",
+  "female_population",
+  "total_households",
+  "literacy_rate_pct",
+  "column_demo_2",
+  "sc_households",
+  "st_households",
+  "obc_general_households",
+  "bpl_households",
+  "female_headed_households",
+  "section_agriculture",
+  "total_geographical_area_ha",
+  "cultivable_land_ha",
+  "irrigated_area_ha",
+  "rainfed_area_ha",
+  "forest_wasteland_ha",
+  "column_agri_2",
+  "marginal_farmers_count",
+  "small_farmers_count",
+  "medium_large_farmers_count",
+  "landless_households_count",
+  "soil_type",
+  "section_crops",
+  "major_crops_kharif",
+  "major_crops_rabi",
+  "column_crops_2",
+  "horticulture_crops",
+  "section_water",
+  "watershed_name",
+  "primary_drinking_water_source",
+  "summer_water_scarcity_status",
+  "primary_irrigation_practice",
+  "column_water_2",
+  "open_wells_count",
+  "borewells_count",
+  "check_dams_count",
+  "farm_ponds_count",
+  "percolation_tanks_count",
+  "section_institutions",
+  "total_shgs_count",
+  "active_fpos_count",
+  "fpo_name",
+  "column_inst_2",
+  "has_primary_school",
+  "has_secondary_school",
+  "has_primary_health_center",
+  "has_veterinary_clinic",
+  "has_milk_chilling_center",
+  "has_custom_hiring_center",
+  "has_bank_csc",
+  "all_weather_road_connectivity",
+  "section_needs",
+  "key_development_priorities",
+  "water_conservation_interventions",
+  "livelihood_interventions",
+  "surveyor_observations",
+  "column_needs_2",
+  "profile_status",
+  "approved_by",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "VP-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "no_copy": 1,
+   "options": "VP-.YYYY.-.#####",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "section_admin",
+   "fieldtype": "Section Break",
+   "label": "1. Administrative & Location Details"
+  },
+  {
+   "bold": 1,
+   "fieldname": "village_name",
+   "fieldtype": "Data",
+   "in_filter": 1,
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Village Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "village_code",
+   "fieldtype": "Data",
+   "label": "Village Census / Revenue Code",
+   "unique": 1
+  },
+  {
+   "fieldname": "gram_panchayat",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Gram Panchayat",
+   "reqd": 1
+  },
+  {
+   "fieldname": "block_taluka",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Block / Taluka",
+   "reqd": 1
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "District",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_admin_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Maharashtra",
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "State",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pincode",
+   "fieldtype": "Data",
+   "label": "PIN Code"
+  },
+  {
+   "fieldname": "field_officer",
+   "fieldtype": "Link",
+   "label": "Field Officer / Enumerator",
+   "options": "User"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Linked Project",
+   "options": "Project"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date_of_survey",
+   "fieldtype": "Date",
+   "label": "Date of Profiling / Survey",
+   "reqd": 1
+  },
+  {
+   "fieldname": "geo_coordinates",
+   "fieldtype": "Data",
+   "label": "GPS Coordinates (Lat, Long)"
+  },
+  {
+   "fieldname": "section_demographics",
+   "fieldtype": "Section Break",
+   "label": "2. Demographics & Socio-Economic Profile"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_population",
+   "fieldtype": "Int",
+   "label": "Total Population",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "male_population",
+   "fieldtype": "Int",
+   "label": "Male Population"
+  },
+  {
+   "default": "0",
+   "fieldname": "female_population",
+   "fieldtype": "Int",
+   "label": "Female Population"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_households",
+   "fieldtype": "Int",
+   "label": "Total Households",
+   "reqd": 1
+  },
+  {
+   "fieldname": "literacy_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Literacy Rate (%)"
+  },
+  {
+   "fieldname": "column_demo_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "sc_households",
+   "fieldtype": "Int",
+   "label": "SC Households"
+  },
+  {
+   "default": "0",
+   "fieldname": "st_households",
+   "fieldtype": "Int",
+   "label": "ST Households"
+  },
+  {
+   "default": "0",
+   "fieldname": "obc_general_households",
+   "fieldtype": "Int",
+   "label": "OBC / General Households"
+  },
+  {
+   "default": "0",
+   "fieldname": "bpl_households",
+   "fieldtype": "Int",
+   "label": "BPL Households (Below Poverty Line)"
+  },
+  {
+   "default": "0",
+   "fieldname": "female_headed_households",
+   "fieldtype": "Int",
+   "label": "Female Headed Households"
+  },
+  {
+   "fieldname": "section_agriculture",
+   "fieldtype": "Section Break",
+   "label": "3. Landholding & Agricultural Profile"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_geographical_area_ha",
+   "fieldtype": "Float",
+   "label": "Total Geographical Area (Hectares)",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cultivable_land_ha",
+   "fieldtype": "Float",
+   "label": "Total Cultivable Land (Hectares)",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "irrigated_area_ha",
+   "fieldtype": "Float",
+   "label": "Net Irrigated Area (Hectares)"
+  },
+  {
+   "default": "0",
+   "fieldname": "rainfed_area_ha",
+   "fieldtype": "Float",
+   "label": "Rainfed / Dryland Area (Hectares)"
+  },
+  {
+   "default": "0",
+   "fieldname": "forest_wasteland_ha",
+   "fieldtype": "Float",
+   "label": "Forest / Wasteland / Common Land (Ha)"
+  },
+  {
+   "fieldname": "column_agri_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "marginal_farmers_count",
+   "fieldtype": "Int",
+   "label": "Marginal Farmers [< 1 Ha]"
+  },
+  {
+   "default": "0",
+   "fieldname": "small_farmers_count",
+   "fieldtype": "Int",
+   "label": "Small Farmers [1 - 2 Ha]"
+  },
+  {
+   "default": "0",
+   "fieldname": "medium_large_farmers_count",
+   "fieldtype": "Int",
+   "label": "Medium & Large Farmers [> 2 Ha]"
+  },
+  {
+   "default": "0",
+   "fieldname": "landless_households_count",
+   "fieldtype": "Int",
+   "label": "Landless Agricultural Labourers"
+  },
+  {
+   "default": "Medium Black Soil",
+   "fieldname": "soil_type",
+   "fieldtype": "Select",
+   "label": "Dominant Soil Type",
+   "options": "Deep Black Soil\nMedium Black Soil\nRed Sandy Soil\nLoamy Soil\nLaterite Soil\nMixed Soil"
+  },
+  {
+   "fieldname": "section_crops",
+   "fieldtype": "Section Break",
+   "label": "Cropping Pattern"
+  },
+  {
+   "default": "Soybean, Cotton, Tur (Pigeonpea), Green Gram",
+   "fieldname": "major_crops_kharif",
+   "fieldtype": "Small Text",
+   "label": "Major Kharif Crops"
+  },
+  {
+   "default": "Wheat, Gram (Chickpea), Jowar",
+   "fieldname": "major_crops_rabi",
+   "fieldtype": "Small Text",
+   "label": "Major Rabi Crops"
+  },
+  {
+   "fieldname": "column_crops_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Vegetables, Citrus / Sweet Orange, Pomegranate",
+   "fieldname": "horticulture_crops",
+   "fieldtype": "Small Text",
+   "label": "Horticulture & Cash Crops"
+  },
+  {
+   "fieldname": "section_water",
+   "fieldtype": "Section Break",
+   "label": "4. Water Resources & Irrigation Status"
+  },
+  {
+   "fieldname": "watershed_name",
+   "fieldtype": "Data",
+   "label": "Watershed / Drainage Basin Name"
+  },
+  {
+   "default": "GP Piped Water Supply",
+   "fieldname": "primary_drinking_water_source",
+   "fieldtype": "Select",
+   "label": "Primary Drinking Water Source",
+   "options": "GP Piped Water Supply\nCommunity Open Wells\nHandpumps / Borewells\nWater Tankers (Seasonal)\nRiver / Canal"
+  },
+  {
+   "default": "Moderate Scarcity",
+   "fieldname": "summer_water_scarcity_status",
+   "fieldtype": "Select",
+   "label": "Summer Drinking & Farm Water Scarcity",
+   "options": "Severe / Tanker Dependent\nModerate Scarcity\nMinor Scarcity\nAdequate / No Scarcity",
+   "reqd": 1
+  },
+  {
+   "default": "Mixed",
+   "fieldname": "primary_irrigation_practice",
+   "fieldtype": "Select",
+   "label": "Primary Irrigation Practice",
+   "options": "Flood Irrigation\nDrip & Sprinkler Micro-Irrigation\nMixed"
+  },
+  {
+   "fieldname": "column_water_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "open_wells_count",
+   "fieldtype": "Int",
+   "label": "Open Wells Count"
+  },
+  {
+   "default": "0",
+   "fieldname": "borewells_count",
+   "fieldtype": "Int",
+   "label": "Borewells Count"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_dams_count",
+   "fieldtype": "Int",
+   "label": "Check Dams / Nalla Bunds"
+  },
+  {
+   "default": "0",
+   "fieldname": "farm_ponds_count",
+   "fieldtype": "Int",
+   "label": "Farm Ponds Count"
+  },
+  {
+   "default": "0",
+   "fieldname": "percolation_tanks_count",
+   "fieldtype": "Int",
+   "label": "Percolation Tanks / KT Weirs"
+  },
+  {
+   "fieldname": "section_institutions",
+   "fieldtype": "Section Break",
+   "label": "5. Community Institutions & Infrastructure"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_shgs_count",
+   "fieldtype": "Int",
+   "label": "Women SHGs Count (Self Help Groups)"
+  },
+  {
+   "default": "0",
+   "fieldname": "active_fpos_count",
+   "fieldtype": "Int",
+   "label": "Active FPOs / FPCs in Village"
+  },
+  {
+   "fieldname": "fpo_name",
+   "fieldtype": "Data",
+   "label": "Name of Active FPO / Cooperative"
+  },
+  {
+   "fieldname": "column_inst_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_primary_school",
+   "fieldtype": "Check",
+   "label": "Has Primary / ZP School"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_secondary_school",
+   "fieldtype": "Check",
+   "label": "Has Secondary / High School"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_primary_health_center",
+   "fieldtype": "Check",
+   "label": "Has PHC / Health Sub-Center"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_veterinary_clinic",
+   "fieldtype": "Check",
+   "label": "Has Veterinary Clinic / AI Center"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_milk_chilling_center",
+   "fieldtype": "Check",
+   "label": "Has Dairy / Milk Collection Center"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_custom_hiring_center",
+   "fieldtype": "Check",
+   "label": "Has Custom Hiring Center (Farm Tools)"
+  },
+  {
+   "default": "1",
+   "fieldname": "has_bank_csc",
+   "fieldtype": "Check",
+   "label": "Has Bank Branch / CSC / BC Point"
+  },
+  {
+   "default": "1",
+   "fieldname": "all_weather_road_connectivity",
+   "fieldtype": "Check",
+   "label": "Has All-Weather Pucca Road Connectivity"
+  },
+  {
+   "fieldname": "section_needs",
+   "fieldtype": "Section Break",
+   "label": "6. Needs Assessment & Prioritized Interventions (PRA)"
+  },
+  {
+   "fieldname": "key_development_priorities",
+   "fieldtype": "Small Text",
+   "label": "Key Village Development Priorities"
+  },
+  {
+   "fieldname": "water_conservation_interventions",
+   "fieldtype": "Small Text",
+   "label": "Proposed Water Conservation / Nalla Treatment"
+  },
+  {
+   "fieldname": "livelihood_interventions",
+   "fieldtype": "Small Text",
+   "label": "Proposed Farm / Livelihood Interventions"
+  },
+  {
+   "fieldname": "surveyor_observations",
+   "fieldtype": "Text",
+   "label": "Surveyor / Field Team Observations"
+  },
+  {
+   "fieldname": "column_needs_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "profile_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nVerified\nApproved"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Village Profile",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Village Profile",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Officer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "village_name",
+ "track_changes": 1
+}

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ activity.activity_name or 'Activity Details' }} | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item active"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" placeholder="Search tasks...">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app/activity/{{ activity.name }}" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open in Desk</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <!-- 3-Tier Breadcrumb Navigation -->
+            <div class="breadcrumb-nav">
+                <a href="/projects"><i class="fa-solid fa-folder-open"></i> Projects</a>
+                <span class="sep">/</span>
+                <a href="/project_details?name={{ activity.project }}">{{ activity.project_title }}</a>
+                <span class="sep">/</span>
+                <span class="current">{{ activity.activity_name }}</span>
+            </div>
+
+            <!-- Activity Details Header -->
+            <div class="page-header">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h1 class="page-title">{{ activity.activity_name }}</h1>
+                        <span class="badge-status {% if activity.status == 'Completed' %}badge-deployed{% elif activity.status == 'In Progress' or activity.status == 'Open' %}badge-inprogress{% else %}badge-planning{% endif %}">
+                            {{ activity.status }}
+                        </span>
+                    </div>
+                    <p class="page-subtitle">
+                        Parent Project: <strong><a href="/project_details?name={{ activity.project }}" style="color: #2563eb; text-decoration: none;">{{ activity.project_title }}</a></strong> &bull; 
+                        Activity ID: <code>{{ activity.name }}</code>
+                    </p>
+                </div>
+                <div class="header-controls">
+                    <button class="btn-primary" onclick="openAddTaskModal()"><i class="fa-solid fa-plus"></i> Add Task</button>
+                    <a href="/project_details?name={{ activity.project }}" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back to Project</a>
+                </div>
+            </div>
+
+            <!-- Activity Metadata Cards -->
+            <div class="details-overview-grid">
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-regular fa-user" style="color: #2563eb;"></i> Activity Owner</div>
+                    <div class="stat-value" style="font-size: 1.05rem;">{{ activity.assignee or 'Administrator' }}</div>
+                    <div class="stat-sub">Assigned Lead</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-regular fa-calendar" style="color: #059669;"></i> Timeline</div>
+                    <div class="stat-value" style="font-size: 0.95rem;">{{ activity.start_date or '01-01-2026' }}</div>
+                    <div class="stat-sub">to {{ activity.end_date or '31-03-2026' }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-solid fa-coins" style="color: #d97706;"></i> Planned Budget</div>
+                    <div class="stat-value" style="font-size: 1.1rem;">₹ {{ "{:,.2f}".format(activity.planned_budget or 0) }}</div>
+                    <div class="stat-sub">Actual: ₹ {{ "{:,.2f}".format(activity.actual_expenditure or 0) }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><i class="fa-solid fa-bars-progress" style="color: #8b5cf6;"></i> Child Tasks</div>
+                    <div class="stat-value">{{ tasks|length }}</div>
+                    <div class="stat-sub">Operational Steps</div>
+                </div>
+            </div>
+
+            {% if activity.impact or activity.input_output or activity.description %}
+            <div class="section-card" style="margin-bottom: 20px; padding: 18px 22px; background: #ffffff;">
+                <div class="form-grid-2">
+                    {% if activity.input_output %}
+                    <div>
+                        <div style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrows-split-up-and-left"></i> Inputs / Outputs</div>
+                        <div style="font-size: 0.88rem; color: #1e293b; margin-top: 4px;">{{ activity.input_output }}</div>
+                    </div>
+                    {% endif %}
+                    {% if activity.impact %}
+                    <div>
+                        <div style="font-size: 0.76rem; font-weight: 700; color: #059669; text-transform: uppercase;"><i class="fa-solid fa-bullseye"></i> Expected Impact</div>
+                        <div style="font-size: 0.88rem; color: #065f46; margin-top: 4px; font-weight: 500;">{{ activity.impact }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if activity.description %}
+                <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 0.84rem; color: #475569;">
+                    {{ activity.description }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- SECTION: TASKS WITHIN ACTIVITY -->
+            <section class="section-card">
+                <div class="section-card-header">
+                    <div class="section-title">
+                        <i class="fa-solid fa-bars-progress" style="color: #2563eb;"></i> Tasks Belonging to this Activity ({{ tasks|length }})
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="openAddTaskModal()"><i class="fa-solid fa-plus"></i> Add Task</button>
+                </div>
+
+                {% if tasks %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">Done</th>
+                                <th>Task Subject</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Assignee</th>
+                                <th>Due Date</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in tasks %}
+                            <tr id="task_row_{{ t.name }}">
+                                <td>
+                                    <input type="checkbox" {% if t.status == 'Completed' %}checked{% endif %} onchange="toggleTask('{{ t.name }}', this.checked)" style="cursor: pointer; transform: scale(1.2);">
+                                </td>
+                                <td>
+                                    <strong style="color: #0f172a; {% if t.status == 'Completed' %}text-decoration: line-through; color: #94a3b8;{% endif %}">{{ t.subject }}</strong>
+                                    <div style="font-size: 0.72rem; color: #94a3b8;">{{ t.name }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge-priority {% if t.priority == 'Urgent' %}prio-urgent{% elif t.priority == 'High' %}prio-high{% elif t.priority == 'Medium' %}prio-medium{% else %}prio-low{% endif %}">
+                                        {{ t.priority or 'Medium' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge-status {% if t.status == 'Completed' %}badge-deployed{% elif t.status == 'Working' or t.status == 'Open' %}badge-inprogress{% else %}badge-planning{% endif %}">
+                                        {{ t.status or 'Open' }}
+                                    </span>
+                                </td>
+                                <td>{{ t.custom_assignee or 'Administrator' }}</td>
+                                <td>{{ t.exp_end_date or '31-03-2026' }}</td>
+                                <td style="text-align: right;">
+                                    <button class="btn-secondary btn-sm" onclick="editTask('{{ t.name }}', '{{ t.subject | escape }}', '{{ t.priority or 'Medium' }}', '{{ t.status or 'Open' }}', '{{ t.exp_start_date or '' }}', '{{ t.exp_end_date or '' }}', '{{ t.custom_assignee or '' }}', '{{ t.description or '' }}')"><i class="fa-regular fa-pen-to-square"></i></button>
+                                    <button class="btn-danger-outline btn-sm" onclick="deleteTask('{{ t.name }}', '{{ t.subject | escape }}')"><i class="fa-regular fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-bars-progress"></i>
+                    <p>No tasks added under this activity yet.</p>
+                    <button class="btn-primary btn-sm" onclick="openAddTaskModal()" style="margin-top: 10px;"><i class="fa-solid fa-plus"></i> Add First Task</button>
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <!-- ==========================================
+         MODAL: ADD / EDIT TASK
+         ========================================== -->
+    <div class="modal-backdrop" id="taskModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title" id="taskModalTitle"><i class="fa-solid fa-bars-progress" style="color: #2563eb;"></i> Add Task</div>
+                <button type="button" class="btn-close-modal" onclick="closeTaskModal()">&times;</button>
+            </div>
+            <form id="taskForm" onsubmit="handleSaveTask(event)">
+                <input type="hidden" id="task_name" value="">
+                <input type="hidden" id="task_project" value="{{ activity.project }}">
+                <input type="hidden" id="task_activity" value="{{ activity.name }}">
+                
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Parent Activity & Project</label>
+                        <input type="text" class="form-control" value="{{ activity.activity_name }} &bull; {{ activity.project_title }}" disabled style="background: #f1f5f9;">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Task Subject <span class="req">*</span></label>
+                        <input type="text" id="task_subject" class="form-control" placeholder="e.g. Conduct baseline survey orientation" required>
+                    </div>
+
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
+                            <select id="task_priority" class="form-control">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="task_status" class="form-control">
+                                <option value="Open">Open</option>
+                                <option value="Working">Working</option>
+                                <option value="Pending Review">Pending Review</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Assignee</label>
+                            <select id="task_assignee" class="form-control">
+                                <option value="Administrator">Administrator</option>
+                                {% for u in options.users %}
+                                <option value="{{ u.name }}">{{ u.full_name or u.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="task_start_date" class="form-control" value="2026-01-01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Due Date</label>
+                            <input type="date" id="task_end_date" class="form-control" value="2026-01-31">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Task Description</label>
+                        <textarea id="task_description" class="form-control" rows="2" placeholder="Task execution instructions..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeTaskModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="btnSaveTask"><i class="fa-solid fa-check"></i> Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.csrf_token = "{{ frappe.session.csrf_token }}";
+        function getCsrfToken() {
+            if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+                return window.csrf_token;
+            }
+            if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+                return window.frappe.csrf_token;
+            }
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+            if (match && match[1] && match[1] !== 'None') {
+                return decodeURIComponent(match[1]);
+            }
+            return '';
+        }
+
+        function openAddTaskModal() {
+            document.getElementById('taskModalTitle').innerHTML = '<i class="fa-solid fa-bars-progress" style="color: #2563eb;"></i> Add Task';
+            document.getElementById('task_name').value = '';
+            document.getElementById('task_subject').value = '';
+            document.getElementById('task_priority').value = 'Medium';
+            document.getElementById('task_status').value = 'Open';
+            document.getElementById('task_assignee').value = 'Administrator';
+            document.getElementById('task_start_date').value = '2026-01-01';
+            document.getElementById('task_end_date').value = '2026-01-31';
+            document.getElementById('task_description').value = '';
+            document.getElementById('taskModal').style.display = 'flex';
+        }
+
+        function editTask(name, subject, priority, status, start, end, assignee, desc) {
+            document.getElementById('taskModalTitle').innerHTML = '<i class="fa-regular fa-pen-to-square" style="color: #2563eb;"></i> Edit Task';
+            document.getElementById('task_name').value = name;
+            document.getElementById('task_subject').value = subject;
+            document.getElementById('task_priority').value = priority || 'Medium';
+            document.getElementById('task_status').value = status || 'Open';
+            document.getElementById('task_assignee').value = assignee || 'Administrator';
+            document.getElementById('task_start_date').value = start || '2026-01-01';
+            document.getElementById('task_end_date').value = end || '2026-01-31';
+            document.getElementById('task_description').value = desc || '';
+            document.getElementById('taskModal').style.display = 'flex';
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').style.display = 'none';
+        }
+
+        async function toggleTask(name, checked) {
+            const status = checked ? 'Completed' : 'Open';
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.toggle_task_status', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ name: name, status: status, csrf_token: csrf })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    window.location.reload();
+                } else {
+                    const msg = result.exc || result._server_messages || JSON.stringify(result);
+                    alert('Cannot update status: ' + msg);
+                    window.location.reload();
+                }
+            } catch (err) {
+                alert('Status update failed: ' + err.message);
+                window.location.reload();
+            }
+        }
+
+        async function deleteTask(name, title) {
+            if (!confirm(`Are you sure you want to delete Task "${title}" (${name})?`)) return;
+
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.delete_task_record', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ name: name, csrf_token: csrf })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    const row = document.getElementById(`task_row_${name}`);
+                    if (row) row.remove();
+                    alert('Task deleted successfully.');
+                } else {
+                    alert('Error deleting task: ' + JSON.stringify(result));
+                }
+            } catch (err) {
+                alert('Deletion failed: ' + err.message);
+            }
+        }
+
+        async function handleSaveTask(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSaveTask');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            const payload = {
+                name: document.getElementById('task_name').value || undefined,
+                project: document.getElementById('task_project').value,
+                custom_activity: document.getElementById('task_activity').value,
+                subject: document.getElementById('task_subject').value,
+                priority: document.getElementById('task_priority').value,
+                status: document.getElementById('task_status').value,
+                custom_assignee: document.getElementById('task_assignee').value,
+                exp_start_date: document.getElementById('task_start_date').value,
+                exp_end_date: document.getElementById('task_end_date').value,
+                description: document.getElementById('task_description').value,
+                csrf_token: csrf
+            };
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.save_task', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ data: payload })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    closeTaskModal();
+                    alert(`Task "${result.message.subject}" saved successfully!`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + JSON.stringify(result));
+                }
+            } catch (err) {
+                alert('Save failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Task';
+            }
+        }
+    </script>
+</body>
+</html>

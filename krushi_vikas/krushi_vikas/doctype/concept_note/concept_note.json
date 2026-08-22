@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "autoname": "CN-.YYYY.-.#####",
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "thematic_area",
+  "status",
+  "column_break_1",
+  "target_geography",
+  "beneficiary_estimate",
+  "estimated_budget",
+  "duration_months",
+  "section_details",
+  "rationale",
+  "raised_by",
+  "project",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Concept Note Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "thematic_area",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Thematic Area (Theme)",
+   "options": "Project Theme"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nUnder Review\nApproved\nRejected"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_geography",
+   "fieldtype": "Data",
+   "label": "Target Geography (Village/Block/District)"
+  },
+  {
+   "fieldname": "beneficiary_estimate",
+   "fieldtype": "Int",
+   "label": "Estimated Beneficiaries"
+  },
+  {
+   "fieldname": "estimated_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Estimated Budget (INR)"
+  },
+  {
+   "fieldname": "duration_months",
+   "fieldtype": "Int",
+   "label": "Duration (Months)"
+  },
+  {
+   "fieldname": "section_details",
+   "fieldtype": "Section Break",
+   "label": "Proposal Details"
+  },
+  {
+   "fieldname": "rationale",
+   "fieldtype": "Text Editor",
+   "label": "Rationale & Project Background"
+  },
+  {
+   "fieldname": "raised_by",
+   "fieldtype": "Link",
+   "label": "Raised By",
+   "options": "User"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Spawned Project",
+   "options": "Project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Concept Note",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Concept Note",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

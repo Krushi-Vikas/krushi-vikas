@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Tasks | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item active"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" id="taskSearch" placeholder="Search tasks, activities, projects..." oninput="filterTaskList()">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app/task" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open in Desk</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Tasks</h1>
+                    <p class="page-subtitle">Unified view of all operational tasks mapped under Activities and Projects</p>
+                </div>
+                <div class="header-controls">
+                    <button class="btn-primary" onclick="openAddGlobalTaskModal()"><i class="fa-solid fa-plus"></i> Add Task</button>
+                </div>
+            </div>
+
+            <!-- Multi-Filter Bar -->
+            <div class="filter-bar" style="background: #ffffff; padding: 14px 18px; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 20px;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.84rem; color: #475569;"><i class="fa-solid fa-filter"></i> Filters:</div>
+                    
+                    <select id="filterProject" class="form-control" style="width: 220px; padding: 6px 10px; font-size: 0.82rem;" onchange="filterTaskList()">
+                        <option value="">All Projects ({{ options.projects|length }})</option>
+                        {% for p in options.projects %}
+                        <option value="{{ p.name }}" {% if selected_project == p.name %}selected{% endif %}>{{ p.project_name or p.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="filterActivity" class="form-control" style="width: 220px; padding: 6px 10px; font-size: 0.82rem;" onchange="filterTaskList()">
+                        <option value="">All Activities ({{ options.activities|length }})</option>
+                        {% for a in options.activities %}
+                        <option value="{{ a.name }}" {% if selected_activity == a.name %}selected{% endif %}>{{ a.activity_name or a.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select id="filterStatus" class="form-control" style="width: 140px; padding: 6px 10px; font-size: 0.82rem;" onchange="filterTaskList()">
+                        <option value="">All Statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="Working">Working</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+
+                    <select id="filterPriority" class="form-control" style="width: 130px; padding: 6px 10px; font-size: 0.82rem;" onchange="filterTaskList()">
+                        <option value="">All Priorities</option>
+                        <option value="Urgent">Urgent</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+
+                <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="taskCountDisplay">
+                    Showing {{ tasks|length }} Tasks
+                </div>
+            </div>
+
+            <!-- Tasks Table Card -->
+            <div class="section-card" style="padding: 0; overflow: hidden;">
+                {% if tasks %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">Done</th>
+                                <th>Hierarchy (Project &bull; Activity &bull; Task)</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Assignee</th>
+                                <th>Due Date</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksTableBody">
+                            {% for t in tasks %}
+                            <tr class="task-tr" id="task_row_{{ t.name }}" data-project="{{ t.project }}" data-project-title="{{ t.project_title | lower }}" data-activity="{{ t.custom_activity }}" data-activity-name="{{ t.activity_name | lower }}" data-subject="{{ t.subject | lower }}" data-status="{{ t.status }}" data-priority="{{ t.priority }}">
+                                <td>
+                                    <input type="checkbox" {% if t.status == 'Completed' %}checked{% endif %} onchange="toggleTaskStatus('{{ t.name }}', this.checked)" style="cursor: pointer; transform: scale(1.2);">
+                                </td>
+                                <td>
+                                    <!-- 3-Tier Hierarchy Tagline -->
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
+                                        <a href="/project_details?name={{ t.project }}" style="color: #2563eb; text-decoration: none; font-weight: 600;"><i class="fa-solid fa-folder-open"></i> {{ t.project_title }}</a>
+                                        <i class="fa-solid fa-angle-right" style="color: #cbd5e1; font-size: 0.65rem;"></i>
+                                        <a href="/activity_details?name={{ t.custom_activity }}" style="color: #475569; text-decoration: none; font-weight: 500;"><i class="fa-solid fa-list-check"></i> {{ t.activity_name }}</a>
+                                    </div>
+                                    <strong style="color: #0f172a; font-size: 0.9rem; {% if t.status == 'Completed' %}text-decoration: line-through; color: #94a3b8;{% endif %}">{{ t.subject }}</strong>
+                                    <span style="font-size: 0.72rem; color: #94a3b8; margin-left: 6px;">({{ t.name }})</span>
+                                </td>
+                                <td>
+                                    <span class="badge-priority {% if t.priority == 'Urgent' %}prio-urgent{% elif t.priority == 'High' %}prio-high{% elif t.priority == 'Medium' %}prio-medium{% else %}prio-low{% endif %}">
+                                        {{ t.priority or 'Medium' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge-status {% if t.status == 'Completed' %}badge-deployed{% elif t.status == 'Working' or t.status == 'Open' %}badge-inprogress{% else %}badge-planning{% endif %}">
+                                        {{ t.status or 'Open' }}
+                                    </span>
+                                </td>
+                                <td>{{ t.custom_assignee or 'Administrator' }}</td>
+                                <td>{{ t.exp_end_date or '31-03-2026' }}</td>
+                                <td style="text-align: right;">
+                                    <button class="btn-danger-outline btn-sm" onclick="deleteGlobalTask('{{ t.name }}', '{{ t.subject | escape }}')"><i class="fa-regular fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-bars-progress"></i>
+                    <p>No tasks found matching criteria.</p>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <!-- ==========================================
+         MODAL: ADD GLOBAL TASK
+         ========================================== -->
+    <div class="modal-backdrop" id="globalTaskModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-bars-progress" style="color: #2563eb;"></i> Add New Task</div>
+                <button type="button" class="btn-close-modal" onclick="closeGlobalTaskModal()">&times;</button>
+            </div>
+            <form id="globalTaskForm" onsubmit="handleSaveGlobalTask(event)">
+                <div class="modal-body">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Parent Project <span class="req">*</span></label>
+                            <select id="gt_project" class="form-control" required onchange="updateActivityDropdown(this.value)">
+                                {% for p in options.projects %}
+                                <option value="{{ p.name }}">{{ p.project_name or p.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Parent Activity <span class="req">*</span></label>
+                            <select id="gt_activity" class="form-control" required>
+                                {% for a in options.activities %}
+                                <option value="{{ a.name }}" data-project="{{ a.project }}">{{ a.activity_name or a.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Task Subject <span class="req">*</span></label>
+                        <input type="text" id="gt_subject" class="form-control" placeholder="e.g. Conduct village orientation" required>
+                    </div>
+
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
+                            <select id="gt_priority" class="form-control">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="gt_status" class="form-control">
+                                <option value="Open">Open</option>
+                                <option value="Working">Working</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Assignee</label>
+                            <select id="gt_assignee" class="form-control">
+                                <option value="Administrator">Administrator</option>
+                                {% for u in options.users %}
+                                <option value="{{ u.name }}">{{ u.full_name or u.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="gt_start" class="form-control" value="2026-01-01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Due Date</label>
+                            <input type="date" id="gt_end" class="form-control" value="2026-01-31">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Instructions / Description</label>
+                        <textarea id="gt_desc" class="form-control" rows="2" placeholder="Task execution details..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeGlobalTaskModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="btnSaveGTask"><i class="fa-solid fa-check"></i> Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.csrf_token = "{{ frappe.session.csrf_token }}";
+        function getCsrfToken() {
+            if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
+                return window.csrf_token;
+            }
+            if (window.frappe && window.frappe.csrf_token && window.frappe.csrf_token !== 'None' && window.frappe.csrf_token !== '') {
+                return window.frappe.csrf_token;
+            }
+            const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+            if (match && match[1] && match[1] !== 'None') {
+                return decodeURIComponent(match[1]);
+            }
+            return '';
+        }
+
+        function openAddGlobalTaskModal() {
+            document.getElementById('globalTaskModal').style.display = 'flex';
+        }
+
+        function closeGlobalTaskModal() {
+            document.getElementById('globalTaskModal').style.display = 'none';
+        }
+
+        function filterTaskList() {
+            const pVal = document.getElementById('filterProject').value.toLowerCase();
+            const aVal = document.getElementById('filterActivity').value.toLowerCase();
+            const sVal = document.getElementById('filterStatus').value.toLowerCase();
+            const prVal = document.getElementById('filterPriority').value.toLowerCase();
+            const qVal = document.getElementById('taskSearch').value.toLowerCase();
+
+            let count = 0;
+            document.querySelectorAll('.task-tr').forEach(row => {
+                const projId = (row.dataset.project || '').toLowerCase();
+                const projTitle = (row.dataset.projectTitle || '').toLowerCase();
+                const actId = (row.dataset.activity || '').toLowerCase();
+                const actName = (row.dataset.activityName || '').toLowerCase();
+                const subj = (row.dataset.subject || '').toLowerCase();
+                const status = (row.dataset.status || '').toLowerCase();
+                const prio = (row.dataset.priority || '').toLowerCase();
+
+                const matchProj = !pVal || projId === pVal || projTitle.includes(pVal);
+                const matchAct = !aVal || actId === aVal || actName.includes(aVal);
+                const matchStatus = !sVal || status === sVal;
+                const matchPrio = !prVal || prio === prVal;
+                const matchSearch = !qVal || subj.includes(qVal) || actName.includes(qVal) || projTitle.includes(qVal);
+
+                if (matchProj && matchAct && matchStatus && matchPrio && matchSearch) {
+                    row.style.display = '';
+                    count++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('taskCountDisplay').innerText = `Showing ${count} Tasks`;
+        }
+
+        async function toggleTaskStatus(name, checked) {
+            const status = checked ? 'Completed' : 'Open';
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.toggle_task_status', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ name: name, status: status, csrf_token: csrf })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    window.location.reload();
+                } else {
+                    const msg = result.exc || result._server_messages || JSON.stringify(result);
+                    alert('Status update blocked: ' + msg);
+                    window.location.reload();
+                }
+            } catch (err) {
+                alert('Status update failed: ' + err.message);
+                window.location.reload();
+            }
+        }
+
+        async function deleteGlobalTask(name, title) {
+            if (!confirm(`Are you sure you want to delete Task "${title}" (${name})?`)) return;
+
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.delete_task_record', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ name: name, csrf_token: csrf })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    const row = document.getElementById(`task_row_${name}`);
+                    if (row) row.remove();
+                    alert('Task deleted successfully.');
+                } else {
+                    alert('Error deleting task: ' + JSON.stringify(result));
+                }
+            } catch (err) {
+                alert('Deletion failed: ' + err.message);
+            }
+        }
+
+        async function handleSaveGlobalTask(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSaveGTask');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            const csrf = getCsrfToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+
+            const payload = {
+                project: document.getElementById('gt_project').value,
+                custom_activity: document.getElementById('gt_activity').value,
+                subject: document.getElementById('gt_subject').value,
+                priority: document.getElementById('gt_priority').value,
+                status: document.getElementById('gt_status').value,
+                custom_assignee: document.getElementById('gt_assignee').value,
+                exp_start_date: document.getElementById('gt_start').value,
+                exp_end_date: document.getElementById('gt_end').value,
+                description: document.getElementById('gt_desc').value,
+                csrf_token: csrf
+            };
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.save_task', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ data: payload })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    closeGlobalTaskModal();
+                    alert(`Task "${result.message.subject}" created successfully!`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + JSON.stringify(result));
+                }
+            } catch (err) {
+                alert('Save failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Task';
+            }
+        }
+    </script>
+</body>
+</html>

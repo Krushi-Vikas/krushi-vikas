@@ -1,0 +1,153 @@
+{
+ "charts": [],
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<b>Krushi Vikas Management</b>\", \"level\": 4, \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Project List\", \"link_type\": \"DocType\", \"link_to\": \"KV Project\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Activity List\", \"link_type\": \"DocType\", \"link_to\": \"Activity\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Task List\", \"link_type\": \"DocType\", \"link_to\": \"Task\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Baseline Survey\", \"link_type\": \"DocType\", \"link_to\": \"Baseline Survey\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Feedback Survey\", \"link_type\": \"DocType\", \"link_to\": \"Feedback Survey\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Village Profile\", \"link_type\": \"DocType\", \"link_to\": \"Village Profile\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Krushi Vikas\", \"col\": 4}}]",
+ "creation": "2026-08-16 00:18:48.677235",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "plant",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Krushi Vikas",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project List",
+   "link_count": 0,
+   "link_to": "KV Project",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity List",
+   "link_count": 0,
+   "link_to": "Activity",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Task List",
+   "link_count": 0,
+   "link_to": "Task",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Baseline Survey",
+   "link_count": 0,
+   "link_to": "Baseline Survey",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Feedback Survey",
+   "link_count": 0,
+   "link_to": "Feedback Survey",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Village Profile",
+   "link_count": 0,
+   "link_to": "Village Profile",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Concept Note",
+   "link_count": 0,
+   "link_to": "Concept Note",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "KRE",
+   "link_count": 0,
+   "link_to": "KRE",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity Outcome",
+   "link_count": 0,
+   "link_to": "Activity Outcome",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Krushi Vikas",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Field Officer"
+  },
+  {
+   "role": "Project Manager"
+  }
+ ],
+ "sequence_id": 0.0,
+ "shortcuts": [
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Project List",
+   "link_to": "KV Project",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Activity List",
+   "link_to": "Activity",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "List",
+   "label": "Task List",
+   "link_to": "Task",
+   "type": "DocType"
+  }
+ ],
+ "title": "Krushi Vikas"
+}
