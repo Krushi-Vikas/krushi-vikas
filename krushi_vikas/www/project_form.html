@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Project Form | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1b8354;
+            --primary-dark: #13603d;
+            --primary-light: #e8f5e9;
+            --text-main: #1f2937;
+            --text-muted: #64748b;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+        body { background: var(--bg-page); color: var(--text-main); min-height: 100vh; padding-bottom: 60px; }
+        
+        .navbar { height: 64px; background: #fff; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm); }
+        .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; color: #111827; text-decoration: none; }
+        .brand-logo { width: 34px; height: 34px; background: var(--primary); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .nav-links { display: flex; gap: 14px; align-items: center; }
+        .nav-link { color: var(--text-muted); text-decoration: none; font-size: 0.88rem; font-weight: 500; }
+        .nav-link:hover { color: var(--primary); }
+
+        .container { max-width: 1000px; margin: 32px auto; padding: 0 20px; }
+        
+        .breadcrumb { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .breadcrumb a { color: #2563eb; text-decoration: none; }
+        
+        .header-title-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .page-title { font-size: 1.6rem; font-weight: 800; color: #0f172a; }
+        .page-subtitle { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
+
+        .form-card { background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-sm); margin-bottom: 24px; }
+        .section-header { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
+        .section-header i { color: var(--primary); font-size: 1.1rem; }
+
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .form-label { font-size: 0.84rem; font-weight: 600; color: #334155; }
+        .form-label span.req { color: #ef4444; }
+        .form-control { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; font-size: 0.88rem; outline: none; transition: 0.15s; background: #fff; width: 100%; color: #1e293b; }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(27, 131, 84, 0.12); }
+        
+        /* Financial Section Highlight */
+        .financial-summary-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+        .remaining-amount-val { font-size: 1.4rem; font-weight: 800; color: #15803d; }
+
+        /* Activities Section */
+        .activities-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .activity-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; position: relative; }
+        .activity-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .activity-num { font-weight: 700; font-size: 0.92rem; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+        .btn-remove-activity { color: #ef4444; background: transparent; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .btn-remove-activity:hover { color: #b91c1c; }
+
+        .btn-add-activity { background: #eef2ff; color: #2563eb; border: 1px dashed #93c5fd; padding: 10px 18px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.15s; }
+        .btn-add-activity:hover { background: #dbeafe; }
+
+        .btn-submit { background: var(--primary); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-sm); }
+        .btn-submit:hover { background: var(--primary-dark); }
+        .btn-cancel { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); padding: 12px 22px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; text-decoration: none; }
+
+        .submit-bar { display: flex; justify-content: flex-end; gap: 14px; margin-top: 24px; }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <a href="/projects" class="nav-brand">
+            <div class="brand-logo"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Portal</span>
+        </a>
+        <div class="nav-links">
+            <a href="/projects" class="nav-link"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/baseline_survey" target="_blank" class="nav-link"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey</a>
+            <a href="/feedback_survey" target="_blank" class="nav-link"><i class="fa-solid fa-comment-dots"></i> Field Tracking</a>
+            <a href="/app" class="nav-link"><i class="fa-solid fa-table-columns"></i> Frappe Desk</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/projects"><i class="fa-solid fa-arrow-left"></i> Projects</a>
+            <span>/</span>
+            <span>New Project Entry Form</span>
+        </div>
+
+        <div class="header-title-box">
+            <div>
+                <h1 class="page-title">Create New Project</h1>
+                <p class="page-subtitle">Define project scope, leadership, dates, financial budget & milestone activities</p>
+            </div>
+        </div>
+
+        <form id="projectWebForm" onsubmit="handleFormSubmit(event)">
+            <!-- 1. Overview & Leadership -->
+            <div class="form-card">
+                <div class="section-header"><i class="fa-solid fa-circle-info"></i> Project Overview & Leadership</div>
+                <div class="form-group">
+                    <label class="form-label">Project Name <span class="req">*</span></label>
+                    <input type="text" id="project_name" class="form-control" placeholder="e.g. Jal Sanjivani Watershed Development Project" required>
+                </div>
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label class="form-label">Theme Focus</label>
+                        <select id="theme" class="form-control">
+                            <option value="">-- Select Theme --</option>
+                            {% for t in options.themes %}
+                            <option value="{{ t.name }}">{{ t.theme_name or t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Project Coordinator</label>
+                        <select id="project_coordinator" class="form-control">
+                            <option value="Administrator">Administrator</option>
+                            {% for u in options.users %}
+                            <option value="{{ u.name }}">{{ u.full_name or u.name }} ({{ u.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Project Manager</label>
+                        <select id="project_manager" class="form-control">
+                            <option value="Administrator">Administrator</option>
+                            {% for u in options.users %}
+                            <option value="{{ u.name }}">{{ u.full_name or u.name }} ({{ u.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Project Phase</label>
+                        <select id="project_phase" class="form-control">
+                            {% for p in options.phases %}
+                            <option value="{{ p }}" {% if p == 'Execution' %}selected{% endif %}>{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="status" class="form-control">
+                            {% for s in options.statuses %}
+                            <option value="{{ s }}" {% if s == 'In Progress' %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Timeline (Dates) -->
+            <div class="form-card">
+                <div class="section-header"><i class="fa-regular fa-calendar-days"></i> Timeline & Scheduling</div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Project Start Date <span class="req">*</span></label>
+                        <input type="date" id="start_date" class="form-control" required value="2026-01-01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Project End Date <span class="req">*</span></label>
+                        <input type="date" id="end_date" class="form-control" required value="2026-12-31">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Financial Budget & Real-Time Remaining Calculation -->
+            <div class="form-card">
+                <div class="section-header"><i class="fa-solid fa-indian-rupee-sign"></i> Budget & Financial Tracking</div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Proposed Budget (INR) <span class="req">*</span></label>
+                        <input type="number" id="budget" class="form-control" placeholder="e.g. 1500000" required oninput="calcFunds()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Actual Amount Spent (INR)</label>
+                        <input type="number" id="actual_amount_spent" class="form-control" placeholder="0" value="0" oninput="calcFunds()">
+                    </div>
+                </div>
+                <div class="financial-summary-box">
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #166534;"><i class="fa-solid fa-wallet"></i> Remaining Funds Balance</div>
+                        <div style="font-size: 0.78rem; color: #15803d; margin-top: 2px;">Calculated automatically (Budget &minus; Actual Amount Spent)</div>
+                    </div>
+                    <div class="remaining-amount-val" id="remaining_funds_display">₹ 0.00</div>
+                </div>
+            </div>
+
+            <!-- 4. Linked Structural Forms -->
+            <div class="form-card">
+                <div class="section-header"><i class="fa-solid fa-link"></i> Linked Structural Forms</div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Linked Baseline Survey Form</label>
+                        <select id="linked_baseline_survey" class="form-control">
+                            <option value="">-- None / Select Existing Baseline --</option>
+                            {% for b in options.baseline_surveys %}
+                            <option value="{{ b.name }}">{{ b.name }} ({{ b.farmer_name }} - {{ b.village }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Linked Field Tracking / Feedback Form</label>
+                        <select id="linked_field_tracking_form" class="form-control">
+                            <option value="">-- None / Select Existing Field Survey --</option>
+                            {% for f in options.feedback_surveys %}
+                            <option value="{{ f.name }}">{{ f.name }} ({{ f.activity }} - {{ f.village }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Activities Section -->
+            <div class="form-card">
+                <div class="activities-header-row">
+                    <div class="section-header" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                        <i class="fa-solid fa-list-check"></i> Project Activities / Milestones
+                    </div>
+                    <button type="button" class="btn-add-activity" onclick="addActivityRow()"><i class="fa-solid fa-plus"></i> Add Activity</button>
+                </div>
+                <div id="activitiesContainer" style="margin-top: 16px;">
+                    <!-- Activity Rows Added Dynamically -->
+                </div>
+            </div>
+
+            <div class="submit-bar">
+                <a href="/projects" class="btn-cancel">Cancel</a>
+                <button type="submit" class="btn-submit" id="btnSubmitProject"><i class="fa-solid fa-check"></i> Save & Create Project</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let activityCount = 0;
+
+        function calcFunds() {
+            const budget = parseFloat(document.getElementById('budget').value) || 0;
+            const spent = parseFloat(document.getElementById('actual_amount_spent').value) || 0;
+            const remaining = budget - spent;
+            document.getElementById('remaining_funds_display').innerText = '₹ ' + remaining.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        }
+
+        function addActivityRow(name = '', goal = '', assignee = '', start = '2026-01-01', end = '2026-03-31', inOut = '', impact = '', desc = '') {
+            activityCount++;
+            const container = document.getElementById('activitiesContainer');
+            const row = document.createElement('div');
+            row.className = 'activity-card';
+            row.id = `activity_${activityCount}`;
+            row.innerHTML = `
+                <div class="activity-card-header">
+                    <div class="activity-num"><i class="fa-solid fa-angle-right" style="color: #2563eb;"></i> Activity #${activityCount}</div>
+                    <button type="button" class="btn-remove-activity" onclick="removeActivity(${activityCount})"><i class="fa-regular fa-trash-can"></i> Remove</button>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Activity Name <span class="req">*</span></label>
+                        <input type="text" class="form-control act-name" placeholder="e.g. Training on Soil & Moisture Conservation" required value="${name}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Goal / Objective</label>
+                        <input type="text" class="form-control act-goal" placeholder="e.g. Build community capacity" value="${goal}">
+                    </div>
+                </div>
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label class="form-label">Assignee</label>
+                        <select class="form-control act-assignee">
+                            <option value="Administrator">Administrator</option>
+                            {% for u in options.users %}
+                            <option value="{{ u.name }}">{{ u.full_name or u.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Start Date (Timeline)</label>
+                        <input type="date" class="form-control act-start" value="${start}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date (Timeline)</label>
+                        <input type="date" class="form-control act-end" value="${end}">
+                    </div>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Input / Output</label>
+                        <input type="text" class="form-control act-inout" placeholder="e.g. 50 Training Kits distributed / 100 Farmers" value="${inOut}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Impact</label>
+                        <input type="text" class="form-control act-impact" placeholder="e.g. 80% adoption of moisture conservation" value="${impact}">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control act-desc" rows="2" placeholder="Provide operational details...">${desc}</textarea>
+                </div>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeActivity(id) {
+            const el = document.getElementById(`activity_${id}`);
+            if (el) el.remove();
+        }
+
+        // Initialize with 2 sample activities
+        window.addEventListener('DOMContentLoaded', () => {
+            addActivityRow("Community Water Budgeting & Jal Parishad", "Increase water retention", "Administrator", "2026-01-01", "2026-03-31", "10 Training Kits", "100% participation", "Conduct household water planning");
+            addActivityRow("Construction of Continuous Contour Trenches (CCT)", "Excavation and recharge", "Administrator", "2026-04-01", "2026-06-30", "Excavation machinery", "50,000 liters recharge", "Build trenches along contour lines");
+        });
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitProject');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            const activities = [];
+            document.querySelectorAll('.activity-card').forEach(card => {
+                activities.push({
+                    activity_name: card.querySelector('.act-name').value,
+                    goal: card.querySelector('.act-goal').value,
+                    assignee: card.querySelector('.act-assignee').value,
+                    start_date: card.querySelector('.act-start').value,
+                    end_date: card.querySelector('.act-end').value,
+                    input_output: card.querySelector('.act-inout').value,
+                    impact: card.querySelector('.act-impact').value,
+                    description: card.querySelector('.act-desc').value,
+                    status: 'In Progress'
+                });
+            });
+
+            const payload = {
+                project_name: document.getElementById('project_name').value,
+                theme: document.getElementById('theme').value,
+                project_coordinator: document.getElementById('project_coordinator').value,
+                project_manager: document.getElementById('project_manager').value,
+                project_phase: document.getElementById('project_phase').value,
+                status: document.getElementById('status').value,
+                start_date: document.getElementById('start_date').value,
+                end_date: document.getElementById('end_date').value,
+                budget: parseFloat(document.getElementById('budget').value) || 0,
+                actual_amount_spent: parseFloat(document.getElementById('actual_amount_spent').value) || 0,
+                linked_baseline_survey: document.getElementById('linked_baseline_survey').value,
+                linked_field_tracking_form: document.getElementById('linked_field_tracking_form').value,
+                activities: activities
+            };
+
+            try {
+                const res = await fetch('/api/method/krushi_vikas.api.submit_kv_project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: payload })
+                });
+                const result = await res.json();
+                if (result.message && result.message.success) {
+                    alert(`🎉 Project "${result.message.project_name}" created successfully!\nID: ${result.message.name}\nRemaining Funds: Rs. ${result.message.remaining_funds}`);
+                    window.location.href = '/projects';
+                } else {
+                    alert('Error creating project: ' + JSON.stringify(result));
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Save & Create Project';
+                }
+            } catch (err) {
+                alert('Submission failed: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Save & Create Project';
+            }
+        }
+    </script>
+</body>
+</html>

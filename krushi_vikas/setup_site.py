@@ -137,6 +137,16 @@ def setup_custom_fields():
                 "fieldtype": "Small Text",
                 "insert_after": "custom_beneficiary_count",
                 "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_activity",
+                "label": "Activity",
+                "fieldtype": "Link",
+                "options": "Activity",
+                "insert_after": "project",
+                "in_list_view": 1,
+                "in_standard_filter": 1,
+                "module": "Krushi Vikas"
             }
         ],
         "Project": [
@@ -152,10 +162,28 @@ def setup_custom_fields():
             },
             {
                 "fieldname": "custom_thematic_area",
-                "label": "Thematic Area",
+                "label": "Theme",
                 "fieldtype": "Link",
                 "options": "Project Theme",
                 "insert_after": "custom_project_phase",
+                "in_list_view": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_project_coordinator",
+                "label": "Project Coordinator",
+                "fieldtype": "Link",
+                "options": "User",
+                "insert_after": "custom_thematic_area",
+                "in_list_view": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_project_manager",
+                "label": "Project Manager",
+                "fieldtype": "Link",
+                "options": "User",
+                "insert_after": "custom_project_coordinator",
                 "in_list_view": 1,
                 "module": "Krushi Vikas"
             },
@@ -164,7 +192,92 @@ def setup_custom_fields():
                 "label": "Originating Concept Note",
                 "fieldtype": "Link",
                 "options": "Concept Note",
-                "insert_after": "custom_thematic_area",
+                "insert_after": "custom_project_manager",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_financial_section",
+                "label": "Financial Tracking & Budget",
+                "fieldtype": "Section Break",
+                "insert_after": "custom_concept_note",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_budget",
+                "label": "Budget (INR)",
+                "fieldtype": "Currency",
+                "default": "0",
+                "insert_after": "custom_financial_section",
+                "in_list_view": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_actual_amount_spent",
+                "label": "Actual Amount Spent (INR)",
+                "fieldtype": "Currency",
+                "default": "0",
+                "insert_after": "custom_budget",
+                "in_list_view": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_col_budget_brk",
+                "fieldtype": "Column Break",
+                "insert_after": "custom_actual_amount_spent",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_remaining_funds",
+                "label": "Remaining Funds (INR)",
+                "fieldtype": "Currency",
+                "default": "0",
+                "read_only": 1,
+                "insert_after": "custom_col_budget_brk",
+                "in_list_view": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_structural_forms_sec",
+                "label": "Linked Structural Forms",
+                "fieldtype": "Section Break",
+                "insert_after": "custom_remaining_funds",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_linked_baseline_survey",
+                "label": "Linked Baseline Form",
+                "fieldtype": "Link",
+                "options": "Baseline Survey",
+                "insert_after": "custom_structural_forms_sec",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_col_forms_brk",
+                "fieldtype": "Column Break",
+                "insert_after": "custom_linked_baseline_survey",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_linked_field_tracking_form",
+                "label": "Linked Field Tracking Form",
+                "fieldtype": "Link",
+                "options": "Feedback Survey",
+                "insert_after": "custom_col_forms_brk",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_activities_sec",
+                "label": "Activities",
+                "fieldtype": "Section Break",
+                "insert_after": "custom_linked_field_tracking_form",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_activities",
+                "label": "Project Activities",
+                "fieldtype": "Table",
+                "options": "Project Activity",
+                "insert_after": "custom_activities_sec",
                 "module": "Krushi Vikas"
             }
         ]

@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import flt, cint, nowdate
 
 @frappe.whitelist()
 def get_template_questions(template):
@@ -921,6 +922,147 @@ def export_baseline_survey_excel(name):
     frappe.response['doctype'] = 'Baseline Survey'
     frappe.response['result'] = output.getvalue()
     frappe.response['filename'] = f"{doc.name}_{doc.farmer_name.replace(' ', '_')}_Export.csv"
+
+
+def validate_project_finances_and_activities(doc, method=None):
+    """Calculates remaining funds and validates Project configuration & dates"""
+    budget = flt(doc.get("custom_budget") or doc.get("estimated_costing") or 0)
+    actual_spent = flt(doc.get("custom_actual_amount_spent") or 0)
+    doc.custom_remaining_funds = budget - actual_spent
+    
+    if flt(doc.get("custom_budget")) > 0 and not flt(doc.get("estimated_costing")):
+        doc.estimated_costing = doc.custom_budget
+
+    if doc.expected_start_date and doc.expected_end_date:
+        if str(doc.expected_end_date) < str(doc.expected_start_date):
+            frappe.throw("End Date cannot be before Start Date for Project.")
+
+
+def sync_project_activities(doc, method=None):
+    """Synchronizes Project Activity child table rows with standalone Activity DocType records"""
+    for row in doc.get("custom_activities") or []:
+        if not row.activity_name:
+            continue
+            
+        if row.linked_activity_doc and frappe.db.exists("Activity", row.linked_activity_doc):
+            frappe.db.set_value("Activity", row.linked_activity_doc, {
+                "activity_name": row.activity_name,
+                "goal": row.goal,
+                "assignee": row.assignee,
+                "description": row.description,
+                "input_output": row.input_output,
+                "impact": row.impact,
+                "timeline_description": row.timeline,
+                "theme": doc.get("custom_thematic_area")
+            }, update_modified=False)
+        elif not row.linked_activity_doc:
+            act = frappe.get_doc({
+                "doctype": "Activity",
+                "activity_name": row.activity_name,
+                "project": doc.name,
+                "theme": doc.get("custom_thematic_area"),
+                "goal": row.goal,
+                "assignee": row.assignee,
+                "description": row.description,
+                "input_output": row.input_output,
+                "impact": row.impact,
+                "status": "In Progress" if row.status == "In Progress" else ("Completed" if row.status == "Completed" else "Open"),
+                "timeline_description": row.timeline
+            })
+            act.insert(ignore_permissions=True)
+            frappe.db.set_value("Project Activity", row.name, "linked_activity_doc", act.name, update_modified=False)
+
+
+@frappe.whitelist()
+def get_project_form_options():
+    """Returns dropdown options for Project Web Form"""
+    users = frappe.get_all("User", filters={"enabled": 1, "user_type": "System User"}, fields=["name", "full_name", "email"])
+    themes = frappe.get_all("Project Theme", fields=["name", "theme_name"])
+    goals = frappe.get_all("Project Goal", fields=["name", "goal_name"])
+    baselines = frappe.get_all("Baseline Survey", fields=["name", "farmer_name", "village"])
+    feedbacks = frappe.get_all("Feedback Survey", fields=["name", "activity", "village"])
+    
+    return {
+        "users": users,
+        "themes": themes,
+        "goals": goals,
+        "baseline_surveys": baselines,
+        "feedback_surveys": feedbacks,
+        "phases": ["Planning", "Proposal", "Execution", "Results", "Feedback", "Future"],
+        "statuses": ["Planning", "In Progress", "Deployed", "Completed", "Cancelled"]
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def submit_kv_project(data):
+    """Submits a KV Project and activities from Web Form or API"""
+    import json
+    if isinstance(data, str):
+        data = json.loads(data)
+        
+    doc = frappe.get_doc({
+        "doctype": "KV Project",
+        "project_name": data.get("project_name") or "New Initiative",
+        "theme": data.get("theme"),
+        "project_phase": data.get("project_phase") or "Execution",
+        "status": data.get("status") or "In Progress",
+        "project_coordinator": data.get("project_coordinator") or "Administrator",
+        "project_manager": data.get("project_manager") or "Administrator",
+        "start_date": data.get("start_date") or nowdate(),
+        "end_date": data.get("end_date") or nowdate(),
+        "budget": flt(data.get("budget") or 0),
+        "actual_amount_spent": flt(data.get("actual_amount_spent") or 0),
+        "linked_baseline_survey": data.get("linked_baseline_survey"),
+        "linked_field_tracking_form": data.get("linked_field_tracking_form")
+    })
+    
+    for act in data.get("activities") or []:
+        if not act.get("activity_name"):
+            continue
+        doc.append("activities", {
+            "activity_name": act.get("activity_name"),
+            "goal": act.get("goal"),
+            "assignee": act.get("assignee"),
+            "start_date": act.get("start_date") or doc.start_date,
+            "end_date": act.get("end_date") or doc.end_date,
+            "status": act.get("status") or "Planned",
+            "description": act.get("description"),
+            "input_output": act.get("input_output"),
+            "impact": act.get("impact")
+        })
+        
+    doc.insert(ignore_permissions=True)
+    
+    # Also create standard ERPNext Project mirror if useful
+    try:
+        if not frappe.db.exists("Project", {"project_name": doc.project_name}):
+            frappe.get_doc({
+                "doctype": "Project",
+                "project_name": doc.project_name,
+                "company": frappe.defaults.get_user_default("Company") or frappe.get_all("Company")[0].name,
+                "custom_project_phase": doc.project_phase,
+                "custom_thematic_area": doc.theme,
+                "custom_project_coordinator": doc.project_coordinator,
+                "custom_project_manager": doc.project_manager,
+                "expected_start_date": doc.start_date,
+                "expected_end_date": doc.end_date,
+                "custom_budget": doc.budget,
+                "custom_actual_amount_spent": doc.actual_amount_spent,
+                "custom_remaining_funds": doc.remaining_funds,
+                "custom_linked_baseline_survey": doc.linked_baseline_survey,
+                "custom_linked_field_tracking_form": doc.linked_field_tracking_form
+            }).insert(ignore_permissions=True)
+    except Exception:
+        pass
+        
+    return {
+        "success": True,
+        "name": doc.name,
+        "project_name": doc.project_name,
+        "remaining_funds": doc.remaining_funds
+    }
+
+
 
 
 

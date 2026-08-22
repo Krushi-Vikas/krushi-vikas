@@ -13,7 +13,15 @@ doc_events = {
 	"Activity Outcome": {
 		"on_update_after_submit": "krushi_vikas.api.push_actual_to_kre",
 		"on_submit": "krushi_vikas.api.push_actual_to_kre"
+	},
+	"Project": {
+		"validate": "krushi_vikas.api.validate_project_finances_and_activities",
+		"on_update": "krushi_vikas.api.sync_project_activities"
 	}
+}
+
+doctype_js = {
+	"Project": "public/js/project_custom.js"
 }
 
 # Fixtures for deployment & version control

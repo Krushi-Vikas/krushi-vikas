@@ -1,0 +1,236 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:KVP-{YYYY}-{#####}",
+ "creation": "2026-08-22 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "project_name",
+  "theme",
+  "project_phase",
+  "status",
+  "column_break_1",
+  "project_coordinator",
+  "project_manager",
+  "timeline_section",
+  "start_date",
+  "column_break_2",
+  "end_date",
+  "financial_section",
+  "budget",
+  "actual_amount_spent",
+  "column_break_3",
+  "remaining_funds",
+  "structural_forms_section",
+  "linked_baseline_survey",
+  "column_break_4",
+  "linked_field_tracking_form",
+  "activities_section",
+  "activities"
+ ],
+ "fields": [
+  {
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "in_filter": 1,
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "theme",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Theme",
+   "options": "Project Theme"
+  },
+  {
+   "default": "Execution",
+   "fieldname": "project_phase",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Project Phase",
+   "options": "Planning\nProposal\nExecution\nResults\nFeedback\nFuture"
+  },
+  {
+   "default": "In Progress",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Planning\nIn Progress\nDeployed\nCompleted\nCancelled"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project_coordinator",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project Coordinator",
+   "options": "User"
+  },
+  {
+   "fieldname": "project_manager",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project Manager",
+   "options": "User"
+  },
+  {
+   "fieldname": "timeline_section",
+   "fieldtype": "Section Break",
+   "label": "Timeline"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "financial_section",
+   "fieldtype": "Section Break",
+   "label": "Budget & Financial Tracking"
+  },
+  {
+   "default": "0",
+   "fieldname": "budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Budget (INR)",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "actual_amount_spent",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Actual Amount Spent (INR)"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "remaining_funds",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Remaining Funds (INR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "structural_forms_section",
+   "fieldtype": "Section Break",
+   "label": "Linked Structural Forms"
+  },
+  {
+   "fieldname": "linked_baseline_survey",
+   "fieldtype": "Link",
+   "label": "Linked Baseline Form",
+   "options": "Baseline Survey"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "linked_field_tracking_form",
+   "fieldtype": "Link",
+   "label": "Linked Field Tracking Form",
+   "options": "Feedback Survey"
+  },
+  {
+   "fieldname": "activities_section",
+   "fieldtype": "Section Break",
+   "label": "Activities"
+  },
+  {
+   "fieldname": "activities",
+   "fieldtype": "Table",
+   "label": "Activities",
+   "options": "KV Project Activity"
+  }
+ ],
+ "links": [],
+ "modified": "2026-08-22 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "KV Project",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Coordinator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Officer",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

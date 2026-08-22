@@ -75,9 +75,29 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "KV Project",
+   "link_count": 0,
+   "link_to": "KV Project",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Project",
    "link_count": 0,
    "link_to": "Project",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity",
+   "link_count": 0,
+   "link_to": "Activity",
    "link_type": "DocType",
    "onboard": 1,
    "type": "Link"

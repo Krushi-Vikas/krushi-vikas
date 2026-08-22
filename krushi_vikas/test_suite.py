@@ -29,6 +29,7 @@ def run():
     test_feedback_survey_lifecycle(company)
     test_village_profile_lifecycle(company)
     test_baseline_survey_lifecycle(company)
+    test_project_activity_task_hierarchy(company)
     frappe.db.rollback()
     print("=== ALL VERIFICATION TESTS PASSED SUCCESSFULLY! ===")
 
@@ -664,6 +665,161 @@ def test_baseline_survey_lifecycle(company):
     assert frappe.response.get("type") == "csv"
     assert "AGRICULTURAL DEVELOPMENT AND RURAL TRAINING INSTITUTE" in frappe.response.get("result", "")
     print(f"  -> Verified Excel/CSV multi-table export structure for {survey.name}")
+
+
+def test_project_activity_task_hierarchy(company):
+    print("\n[Test 8] Testing Project, Activity & Task 3-Tier Hierarchy with Financial Tracking...")
+    
+    # 1. Ensure Theme
+    theme_name = None
+    existing_themes = frappe.get_all("Project Theme", limit=1)
+    if existing_themes:
+        theme_name = existing_themes[0].name
+    else:
+        td = frappe.get_doc({
+            "doctype": "Project Theme",
+            "theme_name": "Watershed & Water Security",
+            "is_group": 0
+        }).insert(ignore_permissions=True)
+        theme_name = td.name
+        
+    # 2. Ensure Sample Baseline Survey & Field Tracking Form
+    baseline = frappe.get_all("Baseline Survey", limit=1)
+    baseline_name = baseline[0].name if baseline else None
+    
+    feedback = frappe.get_all("Feedback Survey", limit=1)
+    feedback_name = feedback[0].name if feedback else None
+
+    # 3. Create Project with logical grouping of fields
+    proj = frappe.get_doc({
+        "doctype": "Project",
+        "project_name": "Jal Sanjivani Watershed Project",
+        "company": company,
+        "custom_project_phase": "Execution",
+        "custom_thematic_area": theme_name,
+        "custom_project_coordinator": "Administrator",
+        "custom_project_manager": "Administrator",
+        "expected_start_date": "2026-01-01",
+        "expected_end_date": "2026-12-31",
+        "custom_budget": 1500000.0,
+        "custom_actual_amount_spent": 0.0,
+        "custom_linked_baseline_survey": baseline_name,
+        "custom_linked_field_tracking_form": feedback_name
+    }).insert(ignore_permissions=True)
+
+    goal_name = "Increase Village Water Retention by 50%"
+    goal = frappe.get_doc({
+        "doctype": "Project Goal",
+        "goal_name": goal_name,
+        "project": proj.name,
+        "company": company,
+        "theme": theme_name,
+        "weightage": 100
+    }).insert(ignore_permissions=True)
+
+    # 4. Add Activities to Project
+    proj.append("custom_activities", {
+        "activity_name": "Community Water Budgeting & Jal Parishad",
+        "goal": goal.name,
+        "description": "Conduct water security planning sessions with farmers",
+        "assignee": "Administrator",
+        "timeline": "Jan 2026 - Mar 2026",
+        "input_output": "10 training kits / 1 Village Water Budget",
+        "impact": "100% household participation in water conservation",
+        "status": "In Progress"
+    })
+    proj.append("custom_activities", {
+        "activity_name": "Construction of 5 Continuous Contour Trenches (CCT)",
+        "goal": goal.name,
+        "description": "Excavation and bunding on hillside slopes",
+        "assignee": "Administrator",
+        "timeline": "Apr 2026 - Jun 2026",
+        "input_output": "Excavation equipment / 500 meters of trenches",
+        "impact": "50,000 liters groundwater recharge per rain event",
+        "status": "Planned"
+    })
+    proj.save(ignore_permissions=True)
+    
+    print(f"  -> Created Project: {proj.name} ({proj.project_name})")
+    assert proj.custom_remaining_funds == 1500000.0, f"Expected 1500000.0, got {proj.custom_remaining_funds}"
+    print(f"  -> Initial Remaining Funds: Rs. {proj.custom_remaining_funds} (Budget: {proj.custom_budget} - Spent: {proj.custom_actual_amount_spent})")
+
+    # 4. Verify Activity records automatically created / synchronized
+    activities = frappe.get_all("Activity", filters={"project": proj.name}, fields=["name", "activity_name", "status", "timeline_description", "impact", "input_output"])
+    assert len(activities) >= 2, f"Expected at least 2 activities, found {len(activities)}"
+    print(f"  -> Verified {len(activities)} Activity DocType records synchronized from Project Activity child table:")
+    for act in activities:
+        print(f"     [+] Activity Doc: {act.name} | Name: '{act.activity_name}' | Status: {act.status} | Impact: '{act.impact}'")
+
+    # 5. Create Tasks under the Activity (3-tier hierarchy: Project -> Activity -> Task)
+    first_act = activities[0]
+    task1 = frappe.get_doc({
+        "doctype": "Task",
+        "subject": "Organize Jal Parishad Farmer Community Gathering",
+        "project": proj.name,
+        "custom_activity": first_act.name,
+        "company": company,
+        "custom_project_phase": "Execution",
+        "status": "Open"
+    }).insert(ignore_permissions=True)
+
+    task2 = frappe.get_doc({
+        "doctype": "Task",
+        "subject": "Publish Village Water Budget Balance Sheet",
+        "project": proj.name,
+        "custom_activity": first_act.name,
+        "company": company,
+        "custom_project_phase": "Execution",
+        "status": "Open"
+    }).insert(ignore_permissions=True)
+
+    print(f"  -> Verified Hierarchy (Tier 1: Project {proj.name} -> Tier 2: Activity {first_act.name} -> Tier 3: Tasks {task1.name}, {task2.name})")
+
+    # 6. Project Coordinator updates Actual Amount Spent
+    proj.custom_actual_amount_spent = 425000.0
+    proj.save(ignore_permissions=True)
+    proj.reload()
+    assert proj.custom_remaining_funds == 1075000.0, f"Expected 1075000.0, got {proj.custom_remaining_funds}"
+    print(f"  -> Project Coordinator updated Actual Spent to Rs. {proj.custom_actual_amount_spent}. Auto-calculated Remaining Funds: Rs. {proj.custom_remaining_funds} (Budget: {proj.custom_budget} - Spent: {proj.custom_actual_amount_spent})")
+    
+    # 7. Test Dedicated KV Project Web Form API
+    from krushi_vikas.api import get_project_form_options, submit_kv_project
+    opts = get_project_form_options()
+    assert "users" in opts and "themes" in opts
+    print(f"  -> Fetched Web Form Options successfully ({len(opts['users'])} users, {len(opts['themes'])} themes).")
+
+    kvp_res = submit_kv_project({
+        "project_name": "Drone Didi Agricultural Fleet Project",
+        "theme": theme_name,
+        "project_coordinator": "Administrator",
+        "project_manager": "Administrator",
+        "project_phase": "Execution",
+        "status": "Deployed",
+        "start_date": "2026-02-01",
+        "end_date": "2026-11-30",
+        "budget": 2500000.0,
+        "actual_amount_spent": 800000.0,
+        "linked_baseline_survey": baseline_name,
+        "linked_field_tracking_form": feedback_name,
+        "activities": [
+            {
+                "activity_name": "Drone Procurement & Calibration",
+                "goal": "Equip 10 SHG women with agricultural spraying drones",
+                "assignee": "Administrator",
+                "start_date": "2026-02-01",
+                "end_date": "2026-04-30",
+                "input_output": "10 Drone Kits ready",
+                "impact": "1000 acres crop coverage per season",
+                "status": "Completed"
+            }
+        ]
+    })
+    assert kvp_res["success"] is True
+    assert kvp_res["name"].startswith("KVP-")
+    assert kvp_res["remaining_funds"] == 1700000.0
+    print(f"  -> Submitted KV Project Web Form successfully: {kvp_res['name']} ({kvp_res['project_name']}) | Remaining Funds: Rs. {kvp_res['remaining_funds']}")
+    print("  -> Project, Activity & Task 3-tier hierarchy and financial tracking validated successfully!")
+
 
 
 
