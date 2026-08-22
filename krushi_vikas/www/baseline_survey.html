@@ -9,220 +9,143 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/krushi_vikas/css/feedback_survey.css">
-  <style>
-    /* Dynamic Child Table Styling */
-    .table-section {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid #e2e8f0;
-    }
-    .table-section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .table-section-header h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #1e293b;
-      margin: 0;
-    }
-    .grid-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 12px;
-    }
-    .grid-table th {
-      background: #f8fafc;
-      padding: 10px 12px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #475569;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .grid-table td {
-      padding: 8px 12px;
-      border-bottom: 1px solid #f1f5f9;
-      vertical-align: middle;
-    }
-    .grid-table input, .grid-table select {
-      width: 100%;
-      padding: 6px 10px;
-      font-size: 0.88rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      box-sizing: border-box;
-    }
-    .grid-table input:focus, .grid-table select:focus {
-      border-color: #1a73e8;
-      outline: none;
-    }
-    .btn-add-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #f1f5f9;
-      color: #1e293b;
-      border: 1px solid #cbd5e1;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-add-row:hover {
-      background: #e2e8f0;
-      color: #0f172a;
-    }
-    .btn-del-row {
-      background: none;
-      border: none;
-      color: #ef4444;
-      cursor: pointer;
-      padding: 4px;
-      font-size: 1rem;
-      border-radius: 4px;
-    }
-    .btn-del-row:hover {
-      background: #fee2e2;
-    }
-  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/portal_common.css">
+  <link rel="stylesheet" href="/assets/krushi_vikas/css/form_wizard.css">
 </head>
 <body>
-  <!-- Header Bar -->
-  <header class="app-header">
-    <div class="brand-section">
-      <div class="logo-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-        </svg>
+
+  <!-- TOP HEADER -->
+  <header class="wizard-header">
+    <a href="/structured_forms" class="header-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-leaf"></i>
       </div>
-      <div class="brand-text">
-        <span class="brand-title">Krushi Vikas</span>
-        <span class="brand-subtitle">Farmer Baseline Survey Form</span>
+      <div class="brand-info">
+        <span class="brand-name">Krushi Vikas</span>
+        <span class="brand-sub">Farmer Baseline Socio-Economic & Agri Survey</span>
       </div>
+    </a>
+    <div class="header-breadcrumbs">
+      <a href="/structured_forms">Structured Forms</a>
+      <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+      <span class="crumb-current">Farmer Baseline Survey Form</span>
     </div>
     <div class="header-actions">
-      <a href="/dashboard" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 14px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        Dashboard
+      <a href="/structured_forms" class="btn-header-outline">
+        <i class="fa-solid fa-arrow-left"></i> Forms Hub
       </a>
-      <a href="/app/baseline-survey" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 14px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-        Desk View
+      <a href="/projects" class="btn-header-outline">
+        <i class="fa-solid fa-diagram-project"></i> Projects
+      </a>
+      <a href="/app/baseline-survey" class="btn-header-primary">
+        <i class="fa-solid fa-table-cells"></i> Open Desk
       </a>
     </div>
   </header>
 
-  <!-- Main Wizard Area -->
+  <!-- MAIN WIZARD LAYOUT -->
   <main class="wizard-container">
-    <!-- Stepper Sidebar -->
-    <aside class="stepper-sidebar">
-      <div class="stepper-header">
-        <h2>Baseline Survey</h2>
-        <p>Pre-intervention socio-economic, landholding, and agricultural assessment.</p>
+    
+    <!-- LEFT SIDEBAR STEPPER -->
+    <aside class="wizard-sidebar">
+      <div class="stepper-card">
+        <div class="stepper-header">
+          <span class="stepper-phase-pill"><i class="fa-solid fa-seedling"></i> Household Baseline</span>
+          <h2 class="stepper-title">Baseline Survey</h2>
+          <p class="stepper-desc">Pre-intervention socio-economic, landholding, and agricultural assessment.</p>
+        </div>
+
+        <nav class="stepper-nav">
+          <div class="step-nav-item active" id="stepNavItem1" onclick="window.BaselineWizard.goToStep(1)">
+            <div class="step-icon-badge" id="stepBadge1">1</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Farmer Identification</span>
+              <span class="step-nav-sub">Personal & household data</span>
+            </div>
+          </div>
+
+          <div class="step-nav-item" id="stepNavItem2" onclick="window.BaselineWizard.goToStep(2)">
+            <div class="step-icon-badge" id="stepBadge2">2</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Land & Crops Table</span>
+              <span class="step-nav-sub">Acreage, yield & crops breakdown</span>
+            </div>
+          </div>
+
+          <div class="step-nav-item" id="stepNavItem3" onclick="window.BaselineWizard.goToStep(3)">
+            <div class="step-icon-badge" id="stepBadge3">3</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Livestock, Assets & Income</span>
+              <span class="step-nav-sub">Animals, equipment & income tables</span>
+            </div>
+          </div>
+
+          <div class="step-nav-item" id="stepNavItem4" onclick="window.BaselineWizard.goToStep(4)">
+            <div class="step-icon-badge" id="stepBadge4">4</div>
+            <div class="step-nav-content">
+              <span class="step-nav-label">Review & Consent</span>
+              <span class="step-nav-sub">Verification & submit</span>
+            </div>
+          </div>
+        </nav>
       </div>
 
-      <nav class="stepper-nav" aria-label="Survey Steps">
-        <div class="step-item active" data-step="1" id="nav-step-1">
-          <div class="step-indicator">
-            <span class="step-number">1</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Farmer Identification</span>
-            <span class="step-desc">Personal & household data</span>
-          </div>
+      <div class="sidebar-help-card">
+        <i class="fa-solid fa-shield-halved"></i>
+        <div>
+          <div class="sidebar-help-title">Data Privacy Notice</div>
+          <div class="sidebar-help-desc">All beneficiary responses and child table details are securely stored in the system database for impact benchmarking.</div>
         </div>
-
-        <div class="step-item" data-step="2" id="nav-step-2">
-          <div class="step-indicator">
-            <span class="step-number">2</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Land & Crops Table</span>
-            <span class="step-desc">Acreage, yield & crops breakdown</span>
-          </div>
-        </div>
-
-        <div class="step-item" data-step="3" id="nav-step-3">
-          <div class="step-indicator">
-            <span class="step-number">3</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Livestock, Assets & Income</span>
-            <span class="step-desc">Animals, equipment & income tables</span>
-          </div>
-        </div>
-
-        <div class="step-item" data-step="4" id="nav-step-4">
-          <div class="step-indicator">
-            <span class="step-number">4</span>
-            <span class="step-check">✓</span>
-          </div>
-          <div class="step-info">
-            <span class="step-title">Review & Consent</span>
-            <span class="step-desc">Verification & submit</span>
-          </div>
-        </div>
-      </nav>
-
-      <div class="stepper-footer-box">
-        <div class="info-icon">🔒</div>
-        <p>All beneficiary responses and child table details are securely stored in the system database.</p>
       </div>
     </aside>
 
-    <!-- Wizard Form Content -->
-    <section class="wizard-content">
-      <form id="baselineSurveyForm" novalidate>
-        
+    <!-- RIGHT MAIN FORM PANEL -->
+    <section class="wizard-main">
+      <form id="baselineSurveyForm" onsubmit="return false;" novalidate>
+
         <!-- STEP 1: Farmer & Household Identification -->
-        <div class="form-step active" id="step-1">
-          <div class="step-header">
-            <span class="step-badge">Step 1 of 4</span>
-            <h1>Farmer & Household Identification</h1>
-            <p>Please enter the personal details and demographic profile of the respondent farmer.</p>
+        <div class="wizard-step-panel active" id="stepPanel1">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 1 of 4</span>
+            <h1 class="step-heading">Farmer & Household Identification</h1>
+            <p class="step-subheading">Please enter the personal details and demographic profile of the respondent farmer.</p>
           </div>
 
           <div class="form-card">
-            <div class="form-grid">
+            <h3 class="form-section-title"><i class="fa-solid fa-id-card"></i> 1. Primary Identification</h3>
+            
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="farmer_name" class="required">Farmer Full Name</label>
+                <label class="form-label">Farmer Full Name <span class="req">*</span></label>
                 <input type="text" id="farmer_name" name="farmer_name" class="form-control" placeholder="e.g. Ramesh Tukaram Patil" required>
-                <span class="error-msg" id="err-farmer_name"></span>
               </div>
 
               <div class="form-group">
-                <label for="village" class="required">Village / Location</label>
-                <select id="village" name="village" class="form-control" required>
+                <label class="form-label">Contact / Mobile Number <span class="req">*</span></label>
+                <input type="tel" id="contact_number" name="contact_number" class="form-control" placeholder="e.g. 9876543210" maxlength="10" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Village / Location <span class="req">*</span></label>
+                <select id="village" name="village" class="form-select" required>
                   <option value="">Select village...</option>
                   {% for v in options.villages %}
                   <option value="{{ v }}">{{ v }}</option>
                   {% endfor %}
                 </select>
-                <span class="error-msg" id="err-village"></span>
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Survey Date <span class="req">*</span></label>
+                <input type="date" id="survey_date" name="survey_date" class="form-control" value="{{ today_date }}" required>
               </div>
 
               <div class="form-group">
-                <label for="survey_date" class="required">Survey Date</label>
-                <input type="date" id="survey_date" name="survey_date" class="form-control" value="{{ today_date }}" max="{{ today_date }}" required>
-                <span class="error-msg" id="err-survey_date"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="field_officer" class="required">Field Officer / Enumerator</label>
-                <select id="field_officer" name="field_officer" class="form-control" required>
+                <label class="form-label">Field Officer / Facilitator</label>
+                <select id="field_officer" name="field_officer" class="form-select">
                   {% for fo in options.field_officers %}
                   <option value="{{ fo.name }}">{{ fo.full_name }}</option>
                   {% endfor %}
@@ -230,377 +153,587 @@
               </div>
 
               <div class="form-group">
-                <label for="gender">Gender</label>
-                <select id="gender" name="gender" class="form-control">
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
+                <label class="form-label">Surveyor / Enumerator Name</label>
+                <input type="text" id="surveyor_name" name="surveyor_name" class="form-control" placeholder="e.g. Rahul Deshmukh">
               </div>
+            </div>
 
+            <div class="form-grid-2">
               <div class="form-group">
-                <label for="age">Age (Years)</label>
-                <input type="number" id="age" name="age" class="form-control" placeholder="e.g. 42" min="15" max="110">
-                <span class="error-msg" id="err-age"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="farmer_category" class="required">Farmer Landholding Category</label>
-                <select id="farmer_category" name="farmer_category" class="form-control" required>
-                  {% for fc in options.farmer_categories %}
-                  <option value="{{ fc }}">{{ fc }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="primary_occupation">Primary Household Occupation</label>
-                <select id="primary_occupation" name="primary_occupation" class="form-control">
-                  {% for occ in options.primary_occupations %}
-                  <option value="{{ occ }}">{{ occ }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="household_members">Total Household Members</label>
-                <input type="number" id="household_members" name="household_members" class="form-control" placeholder="e.g. 5" min="1">
-              </div>
-
-              <div class="form-group">
-                <label for="contact_number">Mobile / Contact Number</label>
-                <input type="tel" id="contact_number" name="contact_number" class="form-control" placeholder="e.g. 9876543210" maxlength="10">
-              </div>
-
-              <div class="form-group full-width">
-                <label for="project">Linked Project (Optional)</label>
-                <select id="project" name="project" class="form-control">
-                  <option value="">-- No Specific Project / Baseline Only --</option>
+                <label class="form-label">Linked Project</label>
+                <select id="project" name="project" class="form-select">
+                  <option value="">None (General Baseline)</option>
                   {% for p in options.projects %}
                   <option value="{{ p.name }}">{{ p.title }}</option>
                   {% endfor %}
                 </select>
               </div>
             </div>
-
-            <!-- TABLE: Household Members -->
-            <div class="table-section">
-              <div class="table-section-header">
-                <h3>👨‍👩‍👧 Household Family Members (Optional Breakdown)</h3>
-                <button type="button" class="btn-add-row" onclick="window.BaselineWizard.addMemberRow()">+ Add Member</button>
-              </div>
-              <div style="overflow-x: auto;">
-                <table class="grid-table" id="tableHouseholdMembers">
-                  <thead>
-                    <tr>
-                      <th style="width: 25%;">Member Name</th>
-                      <th style="width: 18%;">Relation</th>
-                      <th style="width: 15%;">Gender</th>
-                      <th style="width: 12%;">Age</th>
-                      <th style="width: 22%;">Occupation</th>
-                      <th style="width: 8%;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- Populated dynamically / default rows -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-
-          <div class="wizard-buttons">
-            <div></div>
-            <button type="button" class="btn btn-primary" onclick="window.BaselineWizard.goToStep(2)">
-              Next: Land & Crops →
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 2: Landholding & Cropping Profile -->
-        <div class="form-step" id="step-2">
-          <div class="step-header">
-            <span class="step-badge">Step 2 of 4</span>
-            <h1>Landholding & Cropping Profile</h1>
-            <p>Record acreage, irrigation capabilities, and detailed crop cultivation history.</p>
           </div>
 
           <div class="form-card">
-            <div class="form-grid">
+            <h3 class="form-section-title"><i class="fa-solid fa-users"></i> 2. Demographics & Housing Profile</h3>
+            
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="total_landholding_acres" class="required">Total Landholding (Acres)</label>
-                <input type="number" id="total_landholding_acres" name="total_landholding_acres" class="form-control" placeholder="e.g. 4.5" min="0.1" step="0.1" required>
-                <span class="error-msg" id="err-total_landholding_acres"></span>
+                <label class="form-label">Age of Family Head</label>
+                <input type="number" id="age" name="age" class="form-control" placeholder="e.g. 45" min="18" max="100">
               </div>
 
               <div class="form-group">
-                <label for="irrigated_land_acres">Irrigated Land (Acres)</label>
-                <input type="number" id="irrigated_land_acres" name="irrigated_land_acres" class="form-control" placeholder="e.g. 2.0" min="0" step="0.1">
-                <span class="error-msg" id="err-irrigated_land_acres"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="rainfed_land_acres">Rainfed / Dryland (Acres)</label>
-                <input type="number" id="rainfed_land_acres" name="rainfed_land_acres" class="form-control" placeholder="e.g. 2.5" min="0" step="0.1">
-                <span class="error-msg" id="err-rainfed_land_acres"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="primary_irrigation_source">Primary Irrigation Source</label>
-                <select id="primary_irrigation_source" name="primary_irrigation_source" class="form-control">
-                  {% for src in options.irrigation_sources %}
-                  <option value="{{ src }}">{{ src }}</option>
-                  {% endfor %}
+                <label class="form-label">Social Category</label>
+                <select id="category" name="category" class="form-select">
+                  <option value="Open">Open</option>
+                  <option value="OBC">OBC</option>
+                  <option value="SC">SC</option>
+                  <option value="ST">ST</option>
+                  <option value="NT / VJNT">NT / VJNT</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label for="annual_crop_yield_quintals">Average Annual Yield (Quintals / Acre)</label>
-                <input type="number" id="annual_crop_yield_quintals" name="annual_crop_yield_quintals" class="form-control" placeholder="e.g. 8.5" min="0" step="0.1">
-              </div>
-
-              <div class="form-group">
-                <label for="annual_farm_income">Estimated Annual Farm Income (INR)</label>
-                <input type="number" id="annual_farm_income" name="annual_farm_income" class="form-control" placeholder="e.g. 120000" min="0" step="1000">
-              </div>
-            </div>
-
-            <!-- TABLE: Seasonal Crops Details -->
-            <div class="table-section">
-              <div class="table-section-header">
-                <h3>🌱 Seasonal Crops & Production Table</h3>
-                <button type="button" class="btn-add-row" onclick="window.BaselineWizard.addCropRow()">+ Add Crop</button>
-              </div>
-              <div style="overflow-x: auto;">
-                <table class="grid-table" id="tableCrops">
-                  <thead>
-                    <tr>
-                      <th style="width: 18%;">Season</th>
-                      <th style="width: 25%;">Crop Name</th>
-                      <th style="width: 15%;">Area (Acres)</th>
-                      <th style="width: 18%;">Yield (Qtl)</th>
-                      <th style="width: 16%;">Gross Income (₹)</th>
-                      <th style="width: 8%;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
+                <label class="form-label">House Type</label>
+                <select id="house_type" name="house_type" class="form-select">
+                  <option value="Pucca (Permanent)">Pucca (Permanent RCC/Brick)</option>
+                  <option value="Semi-Pucca">Semi-Pucca (Brick + Tin Sheet)</option>
+                  <option value="Kutcha (Mud / Thatched)">Kutcha (Mud / Thatched)</option>
+                </select>
               </div>
             </div>
 
-          </div>
-
-          <div class="wizard-buttons">
-            <button type="button" class="btn btn-secondary" onclick="window.BaselineWizard.goToStep(1)">
-              ← Back
-            </button>
-            <button type="button" class="btn btn-primary" onclick="window.BaselineWizard.goToStep(3)">
-              Next: Livestock, Assets & Income →
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 3: Livestock, Assets & Income Breakdown -->
-        <div class="form-step" id="step-3">
-          <div class="step-header">
-            <span class="step-badge">Step 3 of 4</span>
-            <h1>Livestock, Farm Assets & Income Sources</h1>
-            <p>Assess livestock ownership, agricultural implements, and household income channels.</p>
-          </div>
-
-          <div class="form-card">
-            <div class="form-grid">
+            <div class="form-grid-3">
               <div class="form-group">
-                <label for="has_soil_health_card">Has Soil Health Card?</label>
-                <select id="has_soil_health_card" name="has_soil_health_card" class="form-control">
+                <label class="form-label">Has Functional Toilet?</label>
+                <select id="has_toilet" name="has_toilet" class="form-select">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Below Poverty Line (BPL)?</label>
+                <select id="is_bpl" name="is_bpl" class="form-select">
+                  <option value="No">No (APL)</option>
+                  <option value="Yes">Yes (BPL / Antyodaya)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Family Migrates for Livelihood?</label>
+                <select id="family_migrates" name="family_migrates" class="form-select" onchange="window.BaselineWizard.toggleMigrationFields(this.value)">
                   <option value="No">No</option>
                   <option value="Yes">Yes</option>
-                  <option value="In Progress">In Progress</option>
                 </select>
+              </div>
+            </div>
+
+            <div class="form-grid-2" id="migrationFieldsRow" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Migration Location / Destination</label>
+                <input type="text" id="migration_location" name="migration_location" class="form-control" placeholder="e.g. Pune / Mumbai / Brick Kilns">
               </div>
 
               <div class="form-group">
-                <label for="soil_erosion_level">Observed Soil Erosion Level</label>
-                <select id="soil_erosion_level" name="soil_erosion_level" class="form-control">
-                  <option value="None / Negligible">None / Negligible</option>
-                  <option value="Low">Low</option>
-                  <option value="Moderate" selected>Moderate</option>
-                  <option value="Severe">Severe</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="fertilizer_practice" class="required">Fertilizer & Nutrient Practices</label>
-                <select id="fertilizer_practice" name="fertilizer_practice" class="form-control" required>
-                  {% for fp in options.fertilizer_practices %}
-                  <option value="{{ fp }}" {% if fp == 'Mixed Chemical & Organic' %}selected{% endif %}>{{ fp }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="summer_water_scarcity" class="required">Summer Water Scarcity Severity</label>
-                <select id="summer_water_scarcity" name="summer_water_scarcity" class="form-control" required>
-                  {% for ws in options.water_scarcity_levels %}
-                  <option value="{{ ws }}" {% if ws == 'Moderate Scarcity' %}selected{% endif %}>{{ ws }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="form-group full-width">
-                <label for="soil_water_structures">Existing Conservation Structures on Farm</label>
-                <input type="text" id="soil_water_structures" name="soil_water_structures" class="form-control" placeholder="e.g. Farm Bunds, Trenches, Farm Pond">
+                <label class="form-label">Migration Duration</label>
+                <input type="text" id="migration_duration" name="migration_duration" class="form-control" placeholder="e.g. 4 months in summer">
               </div>
             </div>
-
-            <!-- TABLE: Livestock Details -->
-            <div class="table-section">
-              <div class="table-section-header">
-                <h3>🐄 Livestock Details</h3>
-                <button type="button" class="btn-add-row" onclick="window.BaselineWizard.addLivestockRow()">+ Add Livestock</button>
-              </div>
-              <div style="overflow-x: auto;">
-                <table class="grid-table" id="tableLivestock">
-                  <thead>
-                    <tr>
-                      <th style="width: 35%;">Livestock / Animal Type</th>
-                      <th style="width: 20%;">Quantity</th>
-                      <th style="width: 20%;">Daily Milk (Ltr)</th>
-                      <th style="width: 17%;">Annual Income (₹)</th>
-                      <th style="width: 8%;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- TABLE: Farm Assets & Equipment -->
-            <div class="table-section">
-              <div class="table-section-header">
-                <h3>🚜 Farm Equipment & Assets</h3>
-                <button type="button" class="btn-add-row" onclick="window.BaselineWizard.addAssetRow()">+ Add Equipment</button>
-              </div>
-              <div style="overflow-x: auto;">
-                <table class="grid-table" id="tableAssets">
-                  <thead>
-                    <tr>
-                      <th style="width: 50%;">Asset / Implement</th>
-                      <th style="width: 20%;">Quantity</th>
-                      <th style="width: 22%;">Status</th>
-                      <th style="width: 8%;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- TABLE: Income Sources Breakdown -->
-            <div class="table-section">
-              <div class="table-section-header">
-                <h3>💰 Annual Income Sources Breakdown</h3>
-                <button type="button" class="btn-add-row" onclick="window.BaselineWizard.addIncomeRow()">+ Add Source</button>
-              </div>
-              <div style="overflow-x: auto;">
-                <table class="grid-table" id="tableIncomeSources">
-                  <thead>
-                    <tr>
-                      <th style="width: 60%;">Income Channel</th>
-                      <th style="width: 32%;">Annual Amount (₹)</th>
-                      <th style="width: 8%;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="form-grid" style="margin-top: 20px;">
-              <div class="form-group full-width">
-                <label for="key_challenges_faced">Key Agricultural & Livelihood Challenges</label>
-                <textarea id="key_challenges_faced" name="key_challenges_faced" class="form-control" rows="2" placeholder="e.g. High fertilizer costs, lack of timely irrigation, pest attacks."></textarea>
-              </div>
-
-              <div class="form-group full-width">
-                <label for="surveyor_observations">Surveyor / Enumerator Observations</label>
-                <textarea id="surveyor_observations" name="surveyor_observations" class="form-control" rows="2" placeholder="e.g. Farmer is keen on drip irrigation adoption."></textarea>
-              </div>
-            </div>
-
           </div>
 
-          <div class="wizard-buttons">
-            <button type="button" class="btn btn-secondary" onclick="window.BaselineWizard.goToStep(2)">
-              ← Back
+          <!-- CHILD TABLE: Household Members -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-people-group" style="color: #2563eb;"></i> Household Family Members</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addHouseholdMemberRow()">
+                <i class="fa-solid fa-plus"></i> Add Family Member
+              </button>
+            </div>
+            
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableHouseholdMembers">
+                <thead>
+                  <tr>
+                    <th style="width: 25%;">Member Full Name <span class="req">*</span></th>
+                    <th style="width: 15%;">Relation</th>
+                    <th style="width: 12%;">Gender</th>
+                    <th style="width: 10%;">Age</th>
+                    <th style="width: 18%;">Education</th>
+                    <th style="width: 15%;">Primary Occupation</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SHG & Enterprise Details -->
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-handshake-angle"></i> 3. SHG & Micro-Enterprise Involvement</h3>
+            
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Family Member in Women SHG?</label>
+                <select id="is_shg_member" name="is_shg_member" class="form-select" onchange="window.BaselineWizard.toggleShgFields(this.value)">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+
+              <div class="form-group shg-dep" style="display: none;">
+                <label class="form-label">SHG Group Name</label>
+                <input type="text" id="shg_name" name="shg_name" class="form-control" placeholder="e.g. Savitribai Phule Bachat Gat">
+              </div>
+
+              <div class="form-group shg-dep" style="display: none;">
+                <label class="form-label">Taken Loan Through SHG?</label>
+                <select id="shg_has_loan" name="shg_has_loan" class="form-select">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-2 shg-dep" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Started Business with SHG Support?</label>
+                <select id="shg_business_started" name="shg_business_started" class="form-select">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Type of Business / Enterprise</label>
+                <input type="text" id="shg_business_type" name="shg_business_type" class="form-control" placeholder="e.g. Flour mill, Goat farming, Sewing">
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-footer-nav">
+            <div></div>
+            <button type="button" class="btn-wizard-next" onclick="window.BaselineWizard.goToStep(2)">
+              Next: Land & Crops <i class="fa-solid fa-arrow-right"></i>
             </button>
-            <button type="button" class="btn btn-primary" onclick="window.BaselineWizard.goToStep(4)">
-              Next: Review & Submit →
+          </div>
+        </div>
+
+        <!-- STEP 2: Landholding, Crops & Irrigation -->
+        <div class="wizard-step-panel" id="stepPanel2">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 2 of 4</span>
+            <h1 class="step-heading">Landholding, Crop Production & Irrigation</h1>
+            <p class="step-subheading">Acreage breakdown, crop production table, irrigation equipment and conservation works.</p>
+          </div>
+
+          <!-- Landholding & Practices -->
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-chart-area"></i> 1. Landholding & Agronomic Practices</h3>
+            
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Total Landholding <span class="req">*</span></label>
+                <div class="input-with-addon">
+                  <input type="number" id="total_landholding_acres" name="total_landholding_acres" class="form-control" placeholder="e.g. 4.5" min="0" step="0.1" required>
+                  <span class="input-addon">Acres</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Irrigated Land</label>
+                <div class="input-with-addon">
+                  <input type="number" id="irrigated_land_acres" name="irrigated_land_acres" class="form-control" placeholder="e.g. 2.0" min="0" step="0.1">
+                  <span class="input-addon">Acres</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Rainfed / Dryland</label>
+                <div class="input-with-addon">
+                  <input type="number" id="rainfed_land_acres" name="rainfed_land_acres" class="form-control" placeholder="e.g. 2.5" min="0" step="0.1">
+                  <span class="input-addon">Acres</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Conducts Soil Testing?</label>
+                <select id="conducts_soil_testing" name="conducts_soil_testing" class="form-select">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Last Soil Test Date</label>
+                <input type="date" id="soil_testing_last_date" name="soil_testing_last_date" class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Applied Recommended Fertilizer?</label>
+                <select id="fertilizer_as_per_recommendation" name="fertilizer_as_per_recommendation" class="form-select">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Yield Increase from Soil Test</label>
+                <select id="yield_increase_from_soil_test" name="yield_increase_from_soil_test" class="form-select">
+                  <option value="Not Applicable">Not Applicable</option>
+                  <option value="10% - 20% Increase">10% - 20% Increase</option>
+                  <option value="> 20% Increase">> 20% Increase</option>
+                  <option value="No Noticeable Change">No Noticeable Change</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Produce Graded / Sorted before Sale?</label>
+                <select id="produce_sorted_graded" name="produce_sorted_graded" class="form-select">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Practices Organic / Natural Farming?</label>
+                <select id="practices_organic_farming" name="practices_organic_farming" class="form-select">
+                  <option value="No">No (Conventional Chemical)</option>
+                  <option value="Partially">Partially (Integrated)</option>
+                  <option value="Yes">Yes (100% Organic)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHILD TABLE: Crop Production -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-wheat-awn" style="color: #2563eb;"></i> 2. Crop Production & Yield Breakdown</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addCropRow()">
+                <i class="fa-solid fa-plus"></i> Add Crop Record
+              </button>
+            </div>
+            
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableCrops">
+                <thead>
+                  <tr>
+                    <th style="width: 12%;">Season</th>
+                    <th style="width: 18%;">Crop Name <span class="req">*</span></th>
+                    <th style="width: 12%;">Irrigated (Ac)</th>
+                    <th style="width: 12%;">Dryland (Ac)</th>
+                    <th style="width: 12%;">Yield (Qtl)</th>
+                    <th style="width: 16%;">Production Cost (₹)</th>
+                    <th style="width: 16%;">Gross Income (₹)</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+            <div class="table-summary-bar">
+              <div>Total Gross Income: <span id="totalCropIncome">₹0</span></div>
+            </div>
+          </div>
+
+          <!-- CHILD TABLE: Irrigation Sources & Equipment -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-faucet-drip" style="color: #2563eb;"></i> 3. Irrigation Sources & Equipment</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addIrrigationSourceRow()">
+                <i class="fa-solid fa-plus"></i> Add Source
+              </button>
+            </div>
+            
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableIrrigationSources">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Source Name</th>
+                    <th style="width: 20%;">Quantity</th>
+                    <th style="width: 20%;">Depth (Feet)</th>
+                    <th style="width: 20%;">Water Months / Year</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CHILD TABLE: Farm Conservation Works -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-mountain-sun" style="color: #2563eb;"></i> 4. Farm Soil & Water Conservation Works</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addConservationWorkRow()">
+                <i class="fa-solid fa-plus"></i> Add Work
+              </button>
+            </div>
+            
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableConservationWorks">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Structure Type</th>
+                    <th style="width: 15%;">Done in Farm?</th>
+                    <th style="width: 20%;">Length / Quantity</th>
+                    <th style="width: 25%;">Implementing Department</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-prev" onclick="window.BaselineWizard.goToStep(1)">
+              <i class="fa-solid fa-arrow-left"></i> Back to Step 1
+            </button>
+            <button type="button" class="btn-wizard-next" onclick="window.BaselineWizard.goToStep(3)">
+              Next: Livestock & Financials <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Drinking Water, Livestock & Financials -->
+        <div class="wizard-step-panel" id="stepPanel3">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 3 of 4</span>
+            <h1 class="step-heading">Drinking Water, Livestock & Financial Profile</h1>
+            <p class="step-subheading">Drinking water security, livestock assets, farm machinery, loans, and income sources.</p>
+          </div>
+
+          <!-- Drinking Water Details -->
+          <div class="form-card">
+            <h3 class="form-section-title"><i class="fa-solid fa-droplet"></i> 1. Drinking Water Security</h3>
+            
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">Main Drinking Water Source</label>
+                <select id="drinking_water_source" name="drinking_water_source" class="form-select">
+                  <option value="Tap Water (GP Supply)">Tap Water (GP Supply)</option>
+                  <option value="Community Open Well">Community Open Well</option>
+                  <option value="Private Open Well">Private Open Well</option>
+                  <option value="Handpump / Borewell">Handpump / Borewell</option>
+                  <option value="Water Tanker">Water Tanker (Seasonal)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Source Ownership</label>
+                <select id="drinking_water_ownership" name="drinking_water_ownership" class="form-select">
+                  <option value="Public">Public / Gram Panchayat</option>
+                  <option value="Private">Private Owned</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Available Throughout Year?</label>
+                <select id="drinking_water_year_round" name="drinking_water_year_round" class="form-select">
+                  <option value="Yes">Yes (12 Months)</option>
+                  <option value="No">No (Seasonal Scarcity)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Distance to Fetch Water</label>
+                <select id="drinking_water_distance" name="drinking_water_distance" class="form-select">
+                  <option value="Inside House / Tap">Inside House / Tap</option>
+                  <option value="< 100 meters">< 100 meters</option>
+                  <option value="100 - 500 meters">100 - 500 meters</option>
+                  <option value="> 500 meters">> 500 meters</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Water Budgeting Practices Adopted</label>
+                <input type="text" id="water_budgeting_practices" name="water_budgeting_practices" class="form-control" placeholder="e.g. Drip micro-irrigation, Mulching, Kitchen garden">
+              </div>
+            </div>
+          </div>
+
+          <!-- CHILD TABLE: Livestock Details -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-cow" style="color: #2563eb;"></i> 2. Livestock Assets & Dairy Production</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addLivestockRow()">
+                <i class="fa-solid fa-plus"></i> Add Animal
+              </button>
+            </div>
+            
+            <div class="form-grid-3" style="margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label">Owns Livestock?</label>
+                <select id="owns_livestock" name="owns_livestock" class="form-select">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Cattle Shed Type</label>
+                <select id="cattle_shed_type" name="cattle_shed_type" class="form-select">
+                  <option value="Pucca (Permanent)">Pucca (Permanent Concrete/Tin)</option>
+                  <option value="Kutcha (Thatched)">Kutcha (Thatched/Open)</option>
+                  <option value="None">None</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Milk Sale Channel</label>
+                <select id="milk_sale_channel" name="milk_sale_channel" class="form-select">
+                  <option value="Dairy Cooperative">Dairy Cooperative / Collection Center</option>
+                  <option value="Local Village Market">Local Village Market</option>
+                  <option value="Self Consumption">Self Consumption Only</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableLivestock">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Animal Type</th>
+                    <th style="width: 20%;">Quantity <span class="req">*</span></th>
+                    <th style="width: 20%;">Daily Milk (Litres)</th>
+                    <th style="width: 20%;">Annual Income (₹)</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CHILD TABLE: Farm & Family Assets -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-tractor" style="color: #2563eb;"></i> 3. Farm Machinery & Household Assets</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addAssetRow()">
+                <i class="fa-solid fa-plus"></i> Add Asset
+              </button>
+            </div>
+            
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableAssets">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Asset Name</th>
+                    <th style="width: 20%;">Quantity</th>
+                    <th style="width: 25%;">Operational Status</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CHILD TABLE: Loans & Indebtedness -->
+          <div class="table-card">
+            <div class="table-card-header">
+              <span class="table-card-title"><i class="fa-solid fa-money-bill-transfer" style="color: #2563eb;"></i> 4. Family Loans & Liabilities</span>
+              <button type="button" class="btn-add-table-row" onclick="window.BaselineWizard.addLoanRow()">
+                <i class="fa-solid fa-plus"></i> Add Loan Record
+              </button>
+            </div>
+            
+            <div class="wizard-table-wrap">
+              <table class="wizard-table" id="tableLoans">
+                <thead>
+                  <tr>
+                    <th style="width: 30%;">Loan Source</th>
+                    <th style="width: 25%;">Loan Amount (₹)</th>
+                    <th style="width: 20%;">Purpose</th>
+                    <th style="width: 20%;">Outstanding (₹)</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by baseline_survey.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-prev" onclick="window.BaselineWizard.goToStep(2)">
+              <i class="fa-solid fa-arrow-left"></i> Back to Step 2
+            </button>
+            <button type="button" class="btn-wizard-next" onclick="window.BaselineWizard.goToStep(4)">
+              Next: Review & Submit <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
 
         <!-- STEP 4: Review & Informed Consent -->
-        <div class="form-step" id="step-4">
-          <div class="step-header">
-            <span class="step-badge">Step 4 of 4</span>
-            <h1>Review & Informed Consent</h1>
-            <p>Please verify all entered details and table breakdowns before recording the baseline survey.</p>
+        <div class="wizard-step-panel" id="stepPanel4">
+          <div class="form-panel-header">
+            <span class="step-tag">Step 4 of 4</span>
+            <h1 class="step-heading">Review & Informed Consent</h1>
+            <p class="step-subheading">Please verify all entered details and child tables before submitting the survey.</p>
           </div>
 
+          <!-- Review Summary Cards -->
           <div class="form-card">
-            <div id="reviewCardsContainer" class="review-container">
-              <!-- Dynamically generated by JS -->
+            <h3 class="form-section-title"><i class="fa-solid fa-magnifying-glass"></i> Verification Summary</h3>
+            <div id="baselineReviewGrid" class="review-grid">
+              <!-- Dynamically populated by baseline_survey.js -->
             </div>
 
-            <div class="consent-box" style="margin-top: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-              <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin: 0;">
-                <input type="checkbox" id="confirmation_consent" name="confirmation_consent" style="margin-top: 4px; width: 18px; height: 18px; accent-color: #1a73e8;" required>
-                <span style="font-size: 0.92rem; color: #334155; line-height: 1.5;">
-                  <strong>Informed Consent:</strong> I confirm that this baseline information was collected with the farmer's voluntary informed consent and verified for accuracy.
-                </span>
+            <div class="consent-card">
+              <label class="consent-label">
+                <input type="checkbox" id="confirmation_consent" name="confirmation_consent" required>
+                <span><strong>Informed Consent Statement:</strong> I hereby certify that the information in this baseline survey was collected with the farmer's voluntary informed consent and verified for accuracy against field observations.</span>
               </label>
-              <span class="error-msg" id="err-confirmation_consent" style="display: block; margin-top: 6px;"></span>
             </div>
           </div>
 
-          <div class="wizard-buttons">
-            <button type="button" class="btn btn-secondary" onclick="window.BaselineWizard.goToStep(3)">
-              ← Back
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-prev" onclick="window.BaselineWizard.goToStep(3)">
+              <i class="fa-solid fa-arrow-left"></i> Back to Step 3
             </button>
-            <button type="button" id="submitBtn" class="btn btn-submit" onclick="window.BaselineWizard.submitForm()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              Submit Baseline Survey
+            <button type="button" id="submitBtn" class="btn-wizard-submit" onclick="window.BaselineWizard.submitForm()">
+              <i class="fa-solid fa-check"></i> Submit Baseline Survey
             </button>
           </div>
         </div>
 
       </form>
 
-      <!-- Success Screen -->
-      <div class="success-card" id="successCard" style="display: none;">
-        <div class="success-icon">✓</div>
-        <h2 id="successTitle">Baseline Survey Recorded!</h2>
-        <p id="successMsg">The baseline profile and all associated tables have been securely saved and submitted.</p>
-        
+      <!-- SUCCESS CONFIRMATION SCREEN -->
+      <div class="success-screen" id="successScreen">
+        <div class="success-icon-wrap">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h2 class="success-title" id="successTitle">Baseline Survey Recorded!</h2>
+        <p class="success-desc" id="successMsg">The baseline profile and all associated child table records have been securely recorded.</p>
+        <div class="success-ref-pill" id="successRefPill">Survey ID: BL-2026-0001</div>
         <div class="success-actions">
-          <button type="button" class="btn btn-primary" onclick="window.location.reload()">
-            Submit Another Baseline Survey
+          <button type="button" class="btn-header-outline" onclick="window.location.reload()">
+            <i class="fa-solid fa-plus"></i> Submit Another Survey
           </button>
-          <a href="/dashboard" class="btn btn-secondary">
-            Go to Dashboard
-          </a>
-          <a href="/app/baseline-survey" class="btn btn-secondary">
-            View in Desk
+          <a href="/structured_forms" class="btn-header-primary">
+            <i class="fa-solid fa-table-list"></i> View All Forms
           </a>
         </div>
       </div>

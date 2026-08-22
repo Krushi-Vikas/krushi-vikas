@@ -659,6 +659,17 @@ def submit_baseline_survey(data):
         sname = ir.get("source_name") or ir.get("source")
         if not sname:
             continue
+        if "Well" in sname or "Vihir" in sname:
+            sname = "Open Well"
+        elif "Bore" in sname:
+            sname = "Borewell"
+        elif "Canal" in sname:
+            sname = "Canal"
+        elif "River" in sname:
+            sname = "River (Nadivarun)"
+        elif sname not in ("Well (Vihir)", "Open Well", "Borewell", "Canal (Kalva)", "Canal", "River (Nadivarun)", "River Lift", "Other"):
+            sname = "Other"
+
         doc.append("irrigation_sources_table", {
             "source_name": sname,
             "quantity": int(ir.get("quantity") or ir.get("count") or 1),
@@ -683,6 +694,19 @@ def submit_baseline_survey(data):
         stype = sc.get("structure_type") or sc.get("structure")
         if not stype:
             continue
+        if "Bunding" in stype or "Bandh" in stype:
+            stype = "Farm Bunding (Shet Bandh Bandisti)"
+        elif "Pond" in stype or "Tale" in stype:
+            stype = "Farm Pond (Shet Tale)"
+        elif "CCT" in stype or "Contour" in stype:
+            stype = "Continuous Contour Trenches (CCT)"
+        elif "WAT" in stype or "Absorption" in stype:
+            stype = "Water Absorption Trenches (WAT)"
+        elif "Boulder" in stype or "LBS" in stype:
+            stype = "Loose Boulder Structure (LBS)"
+        elif stype not in ("Farm Bunding (Shet Bandh Bandisti)", "Farm Pond (Shet Tale)", "Continuous Contour Trench (CCT)", "Continuous Contour Trenches (CCT)", "Water Absorption Trench (WAT)", "Water Absorption Trenches (WAT)", "Loose Boulder Structure (LBS)", "Other"):
+            stype = "Other"
+
         doc.append("farm_conservation_works_table", {
             "structure_type": stype,
             "status": _val(sc.get("status") or sc.get("done"), "Yes"),
@@ -711,6 +735,19 @@ def submit_baseline_survey(data):
         ltype = ls.get("livestock_type") or ls.get("animal_type")
         if not ltype:
             continue
+        if "Cow" in ltype or "Gay" in ltype:
+            ltype = "Cow (Gay)"
+        elif "Buffalo" in ltype or "Mhais" in ltype:
+            ltype = "Buffalo (Mhais)"
+        elif "Bullock" in ltype or "Bail" in ltype:
+            ltype = "Bullock (Bail)"
+        elif "Goat" in ltype or "Sheli" in ltype or "Sheep" in ltype:
+            ltype = "Goat (Sheli)"
+        elif "Hen" in ltype or "Poultry" in ltype or "Kombdi" in ltype:
+            ltype = "Hen/Poultry (Kombdi)"
+        elif ltype not in ("Cow (Gay)", "Cow", "Buffalo (Mhais)", "Buffalo", "Bullock (Bail)", "Bullock", "Goat (Sheli)", "Goat / Sheep", "Hen/Poultry (Kombdi)", "Poultry / Hen", "Other"):
+            ltype = "Other"
+
         doc.append("livestock_table", {
             "livestock_type": ltype,
             "count": int(ls.get("count") or ls.get("quantity") or 1),
@@ -726,6 +763,29 @@ def submit_baseline_survey(data):
         adesc = ast.get("asset_description") or ast.get("asset_name")
         if not adesc:
             continue
+        if "TV" in adesc or "Television" in adesc or "T.V" in adesc:
+            adesc = "Television (TV)"
+        elif "Smart Phone" in adesc or "Smartphone" in adesc or "Phone" in adesc:
+            adesc = "Smartphone"
+        elif "Two" in adesc or "Bike" in adesc or "Motorcycle" in adesc or "Scooter" in adesc:
+            adesc = "Two-Wheeler (Bike/Scooter)"
+        elif "Four" in adesc or "Car" in adesc or "Jeep" in adesc:
+            adesc = "Four-Wheeler (Car/Jeep)"
+        elif "Bullock Cart" in adesc or "Bailgadi" in adesc:
+            adesc = "Bullock Cart (Bailgadi)"
+        elif "Tractor" in adesc:
+            adesc = "Tractor"
+        elif "Gas" in adesc or "LPG" in adesc:
+            adesc = "LPG Gas Connection"
+        elif "Biogas" in adesc or "Bio Gas" in adesc:
+            adesc = "Biogas Unit"
+        elif "Refrigerator" in adesc or "Fridge" in adesc:
+            adesc = "Refrigerator"
+        elif "Sprayer" in adesc or "Spray" in adesc or "Pump" in adesc or "Implement" in adesc or "Machinery" in adesc:
+            adesc = "Other Farm Implements"
+        elif adesc not in ("House", "T.V.", "Television (TV)", "Smart Phone", "Smartphone", "AC", "Air Conditioner (AC)", "Refrigerator", "Two Wheeler", "Two-Wheeler (Bike/Scooter)", "Four Wheeler", "Four-Wheeler (Car/Jeep)", "Bullock Cart (Bailgadi)", "Bullock Cart", "Tractor", "Bio Gas", "Biogas Unit", "LPG Gas", "LPG Gas Connection", "Other Farm Implements (write names)", "Other Farm Implements", "Other"):
+            adesc = "Other"
+
         doc.append("family_assets_table", {
             "asset_description": adesc,
             "quantity": int(ast.get("quantity") or ast.get("count") or 1),
@@ -735,15 +795,24 @@ def submit_baseline_survey(data):
     # 9. Loans Table (PDF 54. Loan / Debt Details)
     loans_list = data.get("loans_table") or loan_data.get("54.loan_particulars") or []
     for ln in loans_list:
-        lcat = ln.get("loan_category") or ln.get("loan_type")
+        lcat = ln.get("loan_category") or ln.get("loan_type") or ln.get("source")
         if not lcat:
             continue
+        if "Crop" in lcat or "Pik" in lcat or "KCC" in lcat or "PACS" in lcat:
+            lcat = "Crop Loan (KCC)"
+        elif "Allied" in lcat or "Dairy" in lcat:
+            lcat = "Agri-Allied Loan"
+        elif "Commercial" in lcat or "Business" in lcat:
+            lcat = "Business / Commercial Loan"
+        elif lcat not in ("Crop Loan (Pik Karja)", "Crop Loan (KCC)", "Agri-Allied Loan (Sheti Poorak Karja)", "Agri-Allied Loan", "Commercial/Business Loan (Vyavasayik Karja)", "Business / Commercial Loan", "Other Loan", "Other Loan (Personal / SHG / Moneylender)", "Other"):
+            lcat = "Other Loan"
+
         doc.append("loans_table", {
             "loan_category": lcat,
             "loan_amount": _float(ln.get("loan_amount") or ln.get("amount_INR")),
-            "current_outstanding": _float(ln.get("current_outstanding")),
+            "current_outstanding": _float(ln.get("current_outstanding") or ln.get("outstanding_amount")),
             "loan_status": ln.get("loan_status") or (ln.get("current_status") if not str(ln.get("current_status", "")).replace(".", "").isdigit() else "Active") or "Active",
-            "bank_name": ln.get("bank_name") or "Bank"
+            "bank_name": ln.get("bank_name") or ln.get("source") or "Bank"
         })
 
     # 10. Family Income Table (Page 6-7)
