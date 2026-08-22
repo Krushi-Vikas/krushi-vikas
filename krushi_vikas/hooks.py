@@ -24,6 +24,12 @@ doctype_js = {
 	"Project": "public/js/project_custom.js"
 }
 
+# Website Route Rules
+website_route_rules = [
+	{"from_route": "/task_list", "to_route": "task_list"},
+	{"from_route": "/tasks", "to_route": "task_list"},
+]
+
 # Fixtures for deployment & version control
 fixtures = [
 	{"dt": "Custom Field", "filters": [["module", "=", "Krushi Vikas"]]},
@@ -33,3 +39,4 @@ fixtures = [
 		"Project Director", "CEO"
 	]]]}
 ]
+

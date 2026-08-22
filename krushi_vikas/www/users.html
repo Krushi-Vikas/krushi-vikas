@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User & Role Management | Krushi Vikas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/portal_common.css">
+</head>
+<body>
+    <!-- Persistent Enterprise Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
+            <span>Krushi Vikas Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
+            <a href="/activities" class="nav-item"><i class="fa-solid fa-list-check"></i> Activities</a>
+            <a href="/tasks" class="nav-item"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
+            <a href="/users" class="nav-item active"><i class="fa-solid fa-users"></i> User & Role Management</a>
+            <a href="/project_form" class="nav-item"><i class="fa-solid fa-file-lines"></i> Project Templates</a>
+            
+            <div class="nav-group-title">Structural Forms</div>
+            <a href="/baseline_survey" class="nav-item"><i class="fa-solid fa-clipboard-list"></i> Baseline Survey Form</a>
+            <a href="/feedback_survey" class="nav-item"><i class="fa-solid fa-comment-dots"></i> Field Tracking Form</a>
+            <a href="/village_profile" class="nav-item"><i class="fa-solid fa-tree-city"></i> Village Profile Form</a>
+            
+            <div class="nav-group-title">Reports & System</div>
+            <a href="/reports" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Reports & Analytics</a>
+            <a href="/app/settings" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-avatar-sm"><i class="fa-solid fa-pen"></i></div>
+            <div class="user-info">
+                <div class="user-name">Krushi Vikas Admin</div>
+                <div class="user-role">admin@krushivikas.org</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="topbar-search">
+                <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
+                <input type="text" id="userSearch" placeholder="Search users and roles..." oninput="filterUserList()">
+            </div>
+            <div class="topbar-actions">
+                <div class="action-icon-btn"><i class="fa-regular fa-bell"></i><div class="badge-dot"></div></div>
+                <div class="action-icon-btn"><i class="fa-regular fa-circle-question"></i></div>
+                <a href="/app/user" class="btn-secondary" style="font-size: 0.8rem;"><i class="fa-solid fa-table-columns"></i> Open User Desk</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">User & Role Management</h1>
+                    <p class="page-subtitle">Organization team members, role assignments & system permissions</p>
+                </div>
+                <div class="header-controls">
+                    <a href="/app/user/new-user-1" class="btn-primary"><i class="fa-solid fa-user-plus"></i> Add User</a>
+                </div>
+            </div>
+
+            <!-- Users Table Card -->
+            <div class="section-card" style="padding: 0; overflow: hidden;">
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Assigned Roles</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            {% for u in users %}
+                            <tr class="user-tr" data-name="{{ u.full_name | lower }}" data-email="{{ u.email | lower }}">
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div class="user-avatar-sm" style="background: #2563eb; font-size: 0.75rem;">
+                                            {{ (u.full_name or u.name)[:2] | upper }}
+                                        </div>
+                                        <div>
+                                            <strong style="color: #0f172a; font-size: 0.9rem;">{{ u.full_name or u.name }}</strong>
+                                            <div style="font-size: 0.72rem; color: var(--text-muted);">{{ u.name }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ u.email }}</td>
+                                <td>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        {% for r in u.app_roles %}
+                                        <span class="badge-status badge-planning">{{ r }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-status badge-deployed">Active</span>
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="/app/user/{{ u.name }}" class="btn-secondary btn-sm"><i class="fa-regular fa-pen-to-square"></i> Edit Roles</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function filterUserList() {
+            const q = document.getElementById('userSearch').value.toLowerCase();
+            document.querySelectorAll('.user-tr').forEach(row => {
+                const name = row.dataset.name || '';
+                const email = row.dataset.email || '';
+                if (name.includes(q) || email.includes(q)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

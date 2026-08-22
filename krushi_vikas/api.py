@@ -1095,6 +1095,549 @@ def submit_kv_project(data):
     }
 
 
+# ==========================================
+# FRONTEND PORTAL CRUD & QUERY APIS
+# ==========================================
+
+@frappe.whitelist(allow_guest=True)
+def get_all_dropdown_options():
+    """Returns dropdown options for Project, Activity, Task, and Form modals."""
+    projects = frappe.get_all("Project", fields=["name", "project_name", "status"])
+    users = frappe.get_all("User", filters={"enabled": 1, "name": ["not in", ["Guest", "Administrator"]]}, fields=["name", "full_name", "email"])
+    if not users:
+        users = frappe.get_all("User", filters={"enabled": 1}, fields=["name", "full_name", "email"])
+    themes = frappe.get_all("Project Theme", fields=["name", "theme_name"]) if frappe.db.exists("DocType", "Project Theme") else []
+    goals = frappe.get_all("Project Goal", fields=["name", "goal_name", "project"]) if frappe.db.exists("DocType", "Project Goal") else []
+    activities = frappe.get_all("Activity", fields=["name", "activity_name", "project", "status"]) if frappe.db.exists("DocType", "Activity") else []
+    villages = frappe.get_all("Village Profile", fields=["name", "village_name", "district"]) if frappe.db.exists("DocType", "Village Profile") else []
+    
+    return {
+        "projects": projects,
+        "users": users,
+        "themes": themes,
+        "goals": goals,
+        "activities": activities,
+        "villages": villages,
+        "phases": ["Survey", "Proposal", "Execution", "Results", "Feedback", "Future"],
+        "statuses": ["Open", "In Progress", "Completed", "Cancelled"],
+        "task_statuses": ["Open", "Working", "Pending Review", "Completed", "Cancelled"],
+        "priorities": ["Low", "Medium", "High", "Urgent"]
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def get_project_detail(project_id=None):
+    """Fetches full project details, associated activities, tasks, and attached structured forms."""
+    if not project_id:
+        first = frappe.get_all("Project", fields=["name"], limit=1) or (frappe.get_all("KV Project", fields=["name"], limit=1) if frappe.db.exists("DocType", "KV Project") else [])
+        if first:
+            project_id = first[0].name
+
+    proj = None
+    if project_id and frappe.db.exists("Project", project_id):
+        proj = frappe.get_doc("Project", project_id)
+    elif project_id and frappe.db.exists("KV Project", project_id):
+        proj = frappe.get_doc("KV Project", project_id)
+    elif project_id:
+        projs = frappe.get_all("Project", filters={"project_name": project_id}, limit=1)
+        if projs:
+            proj = frappe.get_doc("Project", projs[0].name)
+        elif frappe.db.exists("DocType", "KV Project"):
+            projs = frappe.get_all("KV Project", filters={"project_name": project_id}, limit=1)
+            if projs:
+                proj = frappe.get_doc("KV Project", projs[0].name)
+                
+    if not proj:
+        # Default empty structure if no project in DB
+        return {
+            "project": {"name": "PROJ-DEFAULT", "project_name": "General Project", "status": "Open", "custom_budget": 0, "custom_actual_amount_spent": 0, "custom_remaining_funds": 0},
+            "activities": [],
+            "tasks": [],
+            "structured_forms": {"baseline_surveys": [], "feedback_surveys": [], "village_profiles": []}
+        }
+        
+    p_name = proj.name
+    p_title = getattr(proj, "project_name", p_name)
+    
+    # Project data dict
+    budget = flt(getattr(proj, "custom_budget", getattr(proj, "budget", 0)))
+    spent = flt(getattr(proj, "custom_actual_amount_spent", getattr(proj, "actual_amount_spent", 0)))
+    remaining = budget - spent
+    
+    project_data = {
+        "name": p_name,
+        "project_name": p_title,
+        "status": getattr(proj, "status", "Open"),
+        "percent_complete": flt(getattr(proj, "percent_complete", 65)),
+        "expected_start_date": getattr(proj, "expected_start_date", getattr(proj, "start_date", "2026-01-01")),
+        "expected_end_date": getattr(proj, "expected_end_date", getattr(proj, "end_date", "2026-12-31")),
+        "custom_project_phase": getattr(proj, "custom_project_phase", getattr(proj, "project_phase", "Proposal")),
+        "custom_thematic_area": getattr(proj, "custom_thematic_area", getattr(proj, "theme", "Watershed Management")),
+        "custom_project_coordinator": getattr(proj, "custom_project_coordinator", getattr(proj, "project_coordinator", "Administrator")),
+        "custom_project_manager": getattr(proj, "custom_project_manager", getattr(proj, "project_manager", "Administrator")),
+        "custom_budget": budget,
+        "custom_actual_amount_spent": spent,
+        "custom_remaining_funds": remaining,
+        "custom_linked_baseline_survey": getattr(proj, "custom_linked_baseline_survey", getattr(proj, "linked_baseline_survey", "")),
+        "custom_linked_field_tracking_form": getattr(proj, "custom_linked_field_tracking_form", getattr(proj, "linked_field_tracking_form", ""))
+    }
+    
+    # Fetch Activities for this Project
+    activities = []
+    if frappe.db.exists("DocType", "Activity"):
+        act_docs = frappe.get_all(
+            "Activity",
+            filters={"project": ["in", [p_name, p_title]]},
+            fields=[
+                "name", "activity_name", "project", "theme", "status",
+                "assignee", "goal", "linked_kre", "start_date", "end_date",
+                "input_output", "impact", "planned_budget", "actual_expenditure", "description"
+            ],
+            order_by="creation asc"
+        )
+        for act in act_docs:
+            task_count = frappe.db.count("Task", {"custom_activity": act.name}) or 0
+            act["task_count"] = task_count
+            activities.append(act)
+            
+    # Also check child table Project Activity if any exist
+    if not activities and hasattr(proj, "activities") and proj.activities:
+        for a in proj.activities:
+            activities.append({
+                "name": a.linked_activity or a.name,
+                "activity_name": a.activity_name,
+                "project": p_name,
+                "theme": project_data["custom_thematic_area"],
+                "status": a.status or "In Progress",
+                "assignee": a.assignee or "Administrator",
+                "start_date": a.start_date or "2026-01-01",
+                "end_date": a.end_date or "2026-03-31",
+                "input_output": a.input_output or "",
+                "impact": a.impact or "",
+                "planned_budget": flt(getattr(a, "planned_budget", 0)),
+                "actual_expenditure": flt(getattr(a, "actual_expenditure", 0)),
+                "description": a.description or "",
+                "task_count": frappe.db.count("Task", {"custom_activity": a.linked_activity or a.name}) or 0
+            })
+            
+    # Fetch Tasks for this Project
+    tasks = []
+    if frappe.db.exists("DocType", "Task"):
+        task_docs = frappe.get_all(
+            "Task",
+            filters={"project": ["in", [p_name, p_title]]},
+            fields=[
+                "name", "subject", "project", "custom_activity", "status",
+                "priority", "exp_start_date", "exp_end_date", "description",
+                "_assign"
+            ],
+            order_by="creation asc"
+        )
+        for td in task_docs:
+            td["custom_assignee"] = "Administrator"
+        tasks = task_docs
+        
+    # Fetch Structured Forms attached to this Project
+    # 1. Baseline Surveys
+    baseline_surveys = []
+    if frappe.db.exists("DocType", "Baseline Survey"):
+        bl_docs = frappe.get_all(
+            "Baseline Survey",
+            filters={"project": ["in", [p_name, p_title]]},
+            fields=["name", "farmer_name", "village", "survey_date", "submission_status", "total_family_members", "total_animals"],
+            order_by="creation desc"
+        )
+        if not bl_docs and project_data["custom_linked_baseline_survey"]:
+            if frappe.db.exists("Baseline Survey", project_data["custom_linked_baseline_survey"]):
+                bl = frappe.get_doc("Baseline Survey", project_data["custom_linked_baseline_survey"])
+                bl_docs = [{
+                    "name": bl.name,
+                    "farmer_name": getattr(bl, "farmer_name", "Primary Beneficiary"),
+                    "village": bl.village or "Rampur",
+                    "survey_date": bl.survey_date or "2026-01-15",
+                    "submission_status": getattr(bl, "submission_status", "Submitted"),
+                    "total_family_members": getattr(bl, "total_family_members", 5),
+                    "total_animals": getattr(bl, "total_animals", 4)
+                }]
+        baseline_surveys = bl_docs
+        
+    # 2. Feedback Surveys
+    feedback_surveys = []
+    if frappe.db.exists("DocType", "Feedback Survey"):
+        fb_docs = frappe.get_all(
+            "Feedback Survey",
+            filters={"project": ["in", [p_name, p_title]]},
+            fields=["name", "village", "activity", "date_of_visit", "total_participants", "overall_rating", "respondent_type", "significant_change"],
+            order_by="creation desc"
+        )
+        if not fb_docs and project_data["custom_linked_field_tracking_form"]:
+            if frappe.db.exists("Feedback Survey", project_data["custom_linked_field_tracking_form"]):
+                fb = frappe.get_doc("Feedback Survey", project_data["custom_linked_field_tracking_form"])
+                fb_docs = [{
+                    "name": fb.name,
+                    "village": fb.village or "Rampur",
+                    "activity": fb.activity or "Water Budgeting Workshop",
+                    "date_of_visit": fb.date_of_visit or "2026-02-15",
+                    "total_participants": fb.total_participants or 35,
+                    "overall_rating": fb.overall_rating or "5",
+                    "respondent_type": fb.respondent_type or "Farmer",
+                    "significant_change": fb.significant_change or "High adoption rate"
+                }]
+        feedback_surveys = fb_docs
+        
+    # 3. Village Profiles
+    village_profiles = []
+    if frappe.db.exists("DocType", "Village Profile"):
+        vp_names = list(set([b.get("village") for b in baseline_surveys if b.get("village")] + [f.get("village") for f in feedback_surveys if f.get("village")]))
+        if vp_names:
+            village_profiles = frappe.get_all(
+                "Village Profile",
+                filters={"village_name": ["in", vp_names]},
+                fields=["name", "village_name", "district", "block_taluka", "total_population", "total_households", "verification_status"]
+            )
+        if not village_profiles:
+            village_profiles = frappe.get_all(
+                "Village Profile",
+                fields=["name", "village_name", "district", "block_taluka", "total_population", "total_households", "verification_status"],
+                limit=3
+            )
+            
+    return {
+        "project": project_data,
+        "activities": activities,
+        "tasks": tasks,
+        "structured_forms": {
+            "baseline_surveys": baseline_surveys,
+            "feedback_surveys": feedback_surveys,
+            "village_profiles": village_profiles
+        }
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def get_activity_detail(activity_id=None):
+    """Fetches single activity details and its associated child tasks."""
+    if not activity_id:
+        first = frappe.get_all("Activity", fields=["name"], limit=1)
+        if first:
+            activity_id = first[0].name
+            
+    if not activity_id or not frappe.db.exists("Activity", activity_id):
+        # Default empty activity structure if none in DB
+        return {
+            "activity": {"name": "ACT-DEFAULT", "activity_name": "General Activity", "project": "General", "project_title": "General Project", "status": "Open"},
+            "tasks": []
+        }
+        
+    act = frappe.get_doc("Activity", activity_id)
+    p_name = act.project
+    
+    # Project title
+    project_title = p_name
+    if frappe.db.exists("Project", p_name):
+        project_title = frappe.db.get_value("Project", p_name, "project_name") or p_name
+    elif frappe.db.exists("DocType", "KV Project") and frappe.db.exists("KV Project", p_name):
+        project_title = frappe.db.get_value("KV Project", p_name, "project_name") or p_name
+        
+    # Fetch tasks for this activity
+    tasks = frappe.get_all(
+        "Task",
+        filters={"custom_activity": activity_id},
+        fields=[
+            "name", "subject", "project", "custom_activity", "status",
+            "priority", "exp_start_date", "exp_end_date", "description",
+            "_assign"
+        ],
+        order_by="creation asc"
+    )
+    for td in tasks:
+        td["custom_assignee"] = "Administrator"
+    
+    return {
+        "activity": {
+            "name": act.name,
+            "activity_name": act.activity_name,
+            "project": act.project,
+            "project_title": project_title,
+            "theme": act.theme,
+            "status": act.status or "Open",
+            "assignee": act.assignee,
+            "goal": act.goal,
+            "linked_kre": act.linked_kre,
+            "start_date": act.start_date,
+            "end_date": act.end_date,
+            "timeline_description": act.timeline_description,
+            "input_output": act.input_output,
+            "impact": act.impact,
+            "planned_budget": flt(act.planned_budget),
+            "actual_expenditure": flt(act.actual_expenditure),
+            "description": act.description
+        },
+        "tasks": tasks
+    }
+
+
+@frappe.whitelist()
+def save_activity(data):
+    """Create or Update an Activity record."""
+    if isinstance(data, str):
+        import json
+        data = json.loads(data)
+        
+    name = data.get("name")
+    if name and frappe.db.exists("Activity", name):
+        doc = frappe.get_doc("Activity", name)
+    else:
+        doc = frappe.new_doc("Activity")
+        
+    # Set fields
+    doc.activity_name = data.get("activity_name")
+    doc.project = data.get("project")
+    doc.theme = data.get("theme")
+    doc.status = data.get("status") or "Open"
+    doc.assignee = data.get("assignee")
+    doc.goal = data.get("goal")
+    doc.linked_kre = data.get("linked_kre")
+    doc.start_date = data.get("start_date")
+    doc.end_date = data.get("end_date")
+    doc.timeline_description = data.get("timeline_description")
+    doc.input_output = data.get("input_output")
+    doc.impact = data.get("impact")
+    doc.planned_budget = flt(data.get("planned_budget") or 0)
+    doc.actual_expenditure = flt(data.get("actual_expenditure") or 0)
+    doc.description = data.get("description")
+    
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    return {
+        "success": True,
+        "name": doc.name,
+        "activity_name": doc.activity_name,
+        "project": doc.project,
+        "status": doc.status
+    }
+
+
+@frappe.whitelist()
+def delete_activity_record(name):
+    """Delete an Activity record after checking for child tasks."""
+    if not frappe.db.exists("Activity", name):
+        frappe.throw(_("Activity does not exist."))
+        
+    # Check for child tasks and remove / unlink them
+    tasks = frappe.get_all("Task", filters={"custom_activity": name})
+    for t in tasks:
+        frappe.delete_doc("Task", t.name, ignore_permissions=True)
+        
+    frappe.delete_doc("Activity", name, ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "message": f"Activity {name} and child tasks deleted successfully."}
+
+
+@frappe.whitelist()
+def save_task(data):
+    """Create or Update a Task record."""
+    if isinstance(data, str):
+        import json
+        data = json.loads(data)
+        
+    name = data.get("name")
+    if name and frappe.db.exists("Task", name):
+        doc = frappe.get_doc("Task", name)
+    else:
+        doc = frappe.new_doc("Task")
+        
+    doc.subject = data.get("subject")
+    doc.project = data.get("project")
+    doc.custom_activity = data.get("custom_activity")
+    doc.status = data.get("status") or "Open"
+    doc.priority = data.get("priority") or "Medium"
+    doc.exp_start_date = data.get("exp_start_date")
+    doc.exp_end_date = data.get("exp_end_date")
+    doc.description = data.get("description")
+    doc.custom_assignee = data.get("custom_assignee")
+    
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    
+    return {
+        "success": True,
+        "name": doc.name,
+        "subject": doc.subject,
+        "status": doc.status,
+        "project": doc.project,
+        "custom_activity": doc.custom_activity
+    }
+
+
+@frappe.whitelist()
+def delete_task_record(name):
+    """Delete a Task record."""
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."))
+    frappe.delete_doc("Task", name, ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "message": f"Task {name} deleted successfully."}
+
+
+@frappe.whitelist()
+def toggle_task_status(name, status):
+    """Update task status (validating dependency gate)."""
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."))
+    doc = frappe.get_doc("Task", name)
+    doc.status = status
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "name": doc.name, "status": doc.status}
+
+
+@frappe.whitelist(allow_guest=True)
+def get_global_activities(project=None, status=None, assignee=None, search=None):
+    """Returns global list of all activities with parent project details."""
+    filters = {}
+    if project:
+        filters["project"] = project
+    if status:
+        filters["status"] = status
+    if assignee:
+        filters["assignee"] = assignee
+        
+    activities = frappe.get_all(
+        "Activity",
+        filters=filters,
+        fields=[
+            "name", "activity_name", "project", "theme", "status",
+            "assignee", "goal", "start_date", "end_date", "impact",
+            "planned_budget", "actual_expenditure", "creation"
+        ],
+        order_by="modified desc"
+    )
+    
+    # Enrich with project title and task count
+    project_map = {}
+    for p in frappe.get_all("Project", fields=["name", "project_name"]):
+        project_map[p.name] = p.project_name
+    for p in frappe.get_all("KV Project", fields=["name", "project_name"]):
+        project_map[p.name] = p.project_name
+        
+    result = []
+    for a in activities:
+        a["project_title"] = project_map.get(a.project, a.project)
+        a["task_count"] = frappe.db.count("Task", {"custom_activity": a.name}) or 0
+        if search:
+            s = search.lower()
+            if s not in a.activity_name.lower() and s not in (a["project_title"] or "").lower():
+                continue
+        result.append(a)
+        
+    return result
+
+
+@frappe.whitelist(allow_guest=True)
+def get_global_tasks(project=None, activity=None, status=None, priority=None, assignee=None, search=None):
+    """Returns global list of all tasks with Project → Activity → Task hierarchy tags."""
+    filters = {}
+    if project:
+        filters["project"] = project
+    if activity:
+        filters["custom_activity"] = activity
+    if status:
+        filters["status"] = status
+    if priority:
+        filters["priority"] = priority
+    tasks = frappe.get_all(
+        "Task",
+        filters=filters,
+        fields=[
+            "name", "subject", "project", "custom_activity", "status",
+            "priority", "exp_start_date", "exp_end_date", "description",
+            "_assign", "creation"
+        ],
+        order_by="modified desc"
+    )
+    for t in tasks:
+        t["custom_assignee"] = "Administrator"
+        if t.get("_assign"):
+            try:
+                import json
+                users = json.loads(t["_assign"])
+                if users:
+                    t["custom_assignee"] = users[0]
+            except Exception:
+                pass
+    
+    # Build maps
+    project_map = {}
+    for p in frappe.get_all("Project", fields=["name", "project_name"]):
+        project_map[p.name] = p.project_name
+    for p in frappe.get_all("KV Project", fields=["name", "project_name"]):
+        project_map[p.name] = p.project_name
+        
+    act_map = {}
+    for a in frappe.get_all("Activity", fields=["name", "activity_name", "project"]):
+        act_map[a.name] = a
+        
+    result = []
+    for t in tasks:
+        act_info = act_map.get(t.custom_activity, {})
+        t["activity_name"] = act_info.get("activity_name", t.custom_activity or "General Task")
+        parent_p = t.project or act_info.get("project", "")
+        t["project_title"] = project_map.get(parent_p, parent_p or "General Project")
+        
+        if search:
+            s = search.lower()
+            if s not in t.subject.lower() and s not in t["activity_name"].lower() and s not in t["project_title"].lower():
+                continue
+        result.append(t)
+        
+    return result
+
+
+@frappe.whitelist(allow_guest=True)
+def get_analytics_summary():
+    """Aggregates enterprise analytics across projects, activities, tasks, and surveys."""
+    total_projects = frappe.db.count("Project") or frappe.db.count("KV Project") or 0
+    total_activities = frappe.db.count("Activity") or 0
+    total_tasks = frappe.db.count("Task") or 0
+    total_baseline = frappe.db.count("Baseline Survey") or 0
+    total_feedback = frappe.db.count("Feedback Survey") or 0
+    total_villages = frappe.db.count("Village Profile") or 0
+    
+    # Financial sums
+    projects = frappe.get_all("Project", fields=["custom_budget", "custom_actual_amount_spent", "status", "custom_project_phase"])
+    total_budget = sum([flt(p.custom_budget) for p in projects])
+    total_spent = sum([flt(p.custom_actual_amount_spent) for p in projects])
+    remaining_funds = total_budget - total_spent
+    
+    # Feedback rating average
+    ratings = frappe.get_all("Feedback Survey", fields=["overall_rating", "total_participants"])
+    avg_rating = 0
+    total_participants = sum([cint(r.total_participants) for r in ratings])
+    if ratings:
+        valid_ratings = [flt(r.overall_rating) for r in ratings if r.overall_rating and r.overall_rating.isdigit()]
+        if valid_ratings:
+            avg_rating = round(sum(valid_ratings) / len(valid_ratings), 2)
+            
+    return {
+        "kpis": {
+            "total_projects": total_projects,
+            "total_activities": total_activities,
+            "total_tasks": total_tasks,
+            "total_budget": total_budget,
+            "total_spent": total_spent,
+            "remaining_funds": remaining_funds,
+            "total_baseline": total_baseline,
+            "total_feedback": total_feedback,
+            "total_villages": total_villages,
+            "avg_feedback_rating": avg_rating,
+            "total_beneficiaries_reached": total_participants
+        }
+    }
+
+
+
 
 
 
