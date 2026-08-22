@@ -1031,6 +1031,38 @@ def submit_kv_project(data):
             "impact": act.get("impact")
         })
         
+    for fb in data.get("feedback_surveys") or []:
+        survey_id = fb.get("feedback_survey")
+        if not survey_id and fb.get("village"):
+            # Create standalone Feedback Survey
+            new_fb = frappe.get_doc({
+                "doctype": "Feedback Survey",
+                "village": fb.get("village"),
+                "date_of_visit": fb.get("date_of_visit") or nowdate(),
+                "field_officer": fb.get("field_officer") or doc.project_coordinator or "Administrator",
+                "activity": fb.get("activity") or "Community Intervention",
+                "respondent_type": fb.get("respondent_type") or "Community Member",
+                "total_participants": int(fb.get("total_participants") or 25),
+                "households_involved": int(fb.get("households_involved") or 15),
+                "overall_rating": fb.get("overall_rating") or "5",
+                "significant_change": fb.get("significant_change") or "Positive community adoption",
+                "facilitator_observations": fb.get("facilitator_observations") or "Satisfactory participation",
+                "project": doc.name,
+                "submission_status": "Submitted"
+            })
+            new_fb.insert(ignore_permissions=True)
+            survey_id = new_fb.name
+            
+        if survey_id:
+            doc.append("feedback_surveys", {
+                "feedback_survey": survey_id,
+                "village": fb.get("village"),
+                "activity": fb.get("activity"),
+                "date_of_visit": fb.get("date_of_visit") or nowdate(),
+                "total_participants": int(fb.get("total_participants") or 0),
+                "overall_rating": str(fb.get("overall_rating") or "5")
+            })
+        
     doc.insert(ignore_permissions=True)
     
     # Also create standard ERPNext Project mirror if useful

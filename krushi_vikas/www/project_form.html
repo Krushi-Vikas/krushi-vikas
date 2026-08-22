@@ -236,6 +236,22 @@
                 </div>
             </div>
 
+            <!-- 6. Feedback Surveys & Field Tracking Section -->
+            <div class="form-card">
+                <div class="activities-header-row">
+                    <div>
+                        <div class="section-header" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                            <i class="fa-solid fa-comments"></i> Feedback Surveys & Field Tracking Entries
+                        </div>
+                        <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">Log field monitoring and beneficiary feedback surveys directly under this project.</p>
+                    </div>
+                    <button type="button" class="btn-add-activity" style="color: #059669; background: #ecfdf5; border-color: #a7f3d0;" onclick="addFeedbackRow()"><i class="fa-solid fa-plus"></i> Add Feedback Survey</button>
+                </div>
+                <div id="feedbackContainer" style="margin-top: 16px;">
+                    <!-- Feedback Survey Rows Added Dynamically -->
+                </div>
+            </div>
+
             <div class="submit-bar">
                 <a href="/projects" class="btn-cancel">Cancel</a>
                 <button type="submit" class="btn-submit" id="btnSubmitProject"><i class="fa-solid fa-check"></i> Save & Create Project</button>
@@ -245,6 +261,7 @@
 
     <script>
         let activityCount = 0;
+        let feedbackCount = 0;
 
         function calcFunds() {
             const budget = parseFloat(document.getElementById('budget').value) || 0;
@@ -316,10 +333,76 @@
             if (el) el.remove();
         }
 
-        // Initialize with 2 sample activities
+        function addFeedbackRow(village = 'Rampur', activity = 'Community Training Session', date = '2026-02-15', participants = 35, rating = '5', observations = 'High community participation and interest in adoption') {
+            feedbackCount++;
+            const container = document.getElementById('feedbackContainer');
+            const row = document.createElement('div');
+            row.className = 'activity-card';
+            row.style.background = '#f0fdf4';
+            row.style.borderColor = '#bbf7d0';
+            row.id = `feedback_${feedbackCount}`;
+            row.innerHTML = `
+                <div class="activity-card-header">
+                    <div class="activity-num"><i class="fa-solid fa-clipboard-check" style="color: #059669;"></i> Feedback Entry #${feedbackCount}</div>
+                    <button type="button" class="btn-remove-activity" onclick="removeFeedback(${feedbackCount})"><i class="fa-regular fa-trash-can"></i> Remove</button>
+                </div>
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label class="form-label">Village / Location <span class="req">*</span></label>
+                        <input type="text" class="form-control fb-village" placeholder="e.g. Rampur" required value="${village}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Activity Evaluated</label>
+                        <input type="text" class="form-control fb-activity" placeholder="e.g. Water Budgeting Workshop" value="${activity}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date of Visit</label>
+                        <input type="date" class="form-control fb-date" value="${date}">
+                    </div>
+                </div>
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label class="form-label">Participants / Beneficiaries</label>
+                        <input type="number" class="form-control fb-participants" value="${participants}" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Overall Rating (1 - 5)</label>
+                        <select class="form-control fb-rating">
+                            <option value="5" ${rating === '5' ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5 - Excellent)</option>
+                            <option value="4" ${rating === '4' ? 'selected' : ''}>⭐⭐⭐⭐ (4 - Good)</option>
+                            <option value="3" ${rating === '3' ? 'selected' : ''}>⭐⭐⭐ (3 - Average)</option>
+                            <option value="2" ${rating === '2' ? 'selected' : ''}>⭐⭐ (2 - Needs Improvement)</option>
+                            <option value="1" ${rating === '1' ? 'selected' : ''}>⭐ (1 - Unsatisfactory)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Respondent Type</label>
+                        <select class="form-control fb-respondent">
+                            <option value="Farmer / Landholder">Farmer / Landholder</option>
+                            <option value="SHG Member">SHG Member</option>
+                            <option value="Gram Panchayat Representative">Gram Panchayat Representative</option>
+                            <option value="Community Member">Community Member</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Key Observations & Significant Change</label>
+                    <textarea class="form-control fb-obs" rows="2" placeholder="Record community observations...">${observations}</textarea>
+                </div>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeFeedback(id) {
+            const el = document.getElementById(`feedback_${id}`);
+            if (el) el.remove();
+        }
+
+        // Initialize with sample activities and feedback survey
         window.addEventListener('DOMContentLoaded', () => {
             addActivityRow("Community Water Budgeting & Jal Parishad", "Increase water retention", "Administrator", "2026-01-01", "2026-03-31", "10 Training Kits", "100% participation", "Conduct household water planning");
             addActivityRow("Construction of Continuous Contour Trenches (CCT)", "Excavation and recharge", "Administrator", "2026-04-01", "2026-06-30", "Excavation machinery", "50,000 liters recharge", "Build trenches along contour lines");
+            addFeedbackRow("Rampur", "Community Water Budgeting & Jal Parishad", "2026-02-15", 40, "5", "100% community adoption of household water balance sheets.");
         });
 
         window.csrf_token = "{{ frappe.session.csrf_token }}";
@@ -359,6 +442,20 @@
                 });
             });
 
+            const feedback_surveys = [];
+            document.querySelectorAll('#feedbackContainer .activity-card').forEach(card => {
+                feedback_surveys.push({
+                    village: card.querySelector('.fb-village').value,
+                    activity: card.querySelector('.fb-activity').value,
+                    date_of_visit: card.querySelector('.fb-date').value,
+                    total_participants: parseInt(card.querySelector('.fb-participants').value) || 0,
+                    overall_rating: card.querySelector('.fb-rating').value,
+                    respondent_type: card.querySelector('.fb-respondent').value,
+                    significant_change: card.querySelector('.fb-obs').value,
+                    facilitator_observations: card.querySelector('.fb-obs').value
+                });
+            });
+
             const payload = {
                 project_name: document.getElementById('project_name').value,
                 theme: document.getElementById('theme').value,
@@ -372,7 +469,8 @@
                 actual_amount_spent: parseFloat(document.getElementById('actual_amount_spent').value) || 0,
                 linked_baseline_survey: document.getElementById('linked_baseline_survey').value,
                 linked_field_tracking_form: document.getElementById('linked_field_tracking_form').value,
-                activities: activities
+                activities: activities,
+                feedback_surveys: feedback_surveys
             };
 
             const token = getCsrfToken();
