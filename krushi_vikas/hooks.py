@@ -20,6 +20,10 @@ doc_events = {
 	}
 }
 
+app_include_css = [
+	"/assets/krushi_vikas/css/krushi_dashboard.css"
+]
+
 doctype_js = {
 	"Project": "public/js/project_custom.js"
 }
