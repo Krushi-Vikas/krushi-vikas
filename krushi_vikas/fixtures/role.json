@@ -19,10 +19,10 @@
   "doctype": "Role",
   "home_page": null,
   "is_custom": 0,
-  "modified": "2026-08-16 00:18:47.307579",
-  "name": "Project Coordinator",
+  "modified": "2026-08-16 00:18:47.314955",
+  "name": "Project Manager",
   "restrict_to_domain": null,
-  "role_name": "Project Coordinator",
+  "role_name": "Project Manager",
   "two_factor_auth": 0
  },
  {
@@ -32,10 +32,10 @@
   "doctype": "Role",
   "home_page": null,
   "is_custom": 0,
-  "modified": "2026-08-16 00:18:47.314955",
-  "name": "Project Manager",
+  "modified": "2026-08-16 00:18:47.307579",
+  "name": "Project Coordinator",
   "restrict_to_domain": null,
-  "role_name": "Project Manager",
+  "role_name": "Project Coordinator",
   "two_factor_auth": 0
  },
  {
