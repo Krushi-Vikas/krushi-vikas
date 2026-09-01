@@ -4,6 +4,7 @@ import json
 
 def run():
     setup_roles()
+    setup_docperms()
     setup_custom_fields()
     setup_workspace()
     setup_workflows()
@@ -14,8 +15,8 @@ def setup_roles():
     print("Setting up Roles...")
     roles = [
         "Field Officer",
-        "Project Coordinator",
         "Project Manager",
+        "Project Coordinator",
         "Project Director",
         "CEO"
     ]
@@ -25,6 +26,28 @@ def setup_roles():
             doc.role_name = r
             doc.insert(ignore_permissions=True)
             print(f"Created Role: {r}")
+
+def setup_docperms():
+    print("Setting up Custom DocPerms...")
+    perms = [
+        # Project
+        {"parent": "Project", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Task
+        {"parent": "Task", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+    ]
+    for p in perms:
+        if not frappe.db.exists("Custom DocPerm", {"parent": p["parent"], "role": p["role"]}):
+            doc = frappe.new_doc("Custom DocPerm")
+            doc.update(p)
+            doc.insert(ignore_permissions=True)
 
 def setup_custom_fields():
     print("Setting up Custom Fields...")
@@ -67,9 +90,9 @@ def setup_custom_fields():
             },
             {
                 "fieldname": "custom_activity_owner",
-                "label": "Activity Owner (Officer)",
+                "label": "Activity Owner / Field Officer",
                 "fieldtype": "Link",
-                "options": "Employee",
+                "options": "User",
                 "insert_after": "custom_is_milestone_activity",
                 "in_list_view": 1,
                 "module": "Krushi Vikas"
@@ -176,6 +199,7 @@ def setup_custom_fields():
                 "options": "User",
                 "insert_after": "custom_thematic_area",
                 "in_list_view": 1,
+                "reqd": 1,
                 "module": "Krushi Vikas"
             },
             {
@@ -319,6 +343,8 @@ def setup_workflows():
     print("Setting up Workflow States & Actions...")
     states = [
         ("Draft", ""),
+        ("PM Review", "Warning"),
+        ("PC Approval", "Info"),
         ("PC Review", "Warning"),
         ("PM Approval", "Info"),
         ("Director Signoff", "Primary"),
@@ -341,7 +367,10 @@ def setup_workflows():
             doc.insert(ignore_permissions=True)
 
     # Activity Outcome Workflow
-    if not frappe.db.exists("Workflow", "Activity Outcome Approval"):
+    if frappe.db.exists("Workflow", "Activity Outcome Approval"):
+        frappe.delete_doc("Workflow", "Activity Outcome Approval", ignore_permissions=True)
+
+    if True:
         wf = frappe.new_doc("Workflow")
         wf.workflow_name = "Activity Outcome Approval"
         wf.document_type = "Activity Outcome"
@@ -351,20 +380,20 @@ def setup_workflows():
         
         wf.set("states", [
             {"state": "Draft", "doc_status": "0", "allow_edit": "Field Officer"},
-            {"state": "PC Review", "doc_status": "0", "allow_edit": "Project Coordinator"},
-            {"state": "PM Approval", "doc_status": "1", "allow_edit": "Project Manager"},
+            {"state": "PM Review", "doc_status": "0", "allow_edit": "Project Manager"},
+            {"state": "PC Approval", "doc_status": "1", "allow_edit": "Project Coordinator"},
             {"state": "Director Signoff", "doc_status": "1", "allow_edit": "Project Director"},
-            {"state": "Approved", "doc_status": "1", "allow_edit": "Project Manager"},
+            {"state": "Approved", "doc_status": "1", "allow_edit": "Project Coordinator"},
             {"state": "Rejected", "doc_status": "0", "allow_edit": "Field Officer"},
         ])
         
         wf.set("transitions", [
-            {"state": "Draft", "action": "Submit", "next_state": "PC Review", "allowed": "Field Officer"},
-            {"state": "PC Review", "action": "Approve", "next_state": "PM Approval", "allowed": "Project Coordinator"},
-            {"state": "PC Review", "action": "Reject", "next_state": "Rejected", "allowed": "Project Coordinator"},
-            {"state": "Rejected", "action": "Submit", "next_state": "PC Review", "allowed": "Field Officer"},
-            {"state": "PM Approval", "action": "Approve", "next_state": "Approved", "allowed": "Project Manager", "condition": "doc.is_milestone_activity == 0"},
-            {"state": "PM Approval", "action": "Approve", "next_state": "Director Signoff", "allowed": "Project Manager", "condition": "doc.is_milestone_activity == 1"},
+            {"state": "Draft", "action": "Submit", "next_state": "PM Review", "allowed": "Field Officer"},
+            {"state": "PM Review", "action": "Approve", "next_state": "PC Approval", "allowed": "Project Manager"},
+            {"state": "PM Review", "action": "Reject", "next_state": "Rejected", "allowed": "Project Manager"},
+            {"state": "Rejected", "action": "Submit", "next_state": "PM Review", "allowed": "Field Officer"},
+            {"state": "PC Approval", "action": "Approve", "next_state": "Approved", "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 0"},
+            {"state": "PC Approval", "action": "Approve", "next_state": "Director Signoff", "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 1"},
             {"state": "Director Signoff", "action": "Approve", "next_state": "Approved", "allowed": "Project Director"}
         ])
         wf.insert(ignore_permissions=True)
