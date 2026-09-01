@@ -993,8 +993,332 @@ def export_baseline_survey_excel(name):
     frappe.response['filename'] = f"{doc.name}_{doc.farmer_name.replace(' ', '_')}_Export.csv"
 
 
+def has_project_permission(doc=None, ptype="read", user=None):
+    """
+    Evaluates role-based least privilege permissions for Project & KV Project:
+    Hierarchy:
+      1. CEO
+      2. Project Director
+      3. Project Coordinator
+      4. Project Manager
+      5. Field Officer
+    
+    Rules:
+      - Read: Allowed for all roles.
+      - Create: Allowed ONLY for Project Coordinator, Project Director, CEO, System Manager, Administrator.
+      - Write/Edit:
+        * CEO, Project Director, System Manager, Administrator: Allowed for any project.
+        * Project Coordinator: Allowed ONLY if assigned to this project (or doc owner).
+        * Another Project Coordinator: DENIED.
+        * Project Manager, Field Officer: DENIED.
+      - Delete: Only CEO, Project Director, System Manager, Administrator.
+    """
+    if not user:
+        user = frappe.session.user
+        
+    if user in ("Administrator", "System Administrator"):
+        return True
+        
+    roles = frappe.get_roles(user)
+    
+    # 1. System Manager, CEO, Project Director have unrestricted project management rights
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+        
+    # 2. Read is accessible across the organization
+    if ptype == "read":
+        return True
+        
+    # 3. Create is allowed for Project Coordinator and above
+    if ptype == "create":
+        return "Project Coordinator" in roles
+        
+    # 4. Write / Edit
+    if ptype == "write":
+        if "Project Coordinator" in roles:
+            if not doc:
+                return True
+            assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator") or doc.get("owner")
+            # Allowed ONLY if this Project Coordinator owns/is assigned to it
+            return assigned_coord == user or doc.owner == user
+        return False
+        
+    if ptype == "delete":
+        return False
+        
+    return False
+
+
+def get_project_coordinator_for_activity(activity_doc):
+    """Retrieves the assigned Project Coordinator for a given Activity"""
+    if not activity_doc or not activity_doc.project:
+        return None
+        
+    proj_name = activity_doc.project
+    if frappe.db.exists("KV Project", proj_name):
+        return frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+    if frappe.db.exists("Project", proj_name):
+        if frappe.db.has_column("Project", "custom_project_coordinator"):
+            coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
+            if coord:
+                return coord
+        return frappe.db.get_value("Project", proj_name, "owner")
+    return None
+
+
+def get_activity_manager_and_coordinator_for_task(task_doc):
+    """Retrieves the assigned Project Manager (Activity Owner) and Project Coordinator for a given Task"""
+    if not task_doc:
+        return None, None
+        
+    activity_name = task_doc.get("custom_activity")
+    if not activity_name:
+        proj_name = task_doc.get("project")
+        coord = None
+        if proj_name:
+            if frappe.db.exists("KV Project", proj_name):
+                coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+            elif frappe.db.exists("Project", proj_name):
+                if frappe.db.has_column("Project", "custom_project_coordinator"):
+                    coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
+                if not coord:
+                    coord = frappe.db.get_value("Project", proj_name, "owner")
+        return None, coord
+        
+    activity = frappe.db.get_values("Activity", activity_name, ["assignee", "project", "owner"], as_dict=True)
+    if not activity:
+        return None, None
+        
+    act = activity[0]
+    pm = act.get("assignee") or act.get("owner")
+    
+    proj_name = act.get("project") or task_doc.get("project")
+    coord = None
+    if proj_name:
+        if frappe.db.exists("KV Project", proj_name):
+            coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+        elif frappe.db.exists("Project", proj_name):
+            if frappe.db.has_column("Project", "custom_project_coordinator"):
+                coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
+            if not coord:
+                coord = frappe.db.get_value("Project", proj_name, "owner")
+                
+    return pm, coord
+
+
+def has_activity_permission(doc=None, ptype="read", user=None):
+    """
+    Evaluates role-based permissions for Activity:
+    - CEO & Project Director: Can edit ANY activity in the organization.
+    - Project Coordinator: Can edit ANY activity in projects owned/assigned to him.
+    - Project Manager: Can edit ONLY activities assigned/owned by him.
+    - Field Officer: Read-only access.
+    """
+    if not user:
+        user = frappe.session.user
+        
+    if user in ("Administrator", "System Administrator"):
+        return True
+        
+    roles = frappe.get_roles(user)
+    
+    # 1. CEO & Project Director have organization-wide authority
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+        
+    if ptype == "read":
+        return True
+        
+    if ptype in ("create", "write"):
+        if not doc:
+            return "Project Coordinator" in roles or "Project Manager" in roles
+            
+        # Project Coordinator can edit if the Activity belongs to their Project
+        if "Project Coordinator" in roles:
+            coord = get_project_coordinator_for_activity(doc)
+            return coord == user or doc.owner == user
+            
+        # Project Manager can edit ONLY their assigned activity
+        if "Project Manager" in roles:
+            return doc.assignee == user or doc.owner == user
+            
+        return False
+        
+    if ptype == "delete":
+        if "Project Coordinator" in roles and doc:
+            coord = get_project_coordinator_for_activity(doc)
+            return coord == user or doc.owner == user
+        return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+        
+    return False
+
+
+def has_task_permission(doc=None, ptype="read", user=None):
+    """
+    Evaluates role-based permissions for Task:
+    - CEO & Project Director: Can edit ANY task in the organization.
+    - Project Coordinator: Can edit ANY task belonging to activities in projects owned by him.
+    - Project Manager: Can edit ANY task belonging to activities owned/assigned to him.
+    - Field Officer: Can edit ONLY tasks assigned/owned by him.
+    """
+    if not user:
+        user = frappe.session.user
+        
+    if user in ("Administrator", "System Administrator"):
+        return True
+        
+    roles = frappe.get_roles(user)
+    
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+        
+    if ptype == "read":
+        return True
+        
+    if ptype in ("create", "write"):
+        if not doc:
+            return True
+            
+        pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+        
+        # 1. Project Coordinator can edit tasks in his project
+        if "Project Coordinator" in roles and coord == user:
+            return True
+            
+        # 2. Project Manager can edit tasks in his activity
+        if "Project Manager" in roles and pm == user:
+            return True
+            
+        # 3. Field Officer can edit ONLY his assigned task
+        if "Field Officer" in roles:
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
+            return fo_assigned == user or doc.owner == user
+            
+        return False
+        
+    if ptype == "delete":
+        return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+        
+    return False
+
+
+def enforce_activity_least_privilege(doc, method=None):
+    """Validates Activity creation & edit rules strictly against hierarchy and ownership"""
+    user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return
+        
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return
+        
+    if doc.is_new():
+        if not ("Project Coordinator" in roles or "Project Manager" in roles):
+            frappe.throw(
+                frappe._("Permission Denied: Field Officers cannot create Activities. Only Project Coordinators, Project Managers, Project Directors, or CEO can create Activities."),
+                frappe.PermissionError
+            )
+            
+    if not doc.is_new():
+        if "Project Coordinator" in roles:
+            coord = get_project_coordinator_for_activity(doc)
+            if coord != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: This Activity belongs to Project Coordinator '{coord}'. You can only edit activities in projects assigned to you."),
+                    frappe.PermissionError
+                )
+        elif "Project Manager" in roles:
+            if doc.assignee != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Activity '{doc.get('activity_name') or doc.name}' is assigned to Project Manager '{doc.assignee}'. Another Project Manager cannot edit this activity."),
+                    frappe.PermissionError
+                )
+        else:
+            frappe.throw(
+                frappe._("Permission Denied: Field Officers cannot edit Activity records."),
+                frappe.PermissionError
+            )
+
+
+def enforce_task_least_privilege(doc, method=None):
+    """Validates Task creation & edit rules strictly against hierarchy and ownership"""
+    user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return
+        
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return
+        
+    pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+    
+    if not doc.is_new():
+        if "Project Coordinator" in roles:
+            if coord != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' belongs to a project managed by Coordinator '{coord}'. You cannot edit this task."),
+                    frappe.PermissionError
+                )
+        elif "Project Manager" in roles:
+            if pm != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' belongs to an activity managed by Project Manager '{pm}'. You cannot edit this task."),
+                    frappe.PermissionError
+                )
+        elif "Field Officer" in roles:
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
+            if fo_assigned != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
+                    frappe.PermissionError
+                )
+
+
+def enforce_project_least_privilege(doc, method=None):
+    """Validates that Project creation & edit rules are strictly enforced"""
+    user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return
+        
+    roles = frappe.get_roles(user)
+    is_senior_executive = any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+    
+    # 1. Project must always be assigned to a Project Coordinator
+    assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    if not assigned_coord:
+        frappe.throw(
+            frappe._("A Project must always be assigned to a Project Coordinator. Please assign a valid Project Coordinator."),
+            frappe.ValidationError
+        )
+        
+    # 2. Check Creation privilege
+    if doc.is_new():
+        allowed_to_create = is_senior_executive or ("Project Coordinator" in roles)
+        if not allowed_to_create:
+            frappe.throw(
+                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Director, or CEO."),
+                frappe.PermissionError
+            )
+            
+    # 3. Check Edit / Write privilege
+    if not doc.is_new() and not is_senior_executive:
+        if "Project Coordinator" in roles:
+            if assigned_coord != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
+                    frappe.PermissionError
+                )
+        else:
+            frappe.throw(
+                frappe._("Permission Denied: Project Managers and Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Coordinator, Project Director, or CEO."),
+                frappe.PermissionError
+            )
+
+
 def validate_project_finances_and_activities(doc, method=None):
     """Calculates remaining funds and validates Project configuration & dates"""
+    enforce_project_least_privilege(doc)
+    
     budget = flt(doc.get("custom_budget") or doc.get("estimated_costing") or 0)
     actual_spent = flt(doc.get("custom_actual_amount_spent") or 0)
     doc.custom_remaining_funds = budget - actual_spent
@@ -1064,10 +1388,24 @@ def get_project_form_options():
 
 @frappe.whitelist(allow_guest=True)
 def submit_kv_project(data):
-    """Submits a KV Project and activities from Web Form or API"""
+    """Submits a KV Project and activities from Web Form or API with least privilege enforcement"""
     import json
     if isinstance(data, str):
         data = json.loads(data)
+        
+    user = frappe.session.user
+    if user not in ("Administrator", "System Administrator", "Guest"):
+        roles = frappe.get_roles(user)
+        is_allowed = any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director", "Project Coordinator"])
+        if not is_allowed:
+            frappe.throw(
+                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Director, or CEO."),
+                frappe.PermissionError
+            )
+            
+    coord = data.get("project_coordinator")
+    if not coord:
+        frappe.throw(frappe._("A Project must always be assigned to a Project Coordinator. Please select a valid Project Coordinator."))
         
     doc = frappe.get_doc({
         "doctype": "KV Project",
@@ -1075,7 +1413,7 @@ def submit_kv_project(data):
         "theme": data.get("theme"),
         "project_phase": data.get("project_phase") or "Execution",
         "status": data.get("status") or "In Progress",
-        "project_coordinator": data.get("project_coordinator") or "Administrator",
+        "project_coordinator": coord or "Administrator",
         "project_manager": data.get("project_manager") or "Administrator",
         "start_date": data.get("start_date") or nowdate(),
         "end_date": data.get("end_date") or nowdate(),

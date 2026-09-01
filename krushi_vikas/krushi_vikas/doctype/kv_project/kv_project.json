@@ -77,7 +77,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Project Coordinator",
-   "options": "User"
+   "options": "User",
+   "reqd": 1
   },
   {
    "fieldname": "project_manager",
@@ -213,13 +214,25 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Project Manager",
+   "role": "CEO",
    "share": 1,
    "write": 1
   },
   {
    "create": 1,
    "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Project Director",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -237,9 +250,21 @@
    "print": 1,
    "read": 1,
    "report": 1,
+   "role": "Project Manager",
+   "share": 1,
+   "write": 0
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
    "role": "Field Officer",
    "share": 1,
-   "write": 1
+   "write": 0
   }
  ],
  "sort_field": "creation",

@@ -23,6 +23,9 @@ class KVProject(Document):
                     })
 
     def validate(self):
+        from krushi_vikas.api import enforce_project_least_privilege
+        enforce_project_least_privilege(self)
+
         if self.start_date and self.end_date and str(self.end_date) < str(self.start_date):
             frappe.throw("End Date cannot be before Start Date for KV Project.")
             
