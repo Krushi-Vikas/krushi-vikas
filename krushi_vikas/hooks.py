@@ -29,10 +29,9 @@ doc_events = {
 	}
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> e8fa9fdf853baaf07b1c109641ef392806276461
+app_include_css = [
+	"/assets/krushi_vikas/css/krushi_dashboard.css"
+]
 # Permission Hooks for Role-based Least Privilege
 has_permission = {
 	"KV Project": "krushi_vikas.api.has_project_permission",
@@ -40,14 +39,7 @@ has_permission = {
 	"Activity": "krushi_vikas.api.has_activity_permission",
 	"Task": "krushi_vikas.api.has_task_permission"
 }
-<<<<<<< HEAD
-=======
-app_include_css = [
-	"/assets/krushi_vikas/css/krushi_dashboard.css"
-]
->>>>>>> 664e3f864d8caf37f143540b9545dbef12dc1109
-=======
->>>>>>> e8fa9fdf853baaf07b1c109641ef392806276461
+
 
 doctype_js = {
 	"Project": "public/js/project_custom.js"
