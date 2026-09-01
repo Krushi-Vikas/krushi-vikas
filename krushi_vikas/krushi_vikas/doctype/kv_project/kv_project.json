@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:KVP-{YYYY}-{#####}",
+ "autoname": "field:project_name",
  "creation": "2026-08-22 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",

@@ -1,8 +1,9 @@
 {
- "actions": [],
- "creation": "2026-08-16 00:00:00.000000",
- "doctype": "DocType",
- "engine": "InnoDB",
+"actions": [],
+"autoname": "field:theme_name",
+"creation": "2026-08-16 00:00:00.000000",
+"doctype": "DocType",
+"engine": "InnoDB",
  "field_order": [
   "theme_name",
   "parent_project_theme",
