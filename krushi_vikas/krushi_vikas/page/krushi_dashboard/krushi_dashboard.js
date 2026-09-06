@@ -9,6 +9,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 	let selectedYear = new Date().getFullYear();
 	let loading = false;
+	let previewRole = "";
+	let previewUser = "";
 
 	const routes = {
 		dashboard: () => frappe.set_route("krushi-dashboard"),
@@ -237,6 +239,31 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				</div>
 			</section>
 
+			<section class="kv-preview is-hidden" id="kv-preview">
+
+				<div class="kv-preview-controls">
+					<span class="kv-preview-label">
+						${icon("user")}
+						<span>Viewing as</span>
+					</span>
+
+					<select class="kv-select" id="kv-preview-role">
+						<option value="">Any role</option>
+					</select>
+
+					<select class="kv-select" id="kv-preview-user">
+						<option value="">Myself</option>
+					</select>
+
+					<button class="kv-link-button is-hidden" id="kv-preview-reset">
+						Back to my own view
+					</button>
+				</div>
+
+				<div id="kv-access-matrix"></div>
+
+			</section>
+
 			<div class="kv-scope-banner is-hidden" id="kv-scope-banner">
 				${icon("user")}
 				<span id="kv-scope-text"></span>
@@ -460,24 +487,37 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	function setUser(data) {
 		const user = data.user || "User";
 		const displayName =
-			user === "Administrator"
-				? "Administrator"
-				: user.split("@")[0];
+			data.full_name ||
+			(user === "Administrator" ? "Administrator" : user.split("@")[0]);
 
 		$("#kv-user-name").text(displayName);
 		$("#kv-welcome-user").text(displayName);
 		$("#kv-role").text(data.role_label || "User");
 
 		const banner = $("#kv-scope-banner");
-		const scopeText = data.scope_label || "";
+		let scopeText = data.scope_label || "";
+
+		if (data.preview) {
+			scopeText = `Previewing as ${
+				data.full_name || data.user
+			}. ${scopeText}`;
+		}
 
 		if (scopeText) {
 			$("#kv-scope-text").text(scopeText);
 			banner.removeClass("is-hidden");
-			banner.toggleClass("is-personal", !data.is_org_wide);
+			banner.toggleClass(
+				"is-personal",
+				!data.is_org_wide || !!data.preview
+			);
+			banner.toggleClass("is-preview", !!data.preview);
 		} else {
 			banner.addClass("is-hidden");
 		}
+
+		// Desk permission helpers always answer for the real session user,
+		// so the create button would lie during a preview.
+		$("#create-project").toggleClass("is-hidden", !!data.preview);
 	}
 
 	function parseDate(value) {
@@ -505,6 +545,178 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			Completed: "completed",
 			Cancelled: "cancelled"
 		}[status] || "planning";
+	}
+
+	function renderPreview(data) {
+		if (!data.can_preview) {
+			$("#kv-preview").addClass("is-hidden");
+			return;
+		}
+
+		const wasHidden = $("#kv-preview").hasClass("is-hidden");
+
+		$("#kv-preview").removeClass("is-hidden");
+
+		if (wasHidden) {
+			loadPreviewOptions();
+		}
+
+		$("#kv-preview").toggleClass("is-active", !!data.preview);
+		$("#kv-preview-reset").toggleClass("is-hidden", !data.preview);
+
+		renderAccessMatrix(data);
+	}
+
+	function renderAccessMatrix(data) {
+		const access = data.access;
+		const container = $("#kv-access-matrix");
+
+		if (!access) {
+			container.empty();
+			return;
+		}
+
+		const who = frappe.utils.escape_html(
+			data.full_name || data.user || ""
+		);
+
+		const role = frappe.utils.escape_html(access.role_label || "User");
+
+		const header = access.ptypes
+			.map(
+				(ptype) =>
+					`<th>${frappe.utils.escape_html(ptype)}</th>`
+			)
+			.join("");
+
+		const caveats = [];
+
+		const rows = access.rows
+			.map((row) => {
+				const cells = access.ptypes
+					.map((ptype) => {
+						const entry = row.permissions[ptype] || {};
+
+						if (entry.caveat) {
+							caveats.push(
+								`${row.doctype} · ${ptype}: ${entry.caveat}`
+							);
+						}
+
+						if (entry.allowed === null) {
+							return `<td><span class="kv-perm unknown">?</span></td>`;
+						}
+
+						const mark = entry.allowed ? "✓" : "✗";
+						const cls = entry.allowed ? "yes" : "no";
+						const note = entry.caveat ? "<sup>*</sup>" : "";
+
+						return `<td><span class="kv-perm ${cls}">${mark}</span>${note}</td>`;
+					})
+					.join("");
+
+				return `
+					<tr>
+						<th scope="row">${frappe.utils.escape_html(row.doctype)}</th>
+						${cells}
+					</tr>
+				`;
+			})
+			.join("");
+
+		container.html(`
+			<div class="kv-access">
+
+				<div class="kv-access-head">
+					<strong>${who}</strong>
+					<span class="kv-status-pill planning">${role}</span>
+				</div>
+
+				<table class="kv-access-table">
+					<thead>
+						<tr>
+							<th scope="col">Doctype</th>
+							${header}
+						</tr>
+					</thead>
+
+					<tbody>
+						${rows}
+					</tbody>
+				</table>
+
+				${
+					caveats.length
+						? `<p class="kv-access-note">* ${caveats
+								.map((c) => frappe.utils.escape_html(c))
+								.join(" · ")}</p>`
+						: ""
+				}
+
+			</div>
+		`);
+	}
+
+	function loadPreviewOptions() {
+		frappe.call({
+			method:
+				"krushi_vikas.krushi_vikas.page.krushi_dashboard.krushi_dashboard.get_preview_options",
+			args: { role: previewRole || undefined },
+			freeze: false,
+			callback: (response) => {
+				const options = response.message;
+
+				if (!options) return;
+
+				const $role = $("#kv-preview-role");
+
+				if ($role.find("option").length <= 1) {
+					$role.append(
+						options.roles
+							.map(
+								(role) =>
+									`<option value="${frappe.utils.escape_html(
+										role.role
+									)}">${frappe.utils.escape_html(
+										role.role
+									)} (${role.user_count})</option>`
+							)
+							.join("")
+					);
+
+					$role.val(previewRole);
+				}
+
+				const $user = $("#kv-preview-user");
+
+				$user.html(
+					`<option value="">Myself</option>` +
+						options.users
+							.map(
+								(user) =>
+									`<option value="${frappe.utils.escape_html(
+										user.name
+									)}">${frappe.utils.escape_html(
+										user.full_name || user.name
+									)} — ${frappe.utils.escape_html(
+										user.role_label
+									)}</option>`
+							)
+							.join("")
+				);
+
+				// The selected person may not hold the newly picked role.
+				if (
+					previewUser &&
+					!options.users.some((user) => user.name === previewUser)
+				) {
+					previewUser = "";
+					loadDashboard();
+				}
+
+				$user.val(previewUser);
+			}
+		});
 	}
 
 	function getActivityStatusClass(status) {
@@ -750,6 +962,12 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 					project.project_name || project.name
 				);
 
+				const assignedTo = frappe.utils.escape_html(
+					project.project_coordinator ||
+						project.project_manager ||
+						"Unassigned"
+				);
+
 				const theme = frappe.utils.escape_html(
 					project.theme || "No theme"
 				);
@@ -769,7 +987,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 							<span class="kv-gantt-project-info">
 								<strong>${name}</strong>
-								<span>${theme}</span>
+								<span>${theme} · ${assignedTo}</span>
 							</span>
 						</button>
 
@@ -931,6 +1149,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 	function render(data) {
 		setUser(data);
+		renderPreview(data);
 		renderStats(data.stats || {});
 		renderMyWork(data);
 		renderGantt(data.projects || []);
@@ -955,7 +1174,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			method:
 				"krushi_vikas.krushi_vikas.page.krushi_dashboard.krushi_dashboard.get_dashboard_data",
 			args: {
-				year: selectedYear
+				year: selectedYear,
+				preview_user: previewUser || undefined
 			},
 			freeze: false,
 			callback: (response) => {
@@ -1044,6 +1264,25 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		}
 
 		frappe.set_route("Form", "KV Project", project);
+	});
+
+	$main.on("change", "#kv-preview-role", function () {
+		previewRole = $(this).val() || "";
+		loadPreviewOptions();
+	});
+
+	$main.on("change", "#kv-preview-user", function () {
+		previewUser = $(this).val() || "";
+		loadDashboard();
+	});
+
+	$main.on("click", "#kv-preview-reset", function () {
+		previewUser = "";
+		previewRole = "";
+		$("#kv-preview-role").val("");
+		$("#kv-preview-user").val("");
+		loadPreviewOptions();
+		loadDashboard();
 	});
 
 	$main.on("click", "[data-activity]", function () {

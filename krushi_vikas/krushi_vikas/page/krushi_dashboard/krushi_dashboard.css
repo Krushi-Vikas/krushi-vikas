@@ -810,6 +810,141 @@
 	display: none !important;
 }
 
+/* ── Admin role preview ───────────────────────── */
+
+.kv-preview {
+	margin-bottom: 12px;
+	padding: 12px 14px;
+	border: 1px solid #dfe4e9;
+	border-radius: 12px;
+	background: #f7f9fb;
+}
+
+.kv-preview.is-active {
+	border-color: #c9b6e4;
+	background: #f8f4fd;
+}
+
+.kv-preview-controls {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.kv-preview-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: #4a5a68;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.kv-preview-label .kv-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.kv-dashboard .kv-select {
+	max-width: 280px;
+	height: 30px;
+	padding: 0 28px 0 10px;
+	border: 1px solid #d3dae1;
+	border-radius: 8px;
+	background-color: #fff;
+	color: #183c29;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.kv-dashboard .kv-select:focus {
+	border-color: #1f8f4d;
+	outline: none;
+}
+
+.kv-access {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid #e6ebef;
+}
+
+.kv-access-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+	font-size: 13px;
+}
+
+.kv-access-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12px;
+}
+
+.kv-access-table th,
+.kv-access-table td {
+	padding: 6px 10px;
+	border-bottom: 1px solid #eef2f5;
+	text-align: center;
+}
+
+.kv-access-table thead th {
+	color: #6b7a87;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.kv-access-table tbody th {
+	color: #183c29;
+	font-weight: 600;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.kv-access-table tr:last-child th,
+.kv-access-table tr:last-child td {
+	border-bottom: 0;
+}
+
+.kv-perm {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.kv-perm.yes {
+	background: #e4f4ea;
+	color: #1f8f4d;
+}
+
+.kv-perm.no {
+	background: #fdeceb;
+	color: #c0392b;
+}
+
+.kv-perm.unknown {
+	background: #f0f2f4;
+	color: #8a949d;
+}
+
+.kv-access-note {
+	margin: 8px 0 0;
+	color: #6b7a87;
+	font-size: 11px;
+	line-height: 1.5;
+}
+
 /* ── Scope banner ─────────────────────────────── */
 
 .kv-scope-banner {
@@ -830,6 +965,12 @@
 	border-color: #f0e0bd;
 	background: #fdf8ec;
 	color: #8a6412;
+}
+
+.kv-scope-banner.is-preview {
+	border-color: #d8c8ee;
+	background: #f6f1fc;
+	color: #5b3f86;
 }
 
 .kv-scope-banner .kv-icon {

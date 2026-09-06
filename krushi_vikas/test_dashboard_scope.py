@@ -13,6 +13,7 @@ from datetime import date
 from krushi_vikas.krushi_vikas.page.krushi_dashboard.krushi_dashboard import (
 	build_scope,
 	get_dashboard_data,
+	get_preview_options,
 )
 
 TEST_USERS = {
@@ -89,6 +90,49 @@ def run():
 	scope = build_scope("pc1_test@krushivikas.org", roles=["Guest"])
 	check("Unroled user gets an empty scope", scope["project_names"] == set())
 
+	# ── Administrator role preview ───────────────────────────
+	frappe.set_user("Administrator")
+
+	own = get_dashboard_data(year)
+	check("Admin may preview", own["can_preview"] is True)
+	check("Admin's own view is not a preview", own["preview"] is None)
+
+	as_fo = get_dashboard_data(year, preview_user="fo1_test@krushivikas.org")
+	check("Preview reports the previewed user", as_fo["user"] == "fo1_test@krushivikas.org")
+	check("Preview applies that user's role", as_fo["role_label"] == "Field Officer")
+	check("Preview narrows the project list", project_names(as_fo) == {PROJECT_A})
+	check("Preview records who is previewing", as_fo["preview"]["viewer"] == "Administrator")
+	check("Preview does NOT switch the session", frappe.session.user == "Administrator")
+
+	access = {
+		row["doctype"]: {p: v["allowed"] for p, v in row["permissions"].items()}
+		for row in as_fo["access"]["rows"]
+	}
+	check("FO cannot create projects", access["KV Project"]["create"] is False)
+	check("FO cannot write projects", access["KV Project"]["write"] is False)
+	check("FO can write tasks", access["Task"]["write"] is True)
+
+	options = get_preview_options("Field Officer")
+	check(
+		"Role filter lists only that role's users",
+		"fo1_test@krushivikas.org" in [u["name"] for u in options["users"]]
+		and "pc1_test@krushivikas.org" not in [u["name"] for u in options["users"]],
+	)
+
+	# ── The preview must be administrator-only ───────────────
+	frappe.set_user("pc1_test@krushivikas.org")
+	check("Non-admin cannot preview", get_dashboard_data(year)["can_preview"] is False)
+	check(
+		"Non-admin is blocked from previewing another user",
+		raises_permission_error(
+			lambda: get_dashboard_data(year, preview_user="fo1_test@krushivikas.org")
+		),
+	)
+	check(
+		"Non-admin is blocked from listing preview options",
+		raises_permission_error(get_preview_options),
+	)
+
 	frappe.set_user("Administrator")
 
 	print()
@@ -100,6 +144,14 @@ def run():
 		print("=== ALL DASHBOARD SCOPE CHECKS PASSED ===")
 
 	return not failures
+
+
+def raises_permission_error(fn):
+	try:
+		fn()
+	except frappe.PermissionError:
+		return True
+	return False
 
 
 def project_names(data):

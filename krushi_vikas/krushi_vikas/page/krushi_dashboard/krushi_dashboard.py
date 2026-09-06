@@ -21,17 +21,60 @@ OPEN_TASK_STATUSES = ("Open", "Working", "Pending Review", "Overdue")
 CLOSED_TASK_STATUSES = ("Completed", "Cancelled")
 
 
+# Roles an Administrator may preview. Ordered most senior first.
+PREVIEWABLE_ROLES = (
+	"CEO",
+	"Project Director",
+	"Project Coordinator",
+	"Project Manager",
+	"Field Officer",
+)
+
+# Doctypes shown in the access matrix, mapped to their permission checker.
+ACCESS_MATRIX_DOCTYPES = (
+	("KV Project", "krushi_vikas.api.has_project_permission"),
+	("Activity", "krushi_vikas.api.has_activity_permission"),
+	("Task", "krushi_vikas.api.has_task_permission"),
+)
+
+ACCESS_PTYPES = ("read", "create", "write", "delete")
+
+# Conditions the permission functions apply per document that a
+# document-less check cannot express. Shown as a footnote in the UI so the
+# matrix is not read as broader than it is.
+ACCESS_CAVEATS = {
+	("Project Coordinator", "KV Project", "write"): "only projects they coordinate or own",
+	("Project Coordinator", "Activity", "write"): "only activities in their own projects",
+	("Project Coordinator", "Task", "write"): "only tasks in their own projects",
+	("Project Manager", "Activity", "write"): "only activities assigned to them",
+	("Project Manager", "Task", "write"): "only tasks in their own activities",
+	("Field Officer", "Task", "write"): "only tasks assigned to them",
+}
+
+
 @frappe.whitelist()
-def get_dashboard_data(year=None):
+def get_dashboard_data(year=None, preview_user=None):
 	"""Role-scoped dashboard payload.
 
 	Every user gets the same shape, but the rows are limited to what that
 	person is actually responsible for. Scoping happens here, server side —
 	the client never sends a user or a filter.
+
+	`preview_user` renders the dashboard as somebody else. It is read-only
+	and restricted to administrators; the session is never switched.
 	"""
 	year = int(year or date.today().year)
 
-	user = frappe.session.user
+	viewer = frappe.session.user
+	preview = None
+
+	if preview_user and preview_user != viewer:
+		require_preview_admin()
+		if not frappe.db.exists("User", preview_user):
+			frappe.throw(frappe._("Unknown user: {0}").format(preview_user))
+		preview = {"viewer": viewer, "previewing": preview_user}
+
+	user = preview_user if preview else viewer
 	roles = frappe.get_roles(user)
 	scope = build_scope(user, roles)
 
@@ -54,6 +97,7 @@ def get_dashboard_data(year=None):
 
 	return {
 		"user": user,
+		"full_name": frappe.db.get_value("User", user, "full_name") or user,
 		"roles": roles,
 		"role_label": scope["role_label"],
 		"is_org_wide": scope["org_wide"],
@@ -64,7 +108,116 @@ def get_dashboard_data(year=None):
 		"recent_projects": recent_projects,
 		"my_activities": my_activities,
 		"my_tasks": my_tasks,
+		"preview": preview,
+		"can_preview": can_preview(),
+		"access": get_access_matrix(user),
 	}
+
+
+# ─────────────────────────────────────────────
+# Administrator role preview
+# ─────────────────────────────────────────────
+
+def can_preview(user=None):
+	"""Only administrators may render the dashboard as somebody else."""
+	user = user or frappe.session.user
+
+	if user == "Administrator":
+		return True
+
+	return "System Manager" in frappe.get_roles(user)
+
+
+def require_preview_admin():
+	if not can_preview():
+		frappe.throw(
+			frappe._("Only administrators can preview another role."),
+			frappe.PermissionError,
+		)
+
+
+@frappe.whitelist()
+def get_preview_options(role=None):
+	"""Roles an administrator can preview, and the people holding them.
+
+	Scoping is per person, not per role — a Project Coordinator with no
+	projects sees an empty dashboard — so the role picker narrows the user
+	list rather than standing in for a user.
+	"""
+	require_preview_admin()
+
+	roles = []
+
+	for role_name in PREVIEWABLE_ROLES:
+		roles.append(
+			{
+				"role": role_name,
+				"user_count": frappe.db.count(
+					"Has Role", {"role": role_name, "parenttype": "User"}
+				),
+				"is_org_wide": role_name in ORG_WIDE_ROLES,
+			}
+		)
+
+	users = get_users_for_role(role)
+
+	return {"roles": roles, "users": users, "selected_role": role}
+
+
+def get_users_for_role(role=None):
+	role_filter = [role] if role else list(PREVIEWABLE_ROLES)
+
+	user_ids = frappe.get_all(
+		"Has Role",
+		filters={"role": ["in", role_filter], "parenttype": "User"},
+		pluck="parent",
+	)
+
+	if not user_ids:
+		return []
+
+	users = frappe.get_all(
+		"User",
+		filters={"name": ["in", list(set(user_ids))], "enabled": 1},
+		fields=["name", "full_name"],
+		order_by="full_name asc",
+	)
+
+	for user in users:
+		user_roles = frappe.get_roles(user.name)
+		user["role_label"] = get_primary_role(user.name, set(user_roles))
+
+	return users
+
+
+def get_access_matrix(user):
+	"""What this user may do to each doctype, straight from the permission
+	functions in krushi_vikas.api — never a second copy of the rules."""
+	roles = set(frappe.get_roles(user))
+	primary_role = get_primary_role(user, roles)
+
+	rows = []
+
+	for doctype, checker_path in ACCESS_MATRIX_DOCTYPES:
+		checker = frappe.get_attr(checker_path)
+		permissions = {}
+
+		for ptype in ACCESS_PTYPES:
+			try:
+				allowed = bool(checker(doc=None, ptype=ptype, user=user))
+			except Exception:
+				# A checker that cannot answer without a document is
+				# reported as unknown rather than as a silent "allowed".
+				allowed = None
+
+			permissions[ptype] = {
+				"allowed": allowed,
+				"caveat": ACCESS_CAVEATS.get((primary_role, doctype, ptype)),
+			}
+
+		rows.append({"doctype": doctype, "permissions": permissions})
+
+	return {"role_label": primary_role, "ptypes": list(ACCESS_PTYPES), "rows": rows}
 
 
 # ─────────────────────────────────────────────
