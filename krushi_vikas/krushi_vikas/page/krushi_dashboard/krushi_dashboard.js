@@ -77,6 +77,21 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				<path d="M9 18h3"/>
 			</svg>
 		`,
+		task: `
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M4 6.5 6 8.5 10 4.5"/>
+				<path d="M4 17.5 6 19.5 10 15.5"/>
+				<path d="M13 7h7"/>
+				<path d="M13 18h7"/>
+			</svg>
+		`,
+		alert: `
+			<svg viewBox="0 0 24 24" aria-hidden="true">
+				<path d="M12 4 2.5 20h19L12 4Z"/>
+				<path d="M12 10v4"/>
+				<path d="M12 17.2v.1"/>
+			</svg>
+		`,
 		calendar: `
 			<svg viewBox="0 0 24 24" aria-hidden="true">
 				<rect x="3" y="5" width="18" height="16" rx="2"/>
@@ -222,6 +237,11 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				</div>
 			</section>
 
+			<div class="kv-scope-banner is-hidden" id="kv-scope-banner">
+				${icon("user")}
+				<span id="kv-scope-text"></span>
+			</div>
+
 			<section class="kv-kpi-grid">
 
 				<div class="kv-kpi-card kv-clickable" data-route="projects">
@@ -266,6 +286,65 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 						<span>Completed</span>
 						<strong id="completed-projects">0</strong>
 					</div>
+				</div>
+
+			</section>
+
+			<section class="kv-card kv-mywork">
+
+				<div class="kv-card-header">
+					<div>
+						<div class="kv-card-title">
+							<span class="kv-title-icon">
+								${icon("clipboard")}
+							</span>
+
+							<div>
+								<h3>My Work</h3>
+								<p>Activities and tasks assigned to you</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="kv-count-pills">
+						<span class="kv-count-pill">
+							<strong id="my-open-activities">0</strong>
+							<span>open activities</span>
+						</span>
+
+						<span class="kv-count-pill">
+							<strong id="my-pending-tasks">0</strong>
+							<span>open tasks</span>
+						</span>
+
+						<span class="kv-count-pill danger is-hidden" id="overdue-pill">
+							${icon("alert")}
+							<strong id="my-overdue-tasks">0</strong>
+							<span>overdue</span>
+						</span>
+					</div>
+				</div>
+
+				<div class="kv-mywork-grid">
+
+					<div class="kv-mywork-column">
+						<h4 class="kv-subhead">
+							${icon("activity")}
+							<span>My Activities</span>
+						</h4>
+
+						<div id="my-activities"></div>
+					</div>
+
+					<div class="kv-mywork-column">
+						<h4 class="kv-subhead">
+							${icon("task")}
+							<span>My Tasks</span>
+						</h4>
+
+						<div id="my-tasks"></div>
+					</div>
+
 				</div>
 
 			</section>
@@ -388,6 +467,17 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		$("#kv-user-name").text(displayName);
 		$("#kv-welcome-user").text(displayName);
 		$("#kv-role").text(data.role_label || "User");
+
+		const banner = $("#kv-scope-banner");
+		const scopeText = data.scope_label || "";
+
+		if (scopeText) {
+			$("#kv-scope-text").text(scopeText);
+			banner.removeClass("is-hidden");
+			banner.toggleClass("is-personal", !data.is_org_wide);
+		} else {
+			banner.addClass("is-hidden");
+		}
 	}
 
 	function parseDate(value) {
@@ -415,6 +505,161 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			Completed: "completed",
 			Cancelled: "cancelled"
 		}[status] || "planning";
+	}
+
+	function getActivityStatusClass(status) {
+		return {
+			Draft: "planning",
+			Planned: "planning",
+			Open: "planning",
+			"In Progress": "progress",
+			Completed: "completed",
+			Cancelled: "cancelled"
+		}[status] || "planning";
+	}
+
+	function getTaskStatusClass(status) {
+		return {
+			Open: "planning",
+			Working: "progress",
+			"Pending Review": "deployed",
+			Overdue: "cancelled",
+			Completed: "completed",
+			Cancelled: "cancelled"
+		}[status] || "planning";
+	}
+
+	function formatDueDate(value) {
+		if (!value) return "No due date";
+
+		return `Due ${frappe.datetime.str_to_user(value)}`;
+	}
+
+	function emptyState(container, iconName, message) {
+		container.html(`
+			<div class="kv-empty-small">
+				${icon(iconName)}
+				<span>${message}</span>
+			</div>
+		`);
+	}
+
+	function renderMyWork(data) {
+		const stats = data.stats || {};
+
+		$("#my-open-activities").text(stats.my_open_activities || 0);
+		$("#my-pending-tasks").text(stats.pending_tasks || 0);
+		$("#my-overdue-tasks").text(stats.overdue_tasks || 0);
+
+		$("#overdue-pill").toggleClass(
+			"is-hidden",
+			!(stats.overdue_tasks > 0)
+		);
+
+		renderMyActivities(data.my_activities || []);
+		renderMyTasks(data.my_tasks || []);
+	}
+
+	function renderMyActivities(activities) {
+		const container = $("#my-activities");
+
+		if (!activities.length) {
+			emptyState(
+				container,
+				"activity",
+				"No activities are assigned to you."
+			);
+
+			return;
+		}
+
+		container.html(
+			activities
+				.map((activity) => {
+					const name = frappe.utils.escape_html(
+						activity.activity_name || activity.name
+					);
+
+					const project = frappe.utils.escape_html(
+						activity.project || "No project"
+					);
+
+					const status = frappe.utils.escape_html(
+						activity.status || "Draft"
+					);
+
+					const activityId = frappe.utils.escape_html(
+						activity.name
+					);
+
+					return `
+						<button
+							class="kv-work-item${activity.is_overdue ? " overdue" : ""}"
+							data-activity="${activityId}"
+						>
+							<span class="kv-work-info">
+								<strong>${name}</strong>
+								<span>${project} · ${formatDueDate(activity.end_date)}</span>
+							</span>
+
+							<span class="kv-status-pill ${getActivityStatusClass(activity.status)}">
+								${status}
+							</span>
+						</button>
+					`;
+				})
+				.join("")
+		);
+	}
+
+	function renderMyTasks(tasks) {
+		const container = $("#my-tasks");
+
+		if (!tasks.length) {
+			emptyState(
+				container,
+				"task",
+				"No tasks are assigned to you."
+			);
+
+			return;
+		}
+
+		container.html(
+			tasks
+				.map((task) => {
+					const subject = frappe.utils.escape_html(
+						task.subject || task.name
+					);
+
+					const activity = frappe.utils.escape_html(
+						task.activity_label || "General task"
+					);
+
+					const status = frappe.utils.escape_html(
+						task.status || "Open"
+					);
+
+					const taskId = frappe.utils.escape_html(task.name);
+
+					return `
+						<button
+							class="kv-work-item${task.is_overdue ? " overdue" : ""}"
+							data-task="${taskId}"
+						>
+							<span class="kv-work-info">
+								<strong>${subject}</strong>
+								<span>${activity} · ${formatDueDate(task.exp_end_date)}</span>
+							</span>
+
+							<span class="kv-status-pill ${getTaskStatusClass(task.status)}">
+								${status}
+							</span>
+						</button>
+					`;
+				})
+				.join("")
+		);
 	}
 
 	function renderStats(stats) {
@@ -687,6 +932,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	function render(data) {
 		setUser(data);
 		renderStats(data.stats || {});
+		renderMyWork(data);
 		renderGantt(data.projects || []);
 		renderRecentProjects(data.recent_projects || []);
 		renderStatus(data.stats || {});
@@ -798,6 +1044,26 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		}
 
 		frappe.set_route("Form", "KV Project", project);
+	});
+
+	$main.on("click", "[data-activity]", function () {
+		const activity = $(this).data("activity");
+
+		if (!activity || !frappe.model.can_read("Activity")) {
+			return;
+		}
+
+		frappe.set_route("Form", "Activity", activity);
+	});
+
+	$main.on("click", "[data-task]", function () {
+		const task = $(this).data("task");
+
+		if (!task || !frappe.model.can_read("Task")) {
+			return;
+		}
+
+		frappe.set_route("Form", "Task", task);
 	});
 
 	$main.on("click", "#view-all-projects", function () {

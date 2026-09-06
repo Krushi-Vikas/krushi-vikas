@@ -806,6 +806,158 @@
 	color: #8da396;
 }
 
+.kv-dashboard .is-hidden {
+	display: none !important;
+}
+
+/* ── Scope banner ─────────────────────────────── */
+
+.kv-scope-banner {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	margin-bottom: 16px;
+	padding: 10px 14px;
+	border: 1px solid #d6e6dc;
+	border-radius: 12px;
+	background: #f3f9f5;
+	color: #3c6b52;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.kv-scope-banner.is-personal {
+	border-color: #f0e0bd;
+	background: #fdf8ec;
+	color: #8a6412;
+}
+
+.kv-scope-banner .kv-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* ── My Work ──────────────────────────────────── */
+
+.kv-count-pills {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.kv-count-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 5px 11px;
+	border-radius: 999px;
+	background: #eef6f0;
+	color: #3c6b52;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.kv-count-pill strong {
+	font-size: 13px;
+	color: #1f8f4d;
+}
+
+.kv-count-pill.danger {
+	background: #fdeceb;
+	color: #a13a30;
+}
+
+.kv-count-pill.danger strong {
+	color: #c0392b;
+}
+
+.kv-count-pill .kv-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.kv-mywork-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 16px;
+}
+
+.kv-mywork-column {
+	min-width: 0;
+}
+
+.kv-subhead {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	margin: 0 0 6px;
+	color: #5b6f62;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.kv-subhead .kv-icon {
+	width: 15px;
+	height: 15px;
+	color: #1f8f4d;
+}
+
+.kv-work-item {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 11px 12px;
+	border: 0;
+	border-bottom: 1px solid #eef2ef;
+	border-left: 3px solid transparent;
+	border-radius: 8px;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.kv-work-item:last-child {
+	border-bottom: 0;
+}
+
+.kv-work-item:hover {
+	background: #f5faf7;
+}
+
+.kv-work-item.overdue {
+	border-left-color: #c0392b;
+	background: #fdf6f5;
+}
+
+.kv-work-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.kv-work-info strong {
+	color: #183c29;
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.kv-work-info span {
+	color: #87928b;
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 @media (max-width: 1100px) {
 	.kv-dashboard {
 		padding: 20px;
@@ -815,7 +967,8 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
-	.kv-bottom-grid {
+	.kv-bottom-grid,
+	.kv-mywork-grid {
 		grid-template-columns: 1fr;
 	}
 
