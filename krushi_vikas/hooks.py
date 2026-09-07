@@ -5,6 +5,18 @@ app_description = "Krushi Vikas Agri and Watershed Project Management"
 app_email = "admin@krushivikas.org"
 app_license = "mit"
 
+# Task, Project and Project Type come from ERPNext. Without this, installing
+# krushi_vikas onto a bench that has no ERPNext leaves every link field and
+# custom field dangling.
+required_apps = ["erpnext"]
+
+# Roles, DocPerms, custom fields, the workspace and the workflows all live in
+# the database, not in the doctype JSON. setup_site.run() creates them and is
+# idempotent, so a fresh install gets a working site and an existing site is
+# repaired by the next migrate.
+after_install = "krushi_vikas.setup_site.run"
+after_migrate = "krushi_vikas.setup_site.run"
+
 # Document Events Hooks
 doc_events = {
 	"Task": {
