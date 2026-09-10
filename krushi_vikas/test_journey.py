@@ -21,6 +21,29 @@ from krushi_vikas.api import (
 PREFIX = "ZZ Journey Test"
 
 
+def clear_approvals(project):
+	"""Walk a project through however many approval steps it needs."""
+	from krushi_vikas.approvals import approve
+
+	for _ in range(4):
+		project.reload()
+
+		if project.approval_status != "Pending Approval":
+			return
+
+		approver = project.pending_approver or {
+			"Project Coordinator": "pc1_test@krushivikas.org",
+			"Project Director": "dir_test@krushivikas.org",
+			"CEO": "ceo_test@krushivikas.org",
+			"Project Manager": "pm1_test@krushivikas.org",
+		}.get(project.pending_approver_role)
+
+		frappe.set_user(approver)
+		approve("KV Project", project.name)
+
+	frappe.set_user("Administrator")
+
+
 def run():
 	print("=== TESTING 10-STEP OPERATIONAL ROADMAP ===")
 	frappe.set_user("Administrator")
@@ -113,13 +136,21 @@ def run():
 	check("06 refuses a second project from the same proposal",
 		blocked(lambda: create_project_from_proposal(proposal.name)))
 
-	# ── 07 Internal approval, then the derived stage ─────────────
-	apply_workflow(project, "Submit for Review"); project.reload()
-	check("07 shows as awaiting internal approval",
-		project.journey_stage == "07 Internal Approval")
-	apply_workflow(project, "Approve"); project.reload()
-	check("07 advances to task assignment once approved",
-		project.journey_stage == "08 Task Assignment")
+	# ── 07 Internal approval ─────────────────────────────────────
+	# No longer a fixed workflow: routing depends on who raised the
+	# project, so this goes through krushi_vikas.approvals instead.
+	from krushi_vikas.approvals import approve
+
+	# This project was raised by the Administrator, whose approval chain is
+	# empty, so it is approved outright — a director or CEO raising work
+	# needs nobody above them. Routing itself is covered by test_approvals.
+	check("07 needs no approval when raised by an authority",
+		project.approval_status == "Approved")
+
+	clear_approvals(project)
+	project.reload()
+	check("07 sits at task assignment once approved",
+		project.journey_stage == "Task Assignment")
 
 	# ── 08/09 Activity and execution ─────────────────────────────
 	activity = frappe.new_doc("Activity")
@@ -129,7 +160,7 @@ def run():
 	activity.insert()
 
 	project.status = "In Progress"; project.save()
-	check("09 reflects execution", project.journey_stage == "09 Execution")
+	check("09 reflects execution", project.journey_stage == "Execution")
 
 	# ── 10 Reverse reporting ─────────────────────────────────────
 	outcome = frappe.new_doc("Activity Outcome")
@@ -140,7 +171,7 @@ def run():
 
 	project.save()
 	check("10 reflects evidence coming back from the field",
-		project.journey_stage == "10 Reverse Reporting")
+		project.journey_stage == "Reverse Reporting")
 
 	project.status = "Completed"; project.save()
 	check("closed once the project completes", project.journey_stage == "Closed")

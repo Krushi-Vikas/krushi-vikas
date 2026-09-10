@@ -41,6 +41,24 @@ class KVProject(Document):
 
         self.set_journey_stage()
 
+    def after_insert(self):
+        """Route the project to whoever is above the person who raised it."""
+        from krushi_vikas.approvals import start_approval
+
+        if self.approval_status and self.approval_status != "Draft":
+            return
+
+        start_approval(self, raised_by=self.owner)
+
+    def refresh_journey_stage(self):
+        """Recompute and persist the stage outside a save.
+
+        validate() runs before the approval chain moves the document, so the
+        stored stage would otherwise lag a step behind every approval.
+        """
+        self.set_journey_stage()
+        self.db_set("journey_stage", self.journey_stage, update_modified=False)
+
     def set_journey_stage(self):
         """Steps 06-10 of the operational roadmap.
 
@@ -52,30 +70,30 @@ class KVProject(Document):
             self.journey_stage = "Closed"
             return
 
-        # 07 - created, but leadership has not signed it off. Nothing
-        # downstream counts until this clears.
-        if self.workflow_state and self.workflow_state != "Approved":
-            self.journey_stage = "07 Internal Approval"
+        # Created, but not signed off. Nothing downstream counts until the
+        # approval chain clears.
+        if self.approval_status in ("Pending Approval", "Rejected"):
+            self.journey_stage = "Awaiting Approval"
             return
 
         if not self.is_new() and self.has_reverse_reporting():
-            self.journey_stage = "10 Reverse Reporting"
+            self.journey_stage = "Reverse Reporting"
             return
 
         if self.status in ("In Progress", "Deployed"):
-            self.journey_stage = "09 Execution"
+            self.journey_stage = "Execution"
             return
 
         # Approved but idle, or already carrying activities: the outstanding
         # work is allocation. The stage names what happens next, so it never
         # moves backwards as the project progresses.
-        if self.workflow_state == "Approved" or self.get("activities") or (
+        if self.approval_status == "Approved" or self.get("activities") or (
             not self.is_new() and self.has_activities()
         ):
-            self.journey_stage = "08 Task Assignment"
+            self.journey_stage = "Task Assignment"
             return
 
-        self.journey_stage = "06 Project Created"
+        self.journey_stage = "Project Created"
 
     def has_activities(self):
         return bool(frappe.db.exists("Activity", {"project": self.name}))

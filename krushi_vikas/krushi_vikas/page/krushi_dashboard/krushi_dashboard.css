@@ -1119,3 +1119,64 @@ button.kv-kpi:hover {
 .kv-app .kv-worksplit.kv-single {
 	grid-template-columns: minmax(0, 1fr);
 }
+
+/* ── Approvals pending ───────────────────────────────────── */
+
+.kv-app .kv-approvals { border-left: 3px solid var(--kv-amber); }
+.kv-app .kv-title-chip.amber { background: var(--kv-amber-soft); color: var(--kv-amber); }
+
+.kv-approval-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 11px 12px;
+	border-bottom: 1px solid var(--kv-line);
+}
+
+.kv-approval-row:last-child { border-bottom: 0; }
+
+.kv-approval-actions {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	flex-shrink: 0;
+}
+
+.kv-app .kv-mini {
+	padding: 6px 13px;
+	border: 1px solid var(--kv-line);
+	border-radius: 8px;
+	background: var(--kv-surface);
+	color: var(--kv-ink);
+	font-family: inherit;
+	font-size: 11.5px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.14s ease;
+}
+
+.kv-app .kv-mini:hover { background: var(--kv-ground); }
+
+.kv-app .kv-mini.go {
+	border-color: transparent;
+	background: var(--kv-green);
+	color: #fff;
+}
+
+.kv-app .kv-mini.go:hover { background: #166b3f; }
+
+.kv-app .kv-mini.danger { color: var(--kv-red); border-color: #f0cdc8; }
+.kv-app .kv-mini.danger:hover { background: var(--kv-red-soft); }
+
+@media (max-width: 620px) {
+	.kv-approval-row { flex-wrap: wrap; }
+	.kv-approval-actions { margin-left: 0; width: 100%; }
+}
+
+.kv-preview-note {
+	color: var(--kv-ink-faint);
+	font-size: 11px;
+	font-style: italic;
+	white-space: nowrap;
+}

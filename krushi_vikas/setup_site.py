@@ -54,7 +54,7 @@ def setup_docperms():
         {"parent": "KV Project", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "KV Project", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "KV Project", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
-        {"parent": "KV Project", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
         {"parent": "KV Project", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
         # Activity — mirrors api.has_activity_permission.
         {"parent": "Activity", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
@@ -644,25 +644,13 @@ def setup_journey_workflows():
         ],
     )
 
-    # ── 07 Internal approval of the project ───────────────────────
-    # KV Project is not submittable, so every state stays at doc_status 0.
-    ensure_workflow(
-        "KV Project Internal Approval", "KV Project", "workflow_state",
-        [
-            {"state": "Draft", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
-            {"state": "Director Review", "doc_status": "0", "allow_edit_roles": [EXEC]},
-            {"state": "Approved", "doc_status": "0", "allow_edit_roles": [EXEC]},
-            {"state": "Rejected", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
-        ],
-        [
-            {"state": "Draft", "action": "Submit for Review", "next_state": "Director Review",
-             "allowed": "Project Coordinator"},
-            {"state": "Director Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
-            {"state": "Director Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
-            {"state": "Rejected", "action": "Submit for Review", "next_state": "Director Review",
-             "allowed": "Project Coordinator"},
-        ],
-    )
+    # The project's own approval is no longer a fixed workflow. Routing
+    # depends on who raised it, so krushi_vikas.approvals drives it instead.
+    if frappe.db.exists("Workflow", "KV Project Internal Approval"):
+        frappe.delete_doc("Workflow", "KV Project Internal Approval",
+                          ignore_permissions=True, force=True)
+        print("Removed workflow 'KV Project Internal Approval' (replaced by approval chain)")
+
 
 def json_workspace_content():
     content = [

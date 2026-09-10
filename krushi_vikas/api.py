@@ -1029,9 +1029,11 @@ def has_project_permission(doc=None, ptype="read", user=None):
     if ptype == "read":
         return True
         
-    # 3. Create is allowed for Project Coordinator and above
+    # 3. Create is allowed for Project Manager and above. A manager's
+    #    project is not self-approving — krushi_vikas.approvals routes it to
+    #    the coordinator and then the director before it counts.
     if ptype == "create":
-        return "Project Coordinator" in roles
+        return any(r in roles for r in ["Project Coordinator", "Project Manager"])
         
     # 4. Write / Edit
     if ptype == "write":
@@ -1297,17 +1299,25 @@ def enforce_project_least_privilege(doc, method=None):
             frappe.ValidationError
         )
         
-    # 2. Check Creation privilege
+    # 2. Check Creation privilege. Project Managers may raise a project;
+    #    it goes through the approval chain before it becomes real.
     if doc.is_new():
-        allowed_to_create = is_senior_executive or ("Project Coordinator" in roles)
+        allowed_to_create = is_senior_executive or any(
+            r in roles for r in ["Project Coordinator", "Project Manager"]
+        )
         if not allowed_to_create:
             frappe.throw(
-                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Director, or CEO."),
+                frappe._("Permission Denied: Projects can only be raised by a Project Manager, Project Coordinator, Project Director, or CEO."),
                 frappe.PermissionError
             )
             
     # 3. Check Edit / Write privilege
     if not doc.is_new() and not is_senior_executive:
+        # Whoever raised it may keep working on it — otherwise a rejected
+        # project could never be corrected and resubmitted.
+        if doc.owner == user:
+            return
+
         if "Project Coordinator" in roles:
             if assigned_coord != user and doc.owner != user:
                 frappe.throw(
@@ -2213,7 +2223,7 @@ def get_journey_status(project=None):
 		"05": frappe.db.get_value("Baseline Survey", {"project": doc.name}, "name")
 		or doc.linked_baseline_survey,
 		"06": doc.name,
-		"07": doc.name if doc.workflow_state == "Approved" else None,
+		"07": doc.name if doc.approval_status == "Approved" else None,
 		"08": activities[0] if activities else None,
 		# Execution is evidenced by a task, or by the project itself having
 		# moved into (or through) an executing status — small projects run

@@ -22,6 +22,14 @@
   "actual_amount_spent",
   "column_break_3",
   "remaining_funds",
+  "section_approval",
+  "approval_status",
+  "pending_approver",
+  "column_break_approval",
+  "pending_approver_role",
+  "raised_by",
+  "approval_step",
+  "approval_log",
   "section_journey",
   "proposal",
   "rra_report",
@@ -151,6 +159,61 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_approval",
+   "fieldtype": "Section Break",
+   "label": "Approval"
+  },
+  {
+   "default": "Draft",
+   "description": "Set by the approval chain \u2014 routed on who raised the project.",
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "options": "Draft\nPending Approval\nApproved\nRejected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pending_approver",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Waiting On",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_approval",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pending_approver_role",
+   "fieldtype": "Data",
+   "label": "Waiting On Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "raised_by",
+   "fieldtype": "Link",
+   "label": "Raised By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_step",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Approval Step",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_log",
+   "fieldtype": "Table",
+   "label": "Approval History",
+   "options": "KV Approval Log",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_journey",
    "fieldtype": "Section Break",
    "label": "Programme Origin"
@@ -191,7 +254,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Journey Stage",
-   "options": "\n06 Project Created\n07 Internal Approval\n08 Task Assignment\n09 Execution\n10 Reverse Reporting\nClosed",
+   "options": "\nProject Created\nAwaiting Approval\nTask Assignment\nExecution\nReverse Reporting\nClosed",
    "read_only": 1
   },
   {
@@ -249,7 +312,7 @@
   }
  ],
  "links": [],
- "modified": "2026-09-10 00:00:00.000000",
+ "modified": "2026-09-11 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "KV Project",

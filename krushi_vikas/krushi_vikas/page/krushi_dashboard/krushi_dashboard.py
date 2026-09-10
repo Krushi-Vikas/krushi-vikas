@@ -99,6 +99,7 @@ def get_dashboard_data(year=None, preview_user=None):
 		"my_activities": my_activities,
 		"my_tasks": my_tasks,
 		"preview": preview,
+		"approvals": get_approvals_for(user),
 		"can_preview": can_preview(),
 	}
 
@@ -106,6 +107,13 @@ def get_dashboard_data(year=None, preview_user=None):
 # ─────────────────────────────────────────────
 # Administrator role preview
 # ─────────────────────────────────────────────
+
+def get_approvals_for(user):
+	"""Documents waiting on this person. Every role can have a queue."""
+	from krushi_vikas.approvals import get_pending_approvals
+
+	return get_pending_approvals(user)
+
 
 def can_create_project(user):
 	"""Asked of the previewed user, not the session, so a preview shows the

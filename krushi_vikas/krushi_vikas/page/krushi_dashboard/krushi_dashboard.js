@@ -12,7 +12,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	const routes = {
 		projects: () => frappe.set_route("krushi-projects"),
 		activities: () => frappe.set_route("List", "Activity", "List"),
-		themes: () => frappe.set_route("Tree", "Project Theme"),
+		themes: () => frappe.set_route("List", "Project Theme", "Tree"),
 		beneficiaries: () => frappe.set_route("List", "Beneficiary", "List"),
 		surveys: () => frappe.set_route("List", "Baseline Survey", "List"),
 		proposals: () => frappe.set_route("List", "Project Proposal", "List")
@@ -32,6 +32,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		user: `<circle cx="12" cy="8" r="3.2"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7"/>`,
 		chart: `<path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/>`,
 		tasks: `<path d="M4 6.5 6 8.5 10 4.5"/><path d="M4 17.5 6 19.5 10 15.5"/><path d="M13 7h7"/><path d="M13 18h7"/>`,
+		stamp: `<path d="M5 21h14"/><path d="M7 17.5V15a5 5 0 0 1 1.6-3.6A3.2 3.2 0 0 0 9.6 9V7a2.4 2.4 0 1 1 4.8 0v2a3.2 3.2 0 0 0 1 2.4A5 5 0 0 1 17 15v2.5Z"/>`,
 		alert: `<path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/>`,
 		left: `<path d="m15 18-6-6 6-6"/>`,
 		right: `<path d="m9 18 6-6-6-6"/>`,
@@ -61,7 +62,6 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 					<div class="kv-mark">${icon("leaf")}</div>
 					<div>
 						<h1>Krushi Vikas</h1>
-						<span>Agri &amp; Watershed Programme</span>
 					</div>
 				</div>
 
@@ -168,6 +168,17 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 						<em id="kpi-done-sub">&nbsp;</em>
 					</span>
 				</div>
+			</section>
+
+			<section class="kv-card kv-approvals is-hidden" id="kv-approvals">
+				<div class="kv-card-head">
+					<div class="kv-card-title">
+						<span class="kv-title-chip amber">${icon("stamp")}</span>
+						<div><h3>Approvals Pending</h3><p>Waiting on you</p></div>
+					</div>
+					<span class="kv-pill alert"><strong id="kv-approval-count">0</strong><span>to review</span></span>
+				</div>
+				<div id="kv-approval-list"></div>
 			</section>
 
 			<div class="kv-split" id="kv-split">
@@ -385,6 +396,72 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		$("#kpi-done-sub").text(total ? `${Math.round((done / total) * 100)}% of portfolio` : "—");
 	}
 
+	function renderApprovals(data) {
+		const items = data.approvals || [];
+		const $card = $("#kv-approvals");
+
+		if (!items.length) {
+			$card.addClass("is-hidden");
+			return;
+		}
+
+		$card.removeClass("is-hidden");
+		$("#kv-approval-count").text(items.length);
+
+		$("#kv-approval-list").html(
+			items
+				.map(
+					(item) => `
+					<div class="kv-approval-row">
+						<span class="kv-row-body">
+							<strong>${esc(item.title)}</strong>
+							<span>Raised by ${esc(item.raised_by_name || item.raised_by)}</span>
+						</span>
+						<span class="kv-approval-actions">
+							<button class="kv-mini" data-project="${esc(item.name)}">Open</button>
+							<button class="kv-mini danger" data-reject="${esc(item.name)}" data-dt="${esc(item.doctype)}">Reject</button>
+							<button class="kv-mini go" data-approve="${esc(item.name)}" data-dt="${esc(item.doctype)}">Approve</button>
+						</span>
+					</div>`
+				)
+				.join("")
+		);
+	}
+
+	function actOnApproval(action, doctype, name) {
+		const finish = (notes) =>
+			frappe.call({
+				method: `krushi_vikas.approvals.${action}`,
+				args: { doctype: doctype, name: name, notes: notes || undefined },
+				freeze: true,
+				callback: (r) => {
+					const res = r.message || {};
+					frappe.show_alert({
+						message:
+							res.status === "Approved"
+								? __("Approved.")
+								: res.status === "Rejected"
+								? __("Sent back.")
+								: __("Approved — now with {0}.", [res.waiting_on]),
+						indicator: res.status === "Rejected" ? "orange" : "green"
+					});
+					loadDashboard();
+				}
+			});
+
+		if (action === "reject") {
+			frappe.prompt(
+				[{ fieldname: "notes", fieldtype: "Small Text", label: __("Reason"), reqd: 1 }],
+				(values) => finish(values.notes),
+				__("Send back"),
+				__("Send back")
+			);
+			return;
+		}
+
+		finish(null);
+	}
+
 	function renderMyWork(data) {
 		const stats = data.stats || {};
 
@@ -585,6 +662,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		renderIdentity(data);
 		applyRoleView(data);
 		renderKpis(data.stats || {});
+		renderApprovals(data);
 		renderMyWork(data);
 		renderStatus(data.stats || {});
 		if (data.can_see_plan) renderPlan(data.projects || []);
@@ -679,6 +757,16 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	$main.on("click", "[data-project]", function () {
 		const name = $(this).data("project");
 		if (name && frappe.model.can_read("KV Project")) frappe.set_route("Form", "KV Project", name);
+	});
+
+	$main.on("click", "[data-approve]", function (event) {
+		event.stopPropagation();
+		actOnApproval("approve", $(this).data("dt"), $(this).data("approve"));
+	});
+
+	$main.on("click", "[data-reject]", function (event) {
+		event.stopPropagation();
+		actOnApproval("reject", $(this).data("dt"), $(this).data("reject"));
 	});
 
 	$main.on("click", "[data-activity]", function () {
