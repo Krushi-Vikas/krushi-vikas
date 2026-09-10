@@ -10,7 +10,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	let optionsLoaded = false;
 
 	const routes = {
-		projects: () => frappe.set_route("List", "KV Project", "List"),
+		projects: () => frappe.set_route("krushi-projects"),
 		activities: () => frappe.set_route("List", "Activity", "List"),
 		themes: () => frappe.set_route("Tree", "Project Theme"),
 		beneficiaries: () => frappe.set_route("List", "Beneficiary", "List"),
@@ -253,12 +253,12 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	// ── Helpers ────────────────────────────────────────────────────
 	function statusClass(status) {
 		return {
-			Planning: "planning", "Not Started": "planning", Draft: "planning", Open: "planning",
-			"In Progress": "progress", Working: "progress",
-			Deployed: "deployed", "Pending Review": "deployed",
-			Completed: "completed", Approved: "completed",
-			Cancelled: "cancelled", Rejected: "cancelled"
-		}[status] || "planning";
+			Planning: "s-planning", "Not Started": "s-planning", Draft: "s-planning", Open: "s-planning",
+			"In Progress": "s-progress", Working: "s-progress",
+			Deployed: "s-deployed", "Pending Review": "s-deployed",
+			Completed: "s-completed", Approved: "s-completed",
+			Cancelled: "s-cancelled", Rejected: "s-cancelled"
+		}[status] || "s-planning";
 	}
 
 	function parseDate(value) {
@@ -438,10 +438,10 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		const total = stats.total_projects || 0;
 
 		const rows = [
-			{ label: "Planning", value: stats.planning_projects || 0, cls: "planning" },
-			{ label: "Active", value: stats.active_projects || 0, cls: "progress" },
-			{ label: "Completed", value: stats.completed_projects || 0, cls: "completed" },
-			{ label: "Cancelled", value: stats.cancelled_projects || 0, cls: "cancelled" }
+			{ label: "Planning", value: stats.planning_projects || 0, cls: "s-planning" },
+			{ label: "Active", value: stats.active_projects || 0, cls: "s-progress" },
+			{ label: "Completed", value: stats.completed_projects || 0, cls: "s-completed" },
+			{ label: "Cancelled", value: stats.cancelled_projects || 0, cls: "s-cancelled" }
 		];
 
 		$("#kv-status").html(

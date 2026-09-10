@@ -770,11 +770,11 @@ button.kv-kpi:hover {
 	flex-shrink: 0;
 }
 
-.kv-tag.planning { background: var(--kv-ground); color: var(--kv-ink-soft); }
-.kv-tag.progress { background: var(--kv-blue-soft); color: var(--kv-blue); }
-.kv-tag.deployed { background: var(--kv-violet-soft); color: var(--kv-violet); }
-.kv-tag.completed { background: var(--kv-green-soft); color: var(--kv-green); }
-.kv-tag.cancelled { background: var(--kv-red-soft); color: var(--kv-red); }
+.kv-tag.s-planning { background: var(--kv-ground); color: var(--kv-ink-soft); }
+.kv-tag.s-progress { background: var(--kv-blue-soft); color: var(--kv-blue); }
+.kv-tag.s-deployed { background: var(--kv-violet-soft); color: var(--kv-violet); }
+.kv-tag.s-completed { background: var(--kv-green-soft); color: var(--kv-green); }
+.kv-tag.s-cancelled { background: var(--kv-red-soft); color: var(--kv-red); }
 
 /* ── Status breakdown ────────────────────────────────────── */
 
@@ -810,11 +810,11 @@ button.kv-kpi:hover {
 	border-radius: 50%;
 }
 
-.kv-dot.planning { background: #b3c2ba; }
-.kv-dot.progress { background: var(--kv-blue); }
-.kv-dot.deployed { background: var(--kv-violet); }
-.kv-dot.completed { background: var(--kv-green); }
-.kv-dot.cancelled { background: var(--kv-red); }
+.kv-dot.s-planning { background: #b3c2ba; }
+.kv-dot.s-progress { background: var(--kv-blue); }
+.kv-dot.s-deployed { background: var(--kv-violet); }
+.kv-dot.s-completed { background: var(--kv-green); }
+.kv-dot.s-cancelled { background: var(--kv-red); }
 
 .kv-stat-val {
 	display: flex;
@@ -839,11 +839,11 @@ button.kv-kpi:hover {
 	transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.kv-bar i.planning { background: #b3c2ba; }
-.kv-bar i.progress { background: var(--kv-blue); }
-.kv-bar i.deployed { background: var(--kv-violet); }
-.kv-bar i.completed { background: var(--kv-green); }
-.kv-bar i.cancelled { background: var(--kv-red); }
+.kv-bar i.s-planning { background: #b3c2ba; }
+.kv-bar i.s-progress { background: var(--kv-blue); }
+.kv-bar i.s-deployed { background: var(--kv-violet); }
+.kv-bar i.s-completed { background: var(--kv-green); }
+.kv-bar i.s-cancelled { background: var(--kv-red); }
 
 /* ── Timeline ────────────────────────────────────────────── */
 
@@ -945,11 +945,11 @@ button.kv-kpi:hover {
 
 .kv-tl-bar:hover { filter: brightness(1.09); }
 
-.kv-tl-bar.planning { background: #93a89c; }
-.kv-tl-bar.progress { background: var(--kv-blue); }
-.kv-tl-bar.deployed { background: var(--kv-violet); }
-.kv-tl-bar.completed { background: var(--kv-green); }
-.kv-tl-bar.cancelled { background: var(--kv-red); }
+.kv-tl-bar.s-planning { background: #93a89c; }
+.kv-tl-bar.s-progress { background: var(--kv-blue); }
+.kv-tl-bar.s-deployed { background: var(--kv-violet); }
+.kv-tl-bar.s-completed { background: var(--kv-green); }
+.kv-tl-bar.s-cancelled { background: var(--kv-red); }
 
 /* ── Empty & loading ─────────────────────────────────────── */
 
@@ -1096,12 +1096,12 @@ button.kv-kpi:hover {
 	color: var(--kv-ink);
 }
 
-[data-theme="dark"] .kv-app .kv-dot.planning,
-[data-theme="dark"] .kv-app .kv-bar i.planning {
+[data-theme="dark"] .kv-app .kv-dot.s-planning,
+[data-theme="dark"] .kv-app .kv-bar i.s-planning {
 	background: #5f6f66;
 }
 
-[data-theme="dark"] .kv-app .kv-tl-bar.planning {
+[data-theme="dark"] .kv-app .kv-tl-bar.s-planning {
 	background: #5f6f66;
 }
 
