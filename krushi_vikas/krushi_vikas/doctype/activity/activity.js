@@ -1,15 +1,32 @@
-frappe.ui.form.on('Activity', {
-    refresh(frm) {
-        if (!frm.is_new()) {
-            frm.add_custom_button(__('View Tasks'), function() {
-                frappe.set_route('List', 'Task', { custom_activity: frm.doc.name });
-            }, __('Actions'));
-            frm.add_custom_button(__('New Task under this Activity'), function() {
-                frappe.new_doc('Task', {
-                    project: frm.doc.project,
-                    custom_activity: frm.doc.name
-                });
-            }, __('Actions'));
-        }
-    }
+frappe.ui.form.on("Activity", {
+	refresh(frm) {
+		if (frm.is_new()) return;
+
+		frm.add_custom_button(
+			__("New Task"),
+			function () {
+				// `project` is deliberately not prefilled: Task.project links
+				// to ERPNext's Project doctype, so passing a KV Project name
+				// here fails link validation on save. custom_activity is the
+				// link that ties a task to this activity and its project.
+				frappe.new_doc("Task", {
+					custom_activity: frm.doc.name,
+					exp_start_date: frm.doc.start_date,
+					exp_end_date: frm.doc.end_date,
+					status: "Open"
+				});
+			},
+			__("Tasks")
+		);
+
+		frm.add_custom_button(
+			__("View Tasks"),
+			function () {
+				frappe.set_route("List", "Task", { custom_activity: frm.doc.name });
+			},
+			__("Tasks")
+		);
+
+		frm.page.set_inner_btn_group_as_primary(__("Tasks"));
+	}
 });
