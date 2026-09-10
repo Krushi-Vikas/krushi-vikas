@@ -160,10 +160,11 @@
    "label": "Name of Surveyor / Enumerator"
   },
   {
+   "description": "The Krushi Vikas project this belongs to. Repointed from the ERPNext Project doctype, which this app does not populate.",
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
-   "options": "Project"
+   "options": "KV Project"
   },
   {
    "fieldname": "beneficiary",
@@ -188,11 +189,11 @@
    "options": "Open\nOBC\nSC\nST\nVJNT"
   },
   {
-    "default": "Pucca (Permanent)",
-    "fieldname": "house_type",
-    "fieldtype": "Select",
-    "label": "3. House Type",
-    "options": "Pucca (Permanent)\nSemi-Pucca\nKutcha (Temporary)\nHut\nPucca\nKutcha"
+   "default": "Pucca (Permanent)",
+   "fieldname": "house_type",
+   "fieldtype": "Select",
+   "label": "3. House Type",
+   "options": "Pucca (Permanent)\nSemi-Pucca\nKutcha (Temporary)\nHut\nPucca\nKutcha"
   },
   {
    "default": "Yes",
@@ -689,7 +690,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-09-10 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "Baseline Survey",

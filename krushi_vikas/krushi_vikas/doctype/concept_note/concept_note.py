@@ -1,16 +1,34 @@
 import frappe
 from frappe.model.document import Document
 
+
 class ConceptNote(Document):
+	"""Step 01 of the operational roadmap.
+
+	This used to create an ERPNext Project directly on submit, which jumped
+	straight from the idea to a live project and skipped the appraisal (02),
+	the proposal (03), external approval (04) and the baseline survey (05).
+	It also wrote to `custom_concept_note`, a field that does not exist on
+	Project, so the trail back to the note was silently lost.
+
+	An approved note now opens an RRA Report instead, via
+	krushi_vikas.api.create_rra_from_concept_note. The project is created at
+	step 06 from the approved proposal, which carries the agreed budget and
+	dates forward.
+	"""
+
 	def on_submit(self):
-		if self.status == "Approved" and not self.project:
-			company = frappe.db.get_value("Company", {"is_group": 0}, "name")
-			proj = frappe.new_doc("Project")
-			proj.project_name = self.title
-			proj.company = company
-			proj.estimated_cost = self.estimated_budget
-			proj.custom_thematic_area = self.thematic_area
-			proj.custom_concept_note = self.name
-			proj.custom_project_phase = "Proposal"
-			proj.insert(ignore_permissions=True)
-			self.db_set("project", proj.name)
+		if self.status != "Approved":
+			return
+
+		if frappe.db.exists("RRA Report", {"concept_note": self.name, "docstatus": ["<", 2]}):
+			return
+
+		frappe.msgprint(
+			frappe._(
+				"Concept note approved. Next step: raise an RRA Report (step 02) "
+				"from the Create menu."
+			),
+			indicator="green",
+			alert=True,
+		)

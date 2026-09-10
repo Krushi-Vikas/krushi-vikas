@@ -1,0 +1,235 @@
+{
+ "actions": [],
+ "autoname": "RRA-.YYYY.-.#####",
+ "creation": "2026-09-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "concept_note",
+  "thematic_area",
+  "column_break_1",
+  "assessment_date",
+  "prepared_by",
+  "workflow_state",
+  "section_scope",
+  "target_geography",
+  "villages_covered",
+  "column_break_2",
+  "households_surveyed",
+  "estimated_beneficiaries",
+  "section_findings",
+  "market_appraisal",
+  "key_findings",
+  "constraints_identified",
+  "section_recommendation",
+  "feasibility",
+  "recommendation",
+  "column_break_3",
+  "recommended_budget",
+  "recommendation_notes",
+  "section_trace",
+  "proposal",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Report Title",
+   "reqd": 1
+  },
+  {
+   "description": "The approved concept note this appraisal responds to.",
+   "fieldname": "concept_note",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Concept Note",
+   "options": "Concept Note",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "concept_note.thematic_area",
+   "fieldname": "thematic_area",
+   "fieldtype": "Link",
+   "label": "Thematic Area",
+   "options": "Project Theme",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "assessment_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Assessment Date",
+   "reqd": 1
+  },
+  {
+   "default": "__user",
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared By",
+   "options": "User"
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_scope",
+   "fieldtype": "Section Break",
+   "label": "Appraisal Scope"
+  },
+  {
+   "fieldname": "target_geography",
+   "fieldtype": "Data",
+   "label": "Target Geography"
+  },
+  {
+   "fieldname": "villages_covered",
+   "fieldtype": "Int",
+   "label": "Villages Covered"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "households_surveyed",
+   "fieldtype": "Int",
+   "label": "Households Surveyed"
+  },
+  {
+   "fieldname": "estimated_beneficiaries",
+   "fieldtype": "Int",
+   "label": "Estimated Beneficiaries"
+  },
+  {
+   "fieldname": "section_findings",
+   "fieldtype": "Section Break",
+   "label": "Macro Market Appraisal"
+  },
+  {
+   "fieldname": "market_appraisal",
+   "fieldtype": "Text Editor",
+   "label": "Market Appraisal"
+  },
+  {
+   "fieldname": "key_findings",
+   "fieldtype": "Text Editor",
+   "label": "Key Findings"
+  },
+  {
+   "fieldname": "constraints_identified",
+   "fieldtype": "Small Text",
+   "label": "Constraints Identified"
+  },
+  {
+   "fieldname": "section_recommendation",
+   "fieldtype": "Section Break",
+   "label": "Recommendation"
+  },
+  {
+   "fieldname": "feasibility",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Feasibility",
+   "options": "\nHigh\nMedium\nLow"
+  },
+  {
+   "description": "Only 'Proceed' or 'Proceed with Changes' allows a proposal to be raised.",
+   "fieldname": "recommendation",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Recommendation",
+   "options": "\nProceed\nProceed with Changes\nDrop"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recommended_budget",
+   "fieldtype": "Currency",
+   "label": "Indicative Budget"
+  },
+  {
+   "fieldname": "recommendation_notes",
+   "fieldtype": "Small Text",
+   "label": "Recommendation Notes"
+  },
+  {
+   "fieldname": "section_trace",
+   "fieldtype": "Section Break",
+   "label": "Downstream"
+  },
+  {
+   "fieldname": "proposal",
+   "fieldtype": "Link",
+   "label": "Proposal Raised",
+   "no_copy": 1,
+   "options": "Project Proposal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "RRA Report",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "RRA Report",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

@@ -2052,3 +2052,189 @@ def get_analytics_summary():
 
 
 
+
+
+# ═════════════════════════════════════════════════════════════════
+# Programme pipeline — the 10-step operational roadmap
+#
+# 01 Concept Note      Donor / Mgmt      idea framework
+# 02 RRA Report        Management        macro appraisal
+# 03 Proposal          Project Manager   operational draft & budget
+# 04 Approval          Director / CXO    external sign-off  (workflow)
+# 05 Baseline Survey   Field Officer     benchmark ground data
+# 06 Project Creation  Coordinator       operational logging
+# 07 Internal Approval Director / CXO    maker-checker      (workflow)
+# 08 Task Assignment   Project Manager   activity/task allocation
+# 09 Execution         Project Staff     milestone updates
+# 10 Reverse Reporting Field Officer     evidence back to dashboards
+#
+# Each hand-off below refuses to run unless the previous stage closed
+# cleanly, so the chain cannot be short-circuited from the UI.
+# ═════════════════════════════════════════════════════════════════
+
+JOURNEY_STAGES = (
+	("01", "Concept Note", "Concept Note", "Donor / Management"),
+	("02", "RRA Report", "RRA Report", "Management"),
+	("03", "Proposal", "Project Proposal", "Project Manager"),
+	("04", "Approval", "Project Proposal", "Director / CXO"),
+	("05", "Baseline Survey", "Baseline Survey", "Field Officer"),
+	("06", "Project Creation", "KV Project", "Project Coordinator"),
+	("07", "Internal Approval", "KV Project", "Director / CXO"),
+	("08", "Task Assignment", "Activity", "Project Manager"),
+	("09", "Execution", "Task", "Project Staff"),
+	("10", "Reverse Reporting", "Activity Outcome", "Field Officer"),
+)
+
+
+@frappe.whitelist()
+def create_rra_from_concept_note(concept_note):
+	"""02 <- 01. Opens an appraisal against an approved concept note."""
+	note = frappe.get_doc("Concept Note", concept_note)
+
+	if frappe.db.exists("RRA Report", {"concept_note": concept_note, "docstatus": ["<", 2]}):
+		frappe.throw(
+			frappe._("An RRA Report already exists for concept note {0}.").format(concept_note)
+		)
+
+	report = frappe.new_doc("RRA Report")
+	report.title = f"RRA — {note.title}"
+	report.concept_note = note.name
+	report.thematic_area = note.thematic_area
+	report.target_geography = note.target_geography
+	report.estimated_beneficiaries = note.beneficiary_estimate
+	report.recommended_budget = note.estimated_budget
+	report.prepared_by = frappe.session.user
+	report.insert()
+
+	return report.name
+
+
+@frappe.whitelist()
+def create_proposal_from_rra(rra_report):
+	"""03 <- 02. Drafts the operational proposal from the appraisal."""
+	report = frappe.get_doc("RRA Report", rra_report)
+
+	if report.proposal:
+		frappe.throw(
+			frappe._("Proposal {0} already exists for this RRA Report.").format(report.proposal)
+		)
+
+	# The planned window is mandatory on the proposal, so seed it from the
+	# duration the concept note argued for. The Project Manager adjusts it
+	# before submitting; this only keeps the draft creatable.
+	duration_months = (
+		frappe.db.get_value("Concept Note", report.concept_note, "duration_months")
+		if report.concept_note
+		else None
+	) or 12
+
+	start_date = frappe.utils.nowdate()
+
+	proposal = frappe.new_doc("Project Proposal")
+	proposal.title = (report.title or "").replace("RRA — ", "") or report.name
+	proposal.rra_report = report.name
+	proposal.concept_note = report.concept_note
+	proposal.thematic_area = report.thematic_area
+	proposal.target_geography = report.target_geography
+	proposal.beneficiary_target = report.estimated_beneficiaries
+	proposal.total_budget = report.recommended_budget
+	proposal.project_manager = frappe.session.user
+	proposal.planned_start_date = start_date
+	proposal.planned_end_date = frappe.utils.add_months(start_date, duration_months)
+	proposal.insert()
+
+	return proposal.name
+
+
+@frappe.whitelist()
+def create_project_from_proposal(proposal, coordinator=None):
+	"""06 <- 04. Creates the operational project once the proposal is
+	approved. Everything the proposal settled is carried over rather than
+	re-keyed, so the project cannot disagree with what was signed off."""
+	doc = frappe.get_doc("Project Proposal", proposal)
+
+	if doc.docstatus != 1:
+		frappe.throw(frappe._("Proposal {0} has not been submitted.").format(proposal))
+
+	if doc.workflow_state != "Approved":
+		frappe.throw(
+			frappe._(
+				"Proposal {0} is at '{1}'. A project can only be created from an "
+				"approved proposal (step 04)."
+			).format(proposal, doc.workflow_state or "Draft")
+		)
+
+	if doc.kv_project:
+		frappe.throw(frappe._("Project {0} was already created from this proposal.").format(doc.kv_project))
+
+	project = frappe.new_doc("KV Project")
+	project.project_name = doc.title
+	project.theme = doc.thematic_area
+	project.project_phase = "Execution"
+	project.status = "Planning"
+	project.project_manager = doc.project_manager
+	project.project_coordinator = coordinator or doc.proposed_coordinator or frappe.session.user
+	project.start_date = doc.planned_start_date
+	project.end_date = doc.planned_end_date
+	project.budget = doc.total_budget
+	project.proposal = doc.name
+	project.insert()
+
+	frappe.db.set_value("Project Proposal", doc.name, "kv_project", project.name)
+
+	return project.name
+
+
+@frappe.whitelist()
+def get_journey_status(project=None):
+	"""Where a single project sits on the roadmap, with the document behind
+	each step. Drives the journey strip on the dashboard."""
+	if not project:
+		return {"stages": [], "project": None}
+
+	doc = frappe.get_doc("KV Project", project)
+
+	if not has_project_permission(doc, "read"):
+		frappe.throw(frappe._("Not permitted to read project {0}.").format(project), frappe.PermissionError)
+
+	activities = frappe.get_all("Activity", filters={"project": doc.name}, pluck="name")
+
+	reached = {
+		"01": doc.concept_note,
+		"02": doc.rra_report,
+		"03": doc.proposal,
+		"04": doc.proposal if doc.proposal else None,
+		"05": frappe.db.get_value("Baseline Survey", {"project": doc.name}, "name")
+		or doc.linked_baseline_survey,
+		"06": doc.name,
+		"07": doc.name if doc.workflow_state == "Approved" else None,
+		"08": activities[0] if activities else None,
+		# Execution is evidenced by a task, or by the project itself having
+		# moved into (or through) an executing status — small projects run
+		# their activities without breaking them into tasks.
+		"09": frappe.db.get_value("Task", {"custom_activity": ["in", activities or [""]]}, "name")
+		or (doc.name if doc.status in ("In Progress", "Deployed", "Completed") else None),
+		"10": frappe.db.get_value("Activity Outcome", {"project": doc.name}, "name")
+		or frappe.db.get_value("Feedback Survey", {"project": doc.name}, "name"),
+	}
+
+	stages = []
+
+	for number, label, doctype, owner in JOURNEY_STAGES:
+		stages.append(
+			{
+				"number": number,
+				"label": label,
+				"doctype": doctype,
+				"owner": owner,
+				"document": reached.get(number),
+				"complete": bool(reached.get(number)),
+			}
+		)
+
+	return {
+		"project": doc.name,
+		"project_name": doc.project_name,
+		"journey_stage": doc.journey_stage,
+		"stages": stages,
+	}

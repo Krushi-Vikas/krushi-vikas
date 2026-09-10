@@ -22,6 +22,13 @@
   "actual_amount_spent",
   "column_break_3",
   "remaining_funds",
+  "section_journey",
+  "proposal",
+  "rra_report",
+  "column_break_journey",
+  "concept_note",
+  "journey_stage",
+  "workflow_state",
   "structural_forms_section",
   "linked_baseline_survey",
   "column_break_4",
@@ -144,6 +151,60 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_journey",
+   "fieldtype": "Section Break",
+   "label": "Programme Origin"
+  },
+  {
+   "description": "Set when the project is created from an approved proposal. Blank for ad-hoc projects.",
+   "fieldname": "proposal",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Approved Proposal",
+   "options": "Project Proposal",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "proposal.rra_report",
+   "fieldname": "rra_report",
+   "fieldtype": "Link",
+   "label": "RRA Report",
+   "options": "RRA Report",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_journey",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "proposal.concept_note",
+   "fieldname": "concept_note",
+   "fieldtype": "Link",
+   "label": "Concept Note",
+   "options": "Concept Note",
+   "read_only": 1
+  },
+  {
+   "description": "Derived from the project's own state \u2014 do not edit by hand.",
+   "fieldname": "journey_stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Journey Stage",
+   "options": "\n06 Project Created\n07 Internal Approval\n08 Task Assignment\n09 Execution\n10 Reverse Reporting\nClosed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
    "fieldname": "structural_forms_section",
    "fieldtype": "Section Break",
    "label": "Linked Structural Forms"
@@ -188,7 +249,7 @@
   }
  ],
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-09-10 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "KV Project",

@@ -100,7 +100,12 @@ def run():
 	as_fo = get_dashboard_data(year, preview_user="fo1_test@krushivikas.org")
 	check("Preview reports the previewed user", as_fo["user"] == "fo1_test@krushivikas.org")
 	check("Preview applies that user's role", as_fo["role_label"] == "Field Officer")
-	check("Preview narrows the project list", project_names(as_fo) == {PROJECT_A})
+	# Containment, not equality: other suites commit projects that FO1 is
+	# legitimately assigned to, and this check is about scoping, not isolation.
+	check(
+		"Preview narrows the project list",
+		PROJECT_A in project_names(as_fo) and PROJECT_B not in project_names(as_fo),
+	)
 	check("Preview records who is previewing", as_fo["preview"]["viewer"] == "Administrator")
 	check("Preview does NOT switch the session", frappe.session.user == "Administrator")
 

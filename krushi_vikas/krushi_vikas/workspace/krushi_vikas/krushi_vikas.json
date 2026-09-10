@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<b>Krushi Vikas Management</b>\", \"level\": 4, \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Dashboard\", \"link_type\": \"Page\", \"link_to\": \"krushi-dashboard\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Project List\", \"link_type\": \"DocType\", \"link_to\": \"KV Project\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Activity List\", \"link_type\": \"DocType\", \"link_to\": \"Activity\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Task List\", \"link_type\": \"DocType\", \"link_to\": \"Task\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Baseline Survey\", \"link_type\": \"DocType\", \"link_to\": \"Baseline Survey\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Feedback Survey\", \"link_type\": \"DocType\", \"link_to\": \"Feedback Survey\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Village Profile\", \"link_type\": \"DocType\", \"link_to\": \"Village Profile\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Krushi Vikas\", \"col\": 4}}]",
+ "content": "[{\"type\": \"header\", \"data\": {\"text\": \"<b>Krushi Vikas Management</b>\", \"level\": 4, \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Dashboard\", \"link_type\": \"Page\", \"link_to\": \"krushi-dashboard\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Project List\", \"link_type\": \"DocType\", \"link_to\": \"KV Project\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Activity List\", \"link_type\": \"DocType\", \"link_to\": \"Activity\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Task List\", \"link_type\": \"DocType\", \"link_to\": \"Task\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Baseline Survey\", \"link_type\": \"DocType\", \"link_to\": \"Baseline Survey\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Feedback Survey\", \"link_type\": \"DocType\", \"link_to\": \"Feedback Survey\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Village Profile\", \"link_type\": \"DocType\", \"link_to\": \"Village Profile\", \"col\": 4}}, {\"type\": \"header\", \"data\": {\"text\": \"<b>Programme Pipeline (Steps 01-04)</b>\", \"level\": 4, \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Concept Note\", \"link_type\": \"DocType\", \"link_to\": \"Concept Note\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"RRA Report\", \"link_type\": \"DocType\", \"link_to\": \"RRA Report\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Project Proposal\", \"link_type\": \"DocType\", \"link_to\": \"Project Proposal\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Krushi Vikas\", \"col\": 4}}]",
  "creation": "2026-08-16 00:18:48.677235",
  "custom_blocks": [],
  "docstatus": 0,
@@ -111,9 +111,29 @@
    "link_type": "DocType",
    "onboard": 1,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "RRA Report",
+   "link_count": 0,
+   "link_to": "RRA Report",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Project Proposal",
+   "link_count": 0,
+   "link_to": "Project Proposal",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-09-06 20:10:29.109554",
+ "modified": "2026-09-10 23:55:16.782564",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "Krushi Vikas",
@@ -183,6 +203,27 @@
    "doc_view": "List",
    "label": "Village Profile",
    "link_to": "Village Profile",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Concept Note",
+   "link_to": "Concept Note",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "RRA Report",
+   "link_to": "RRA Report",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Project Proposal",
+   "link_to": "Project Proposal",
    "type": "DocType"
   }
  ],

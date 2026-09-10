@@ -1,0 +1,234 @@
+{
+ "actions": [],
+ "autoname": "PRP-.YYYY.-.#####",
+ "creation": "2026-09-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "rra_report",
+  "concept_note",
+  "thematic_area",
+  "column_break_1",
+  "project_manager",
+  "proposed_coordinator",
+  "workflow_state",
+  "section_plan",
+  "target_geography",
+  "beneficiary_target",
+  "column_break_2",
+  "planned_start_date",
+  "planned_end_date",
+  "duration_months",
+  "section_narrative",
+  "objectives",
+  "methodology",
+  "expected_outcomes",
+  "section_budget",
+  "budget_lines",
+  "total_budget",
+  "section_trace",
+  "kv_project",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Proposal Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rra_report",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "RRA Report",
+   "options": "RRA Report",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "rra_report.concept_note",
+   "fieldname": "concept_note",
+   "fieldtype": "Link",
+   "label": "Concept Note",
+   "options": "Concept Note",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "rra_report.thematic_area",
+   "fieldname": "thematic_area",
+   "fieldtype": "Link",
+   "label": "Thematic Area",
+   "options": "Project Theme",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Author of the proposal; carried onto the project.",
+   "fieldname": "project_manager",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Project Manager",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "proposed_coordinator",
+   "fieldtype": "Link",
+   "label": "Proposed Coordinator",
+   "options": "User"
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_plan",
+   "fieldtype": "Section Break",
+   "label": "Operational Plan"
+  },
+  {
+   "fieldname": "target_geography",
+   "fieldtype": "Data",
+   "label": "Target Geography"
+  },
+  {
+   "fieldname": "beneficiary_target",
+   "fieldtype": "Int",
+   "label": "Beneficiary Target"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "planned_start_date",
+   "fieldtype": "Date",
+   "label": "Planned Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "planned_end_date",
+   "fieldtype": "Date",
+   "label": "Planned End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "duration_months",
+   "fieldtype": "Int",
+   "label": "Duration (Months)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_narrative",
+   "fieldtype": "Section Break",
+   "label": "Narrative"
+  },
+  {
+   "fieldname": "objectives",
+   "fieldtype": "Text Editor",
+   "label": "Objectives"
+  },
+  {
+   "fieldname": "methodology",
+   "fieldtype": "Text Editor",
+   "label": "Methodology"
+  },
+  {
+   "fieldname": "expected_outcomes",
+   "fieldtype": "Text Editor",
+   "label": "Expected Outcomes"
+  },
+  {
+   "fieldname": "section_budget",
+   "fieldtype": "Section Break",
+   "label": "Budget"
+  },
+  {
+   "fieldname": "budget_lines",
+   "fieldtype": "Table",
+   "label": "Budget Lines",
+   "options": "Proposal Budget Line"
+  },
+  {
+   "description": "Sum of the budget lines, or entered directly if no lines are given.",
+   "fieldname": "total_budget",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Budget",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_trace",
+   "fieldtype": "Section Break",
+   "label": "Downstream"
+  },
+  {
+   "fieldname": "kv_project",
+   "fieldtype": "Link",
+   "label": "Project Created",
+   "no_copy": 1,
+   "options": "KV Project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Project Proposal",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Project Proposal",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

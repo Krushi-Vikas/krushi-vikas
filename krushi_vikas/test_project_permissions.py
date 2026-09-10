@@ -78,13 +78,15 @@ def run():
     frappe.session.user = "pm1_test@krushivikas.org"
     a1 = frappe.new_doc("Activity")
     a1.activity_name = "Sapling Distribution Activity"
-    a1.project = p_erp.name
+    # Activity.project links to KV Project, not the ERPNext Project.
+    # Task.project below is an ERPNext field and correctly keeps p_erp.
+    a1.project = p1.name
     a1.assignee = "pm1_test@krushivikas.org"
     a1.status = "Open"
     a1.planned_budget = 100000
     a1.insert()
     frappe.db.commit()
-    print(f"Setup: Created Activity '{a1.name}' (Assigned to PM1 under {p_erp.name})")
+    print(f"Setup: Created Activity '{a1.name}' (Assigned to PM1 under {p1.name})")
 
     # PM1 creates Task T1 assigned to FO1
     t1 = frappe.new_doc("Task")
