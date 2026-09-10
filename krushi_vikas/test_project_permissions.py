@@ -276,6 +276,30 @@ def run():
     doc_t.save()
     print("  [3.8] PASS: CEO edited Task T1.")
 
+    frappe.session.user = "Administrator"
+    teardown(proj_name)
+
     print("\n=======================================================")
     print("🎉 ALL HIERARCHICAL & OWNERSHIP UPDATE TESTS PASSED! 🎉")
     print("=======================================================")
+
+
+def teardown(proj_name):
+    """Leave the site as it was found.
+
+    The suite switches users and commits as it goes, so a rollback would not
+    undo the earlier writes — the records it made have to be removed by hand.
+    """
+    frappe.set_user("Administrator")
+
+    for dt in ("Task", "Activity"):
+        for name in frappe.get_all(dt, pluck="name", limit_page_length=0):
+            frappe.delete_doc(dt, name, force=True, ignore_permissions=True)
+
+    for dt in ("KV Project", "Project"):
+        for name in frappe.get_all(dt, filters={"project_name": proj_name}, pluck="name"):
+            frappe.delete_doc(dt, name, force=True, ignore_permissions=True)
+
+    frappe.db.delete("Deleted Document", {"deleted_doctype": ["in",
+        ["KV Project", "Project", "Activity", "Task"]]})
+    frappe.db.commit()

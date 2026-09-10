@@ -168,6 +168,7 @@ def run():
 	)
 
 	frappe.set_user("Administrator")
+	teardown()
 
 	print()
 	if failures:
@@ -178,6 +179,22 @@ def run():
 		print("=== ALL DASHBOARD SCOPE CHECKS PASSED ===")
 
 	return not failures
+
+
+def teardown():
+	"""Leave the site as it was found.
+
+	This suite has to commit — it switches users mid-run, so a rollback at
+	the end would not undo the earlier writes. That means it has to clear
+	up explicitly instead.
+	"""
+	for project in (PROJECT_A, PROJECT_B):
+		for name in frappe.get_all("KV Project", filters={"project_name": project}, pluck="name"):
+			frappe.delete_doc("KV Project", name, force=True, ignore_permissions=True)
+
+	frappe.db.delete("ToDo", {"reference_type": "KV Project"})
+	frappe.db.delete("Deleted Document", {"deleted_doctype": ["in", ["KV Project", "Activity", "Task"]]})
+	frappe.db.commit()
 
 
 def assign_project(project_name, user):
