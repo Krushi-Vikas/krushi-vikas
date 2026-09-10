@@ -5,6 +5,7 @@ import json
 def run():
     setup_roles()
     setup_docperms()
+    setup_naming()
     setup_custom_fields()
     setup_workspace()
     setup_workflows()
@@ -98,6 +99,68 @@ def setup_docperms():
             doc = frappe.new_doc("Custom DocPerm")
             doc.update(p)
             doc.insert(ignore_permissions=True)
+
+def setup_naming():
+    """Show readable names instead of document IDs.
+
+    ERPNext names a Task TASK-2026-00001. That ID is the right thing to
+    store — it never changes when somebody edits the subject, so history and
+    links stay intact — but it is the wrong thing to show a field officer.
+
+    Task.title_field is already `subject`; what was missing is
+    show_title_field_in_link, which tells Frappe to render the subject
+    wherever the Task appears in a link field, list or breadcrumb. The ID
+    stays underneath as the immutable key.
+
+    Set autoname to "field:subject" instead if the ID itself must be the
+    subject — but note two tasks called "Site survey" would then collide,
+    and renaming a subject would rewrite every reference to it.
+    """
+    print("Setting up Naming & Titles...")
+
+    titles = [
+        # doctype, title field
+        ("Task", "subject"),
+        ("Activity", "activity_name"),
+        ("KV Project", "project_name"),
+        ("Concept Note", "title"),
+        ("RRA Report", "title"),
+        ("Project Proposal", "title"),
+    ]
+
+    for doctype, title_field in titles:
+        if not frappe.db.exists("DocType", doctype):
+            continue
+
+        set_doctype_property(doctype, "title_field", "Data", title_field)
+        set_doctype_property(doctype, "show_title_field_in_link", "Check", "1")
+
+    frappe.clear_cache()
+
+
+def set_doctype_property(doctype, prop, property_type, value):
+    """Idempotent doctype-level Property Setter."""
+    existing = frappe.db.get_value(
+        "Property Setter",
+        {"doc_type": doctype, "property": prop, "doctype_or_field": "DocType"},
+        "name",
+    )
+
+    if existing:
+        if frappe.db.get_value("Property Setter", existing, "value") != value:
+            frappe.db.set_value("Property Setter", existing, "value", value)
+        return
+
+    frappe.get_doc({
+        "doctype": "Property Setter",
+        "doctype_or_field": "DocType",
+        "doc_type": doctype,
+        "property": prop,
+        "property_type": property_type,
+        "value": value,
+        "module": "Krushi Vikas",
+    }).insert(ignore_permissions=True)
+
 
 def setup_custom_fields():
     print("Setting up Custom Fields...")
