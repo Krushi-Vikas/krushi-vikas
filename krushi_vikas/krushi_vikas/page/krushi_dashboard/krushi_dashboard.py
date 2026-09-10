@@ -1,10 +1,19 @@
 import frappe
 from datetime import date
 
-# Roles that may see the entire portfolio. Mirrors the hierarchy enforced in
-# krushi_vikas.api.has_project_permission so the dashboard never shows a user
-# something they could not open anyway.
-ORG_WIDE_ROLES = ("Administrator", "System Manager", "CEO", "Project Director")
+# Roles that may see the entire portfolio.
+#
+# Project Director used to sit here. It does not any more: a director now
+# sees only what is assigned to them, like a coordinator or a manager.
+ORG_WIDE_ROLES = ("Administrator", "System Manager", "CEO")
+
+# Roles allowed to see the Annual Plan panel at all. Its contents are still
+# scoped — this only controls whether the panel is rendered.
+PLAN_ROLES = ("Administrator", "System Manager", "CEO", "Project Director")
+
+# A field officer works from their task list and nothing else: no portfolio
+# figures, no plan, no project board.
+TASK_ONLY_ROLES = ("Field Officer",)
 
 # Most senior role first — the first match becomes the user's primary role.
 ROLE_PRIORITY = (
@@ -69,7 +78,7 @@ def get_dashboard_data(year=None, preview_user=None):
 
 	recent_projects = sorted(
 		projects,
-		key=lambda project: project.start_date or date.min,
+		key=lambda project: as_date(project.start_date) or date.min,
 		reverse=True,
 	)[:5]
 
@@ -80,6 +89,9 @@ def get_dashboard_data(year=None, preview_user=None):
 		"role_label": scope["role_label"],
 		"is_org_wide": scope["org_wide"],
 		"scope_label": scope["scope_label"],
+		"task_only": scope.get("task_only", False),
+		"can_see_plan": scope.get("can_see_plan", False),
+		"can_create_project": can_create_project(user),
 		"year": year,
 		"stats": stats,
 		"projects": projects,
@@ -94,6 +106,14 @@ def get_dashboard_data(year=None, preview_user=None):
 # ─────────────────────────────────────────────
 # Administrator role preview
 # ─────────────────────────────────────────────
+
+def can_create_project(user):
+	"""Asked of the previewed user, not the session, so a preview shows the
+	buttons that person would actually have."""
+	from krushi_vikas.api import has_project_permission
+
+	return bool(has_project_permission(None, "create", user))
+
 
 def can_preview(user=None):
 	"""Only administrators may render the dashboard as somebody else."""
@@ -185,13 +205,39 @@ def build_scope(user, roles=None):
 			"project_names": None,
 			"role_label": role_label,
 			"scope_label": "Showing all projects across the organisation.",
+			"task_only": False,
+			"can_see_plan": True,
 		}
 
+	# A field officer holding no other role never reaches project level.
+	task_only = bool(roles.intersection(TASK_ONLY_ROLES)) and not roles.intersection(
+		("Project Director", "Project Coordinator", "Project Manager")
+	)
+
 	project_names = set()
+
+	if task_only:
+		return {
+			"org_wide": False,
+			"project_names": set(),
+			"role_label": role_label,
+			"scope_label": "Showing the tasks assigned to you.",
+			"task_only": True,
+			"can_see_plan": False,
+		}
+
+	if "Project Director" in roles:
+		# Directors have no dedicated field on KV Project, so "assigned to
+		# them" means Frappe's own assignment, or a project they created.
+		project_names.update(assigned_via_todo(user))
+		project_names.update(
+			frappe.get_all("KV Project", filters={"owner": user}, pluck="name")
+		)
 
 	if "Project Coordinator" in roles:
 		# A coordinator owns the projects assigned to them, plus anything
 		# they created themselves.
+		project_names.update(assigned_via_todo(user))
 		project_names.update(
 			frappe.get_all(
 				"KV Project",
@@ -205,6 +251,7 @@ def build_scope(user, roles=None):
 
 	if "Project Manager" in roles:
 		# A manager is named on the project, or owns activities inside it.
+		project_names.update(assigned_via_todo(user))
 		project_names.update(
 			frappe.get_all("KV Project", filters={"project_manager": user}, pluck="name")
 		)
@@ -227,7 +274,29 @@ def build_scope(user, roles=None):
 		"project_names": project_names,
 		"role_label": role_label,
 		"scope_label": scope_label,
+		"task_only": False,
+		"can_see_plan": bool(roles.intersection(PLAN_ROLES)),
 	}
+
+
+def assigned_via_todo(user):
+	"""Projects handed to this user through Frappe's own assignment."""
+	names = set(
+		frappe.get_all(
+			"ToDo",
+			filters={
+				"allocated_to": user,
+				"reference_type": "KV Project",
+				"status": ["!=", "Cancelled"],
+			},
+			pluck="reference_name",
+		)
+		or []
+	)
+
+	names.discard(None)
+	names.discard("")
+	return names
 
 
 def projects_from_activities(user):
@@ -410,19 +479,34 @@ def get_my_tasks(user):
 	tasks.sort(
 		key=lambda task: (
 			task.status in CLOSED_TASK_STATUSES,
-			task.exp_end_date or date.max,
+			as_date(task.exp_end_date) or date.max,
 		)
 	)
 
 	return tasks
 
 
+def as_date(value):
+	"""Normalise a Frappe date value to datetime.date.
+
+	Doctypes are inconsistent: Activity.end_date comes back as a date while
+	ERPNext's Task.exp_end_date is a datetime. Comparing the two raises
+	TypeError, so everything is flattened before it is compared or sorted.
+	"""
+	if not value:
+		return None
+
+	if isinstance(value, str):
+		return frappe.utils.getdate(value)
+
+	return value.date() if hasattr(value, "hour") else value
+
+
 def is_overdue(due_date, status, closed_statuses, today):
+	due_date = as_date(due_date)
+
 	if not due_date or status in closed_statuses:
 		return False
-
-	if isinstance(due_date, str):
-		due_date = frappe.utils.getdate(due_date)
 
 	return due_date < today
 

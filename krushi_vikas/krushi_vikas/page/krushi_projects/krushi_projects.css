@@ -133,21 +133,6 @@
 
 /* ── Grid & cards ───────────────────────────────────────── */
 
-.kvp-group-label {
-	display: flex; align-items: center; gap: 9px;
-	margin: 22px 0 12px; color: var(--kv-ink-soft);
-	font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
-}
-
-.kvp-group-label::after {
-	content: ""; flex: 1; height: 1px; background: var(--kv-line);
-}
-
-.kvp-group-label b {
-	padding: 2px 8px; border-radius: 999px;
-	background: var(--kv-ground); color: var(--kv-ink-soft); font-size: 11px;
-}
-
 .kvp-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));

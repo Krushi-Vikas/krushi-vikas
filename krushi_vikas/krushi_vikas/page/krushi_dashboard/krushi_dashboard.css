@@ -1113,3 +1113,9 @@ button.kv-kpi:hover {
 [data-theme="dark"] .kv-account.is-previewing .kv-avatar {
 	box-shadow: 0 0 0 2px var(--kv-surface), 0 0 0 4px var(--kv-violet);
 }
+
+/* One column when the project-level panels are hidden for a field officer. */
+.kv-app .kv-split.kv-single,
+.kv-app .kv-worksplit.kv-single {
+	grid-template-columns: minmax(0, 1fr);
+}

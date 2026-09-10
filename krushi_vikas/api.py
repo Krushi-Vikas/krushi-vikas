@@ -1175,7 +1175,13 @@ def has_task_permission(doc=None, ptype="read", user=None):
     if ptype == "read":
         return True
         
-    if ptype in ("create", "write"):
+    if ptype == "create":
+        # Field officers execute tasks; they do not raise them.
+        return "Field Officer" not in roles or any(
+            r in roles for r in ["Project Coordinator", "Project Manager"]
+        )
+        
+    if ptype == "write":
         if not doc:
             return True
             

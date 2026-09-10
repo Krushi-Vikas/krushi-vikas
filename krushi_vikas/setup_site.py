@@ -41,7 +41,7 @@ def setup_docperms():
         {"parent": "Task", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
-        {"parent": "Task", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Field Officer", "read": 1, "write": 1, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
         # KV Project — the app's own project doctype.
         #
         # A single Custom DocPerm row on a doctype makes Frappe ignore the

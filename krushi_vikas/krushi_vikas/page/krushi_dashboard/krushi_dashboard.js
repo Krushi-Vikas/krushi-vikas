@@ -4,7 +4,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	const $main = $(wrapper).find(".layout-main-section");
 
 	let selectedYear = new Date().getFullYear();
-	let loading = false;
+	let requestId = 0;
 	let previewRole = "";
 	let previewUser = "";
 	let optionsLoaded = false;
@@ -139,7 +139,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				</div>
 			</section>
 
-			<section class="kv-kpis">
+			<section class="kv-kpis" id="kv-kpis">
 				<button class="kv-kpi" data-route="projects">
 					<span class="kv-kpi-chip green">${icon("folder")}</span>
 					<span class="kv-kpi-body">
@@ -170,7 +170,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				</div>
 			</section>
 
-			<div class="kv-split">
+			<div class="kv-split" id="kv-split">
 				<section class="kv-card">
 					<div class="kv-card-head">
 						<div class="kv-card-title">
@@ -186,7 +186,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 						</div>
 					</div>
 					<div class="kv-worksplit">
-						<div>
+						<div id="my-activities-col">
 							<h4 class="kv-subhead">${icon("pulse")}<span>Activities</span></h4>
 							<div id="my-activities"></div>
 						</div>
@@ -197,7 +197,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 					</div>
 				</section>
 
-				<section class="kv-card">
+				<section class="kv-card" id="kv-portfolio">
 					<div class="kv-card-head">
 						<div class="kv-card-title">
 							<span class="kv-title-chip">${icon("chart")}</span>
@@ -208,7 +208,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				</section>
 			</div>
 
-			<section class="kv-card" style="margin-top:18px">
+			<section class="kv-card" id="kv-plan-card" style="margin-top:18px">
 				<div class="kv-card-head">
 					<div class="kv-card-title">
 						<span class="kv-title-chip">${icon("calendar")}</span>
@@ -218,7 +218,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				<div id="kv-plan"><div class="kv-loading">Loading plan…</div></div>
 			</section>
 
-			<section class="kv-card">
+			<section class="kv-card" id="kv-recent-card">
 				<div class="kv-card-head">
 					<div class="kv-card-title">
 						<span class="kv-title-chip">${icon("folder")}</span>
@@ -272,7 +272,10 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	}
 
 	function due(value) {
-		return value ? `Due ${frappe.datetime.str_to_user(value)}` : "No due date";
+		// Task.exp_end_date is a datetime in ERPNext, so trim the time part
+		// before formatting or every row reads "… 00:00:00".
+		if (!value) return "No due date";
+		return `Due ${frappe.datetime.str_to_user(String(value).split(" ")[0])}`;
 	}
 
 	function emptySmall($el, iconName, message) {
@@ -305,10 +308,13 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 		// Desk permission helpers answer for the real session user, so the
 		// create button would lie while previewing somebody else.
-		$("#kv-create").toggleClass(
-			"is-hidden",
-			previewing || !frappe.model.can_create("KV Project")
-		);
+		// While previewing, the desk helper answers for the real session
+		// user, so the server tells us what the previewed person may do.
+		const mayCreate = previewing
+			? !!data.can_create_project
+			: frappe.model.can_create("KV Project");
+
+		$("#kv-create").toggleClass("is-hidden", !mayCreate);
 
 		if (data.can_preview) {
 			$("#kv-viewas").removeClass("is-hidden");
@@ -551,19 +557,46 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		);
 	}
 
+	function applyRoleView(data) {
+		// A field officer sees their task list and nothing else: no
+		// portfolio figures, no plan, no project rows.
+		const tasksOnly = !!data.task_only;
+
+		$("#kv-kpis, #kv-portfolio, #kv-recent-card").toggleClass("is-hidden", tasksOnly);
+		$("#my-activities-col").toggleClass("is-hidden", tasksOnly);
+		$("#kv-split").toggleClass("kv-single", tasksOnly);
+		$main.find(".kv-worksplit").toggleClass("kv-single", tasksOnly);
+
+		// The Annual Plan is an executive view. Its contents are already
+		// scoped; this decides whether the panel exists at all.
+		$("#kv-plan-card").toggleClass("is-hidden", !data.can_see_plan);
+
+		// Nav is trimmed to what this person can actually act on.
+		$main
+			.find(
+				'[data-route="projects"], [data-route="activities"],' +
+					'[data-route="proposals"], [data-route="themes"],' +
+					'[data-route="beneficiaries"]'
+			)
+			.toggleClass("is-hidden", tasksOnly);
+	}
+
 	function render(data) {
 		renderIdentity(data);
+		applyRoleView(data);
 		renderKpis(data.stats || {});
 		renderMyWork(data);
 		renderStatus(data.stats || {});
-		renderPlan(data.projects || []);
+		if (data.can_see_plan) renderPlan(data.projects || []);
 		renderRecent(data.recent_projects || []);
 	}
 
 	// ── Data ───────────────────────────────────────────────────────
 	function loadDashboard() {
-		if (loading) return;
-		loading = true;
+		// Never drop a request: switching preview user twice in quick
+		// succession used to leave the second switch silently ignored.
+		// Every call fires; only the newest response is rendered.
+		const ticket = ++requestId;
 
 		$("#kv-year").text(selectedYear);
 		$("#kv-plan").html(`<div class="kv-loading">Loading ${selectedYear} plan…</div>`);
@@ -573,7 +606,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			args: { year: selectedYear, preview_user: previewUser || undefined },
 			freeze: false,
 			callback: (r) => {
-				loading = false;
+				if (ticket !== requestId) return;
 				if (!r.message) {
 					frappe.msgprint({
 						title: "Dashboard",
@@ -585,7 +618,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				render(r.message);
 			},
 			error: () => {
-				loading = false;
+				if (ticket !== requestId) return;
 				$("#kv-plan").html(`<div class="kv-loading">Could not load the dashboard.</div>`);
 			}
 		});

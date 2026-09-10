@@ -3,9 +3,9 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 
 	const $main = $(wrapper).find(".layout-main-section");
 
-	let loading = false;
+	let requestId = 0;
 	let searchTimer = null;
-	const filters = { search: "", status: "", stage: "", group: "none", sort: "recent" };
+	const filters = { search: "", status: "", sort: "recent" };
 
 	const svg = {
 		folder: `<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5v-9Z"/>`,
@@ -76,21 +76,11 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 					<option value="Cancelled">Cancelled</option>
 				</select>
 
-				<select class="kvp-select" id="kvp-stage">
-					<option value="">All stages</option>
-				</select>
-
 				<select class="kvp-select" id="kvp-sort">
 					<option value="recent">Recently updated</option>
 					<option value="ending">Ending soonest</option>
 					<option value="budget">Largest budget</option>
 					<option value="name">Name A–Z</option>
-				</select>
-
-				<select class="kvp-select" id="kvp-group">
-					<option value="none">No grouping</option>
-					<option value="stage">Group by stage</option>
-					<option value="status">Group by status</option>
 				</select>
 
 				<span class="kvp-count" id="kvp-count"></span>
@@ -239,37 +229,6 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 		return list;
 	}
 
-	function groupProjects(projects, stageOrder) {
-		if (filters.group === "none") return [["", projects]];
-
-		const key = filters.group === "stage" ? "journey_stage" : "status";
-		const buckets = new Map();
-
-		projects.forEach((project) => {
-			const value = project[key] || "Unassigned";
-			if (!buckets.has(value)) buckets.set(value, []);
-			buckets.get(value).push(project);
-		});
-
-		const order =
-			filters.group === "stage"
-				? stageOrder
-				: ["Planning", "In Progress", "Deployed", "Completed", "Cancelled"];
-
-		const sorted = [];
-
-		order.forEach((value) => {
-			if (buckets.has(value)) {
-				sorted.push([value, buckets.get(value)]);
-				buckets.delete(value);
-			}
-		});
-
-		buckets.forEach((value, name) => sorted.push([name, value]));
-
-		return sorted;
-	}
-
 	// ── Render ─────────────────────────────────────────────────────
 	function render(data) {
 		const projects = sortProjects(data.projects || []);
@@ -286,21 +245,26 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 			.toggleClass("org", !scoped);
 		$("#kvp-scope-text").text(data.scope_label || "");
 
-		if (!frappe.model.can_create("KV Project") || data.preview) {
-			$("#kvp-new").addClass("is-hidden");
-		} else {
-			$("#kvp-new").removeClass("is-hidden");
+		const mayCreate = data.preview
+			? !!data.can_create_project
+			: frappe.model.can_create("KV Project");
+
+		$("#kvp-new").toggleClass("is-hidden", !mayCreate);
+
+		if (data.task_only) {
+			$(".kvp-toolbar").addClass("is-hidden");
+			$("#kvp-count").text("");
+			$("#kvp-body").html(`
+				<div class="kvp-empty">
+					${icon("tasks")}
+					<h4>Tasks only</h4>
+					<p>Your work is tracked as tasks. Open the dashboard to see
+					everything assigned to you.</p>
+				</div>`);
+			return;
 		}
 
-		const $stage = $("#kvp-stage");
-		if ($stage.find("option").length <= 1) {
-			$stage.append(
-				(data.stage_order || [])
-					.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`)
-					.join("")
-			);
-			$stage.val(filters.stage);
-		}
+		$(".kvp-toolbar").removeClass("is-hidden");
 
 		const total = projects.length;
 		$("#kvp-count").text(
@@ -308,7 +272,7 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 		);
 
 		if (!total) {
-			const filtered = filters.search || filters.status || filters.stage;
+			const filtered = filters.search || filters.status;
 			$("#kvp-body").html(`
 				<div class="kvp-empty">
 					${icon("folder")}
@@ -326,39 +290,27 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 			return;
 		}
 
-		const groups = groupProjects(projects, data.stage_order || []);
-
-		$("#kvp-body").html(
-			groups
-				.map(([label, items]) => {
-					const heading = label
-						? `<div class="kvp-group-label">${esc(label)}<b>${items.length}</b></div>`
-						: "";
-					return `${heading}<div class="kvp-grid">${items.map(card).join("")}</div>`;
-				})
-				.join("")
-		);
+		$("#kvp-body").html(`<div class="kvp-grid">${projects.map(card).join("")}</div>`);
 	}
 
 	// ── Data ───────────────────────────────────────────────────────
 	function load() {
-		if (loading) return;
-		loading = true;
+		// Same rule as the dashboard: fire every request, render the newest.
+		const ticket = ++requestId;
 
 		frappe.call({
 			method: "krushi_vikas.krushi_vikas.page.krushi_projects.krushi_projects.get_project_cards",
 			args: {
 				search: filters.search || undefined,
-				status: filters.status || undefined,
-				stage: filters.stage || undefined
+				status: filters.status || undefined
 			},
 			freeze: false,
 			callback: (r) => {
-				loading = false;
+				if (ticket !== requestId) return;
 				if (r.message) render(r.message);
 			},
 			error: () => {
-				loading = false;
+				if (ticket !== requestId) return;
 				$("#kvp-body").html(`<div class="kvp-loading">Could not load projects.</div>`);
 			}
 		});
@@ -375,9 +327,7 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 	});
 
 	$main.on("change", "#kvp-status", function () { filters.status = $(this).val(); load(); });
-	$main.on("change", "#kvp-stage", function () { filters.stage = $(this).val(); load(); });
 	$main.on("change", "#kvp-sort", function () { filters.sort = $(this).val(); load(); });
-	$main.on("change", "#kvp-group", function () { filters.group = $(this).val(); load(); });
 
 	$main.on("click", "#kvp-new", () => frappe.new_doc("KV Project"));
 	$main.on("click", "#kvp-dash", () => frappe.set_route("krushi-dashboard"));

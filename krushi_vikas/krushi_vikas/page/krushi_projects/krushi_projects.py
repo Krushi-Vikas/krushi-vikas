@@ -3,18 +3,9 @@ from frappe.utils import flt, getdate, nowdate
 
 from krushi_vikas.krushi_vikas.page.krushi_dashboard.krushi_dashboard import (
 	build_scope,
+	can_create_project,
 	can_preview,
 	require_preview_admin,
-)
-
-# Ordered so the board reads as a pipeline when grouped by stage.
-STAGE_ORDER = (
-	"06 Project Created",
-	"07 Internal Approval",
-	"08 Task Assignment",
-	"09 Execution",
-	"10 Reverse Reporting",
-	"Closed",
 )
 
 CARD_FIELDS = (
@@ -37,7 +28,7 @@ CARD_FIELDS = (
 
 
 @frappe.whitelist()
-def get_project_cards(search=None, status=None, stage=None, preview_user=None):
+def get_project_cards(search=None, status=None, preview_user=None):
 	"""Role-scoped project cards.
 
 	Same scoping rule as the dashboard — the board is a different shape on
@@ -55,6 +46,12 @@ def get_project_cards(search=None, status=None, stage=None, preview_user=None):
 	user = preview_user if preview else viewer
 	scope = build_scope(user)
 
+	# A field officer works from tasks only and has no project-level view.
+	if scope.get("task_only"):
+		payload = empty_payload(user, scope, preview)
+		payload["task_only"] = True
+		return payload
+
 	filters = {}
 
 	if not scope["org_wide"]:
@@ -64,9 +61,6 @@ def get_project_cards(search=None, status=None, stage=None, preview_user=None):
 
 	if status:
 		filters["status"] = status
-
-	if stage:
-		filters["journey_stage"] = stage
 
 	projects = frappe.get_all(
 		"KV Project",
@@ -91,9 +85,10 @@ def get_project_cards(search=None, status=None, stage=None, preview_user=None):
 		"is_org_wide": scope["org_wide"],
 		"can_preview": can_preview(),
 		"preview": preview,
+		"task_only": False,
+		"can_create_project": can_create_project(user),
 		"projects": projects,
 		"facets": build_facets(projects),
-		"stage_order": list(STAGE_ORDER),
 	}
 
 
@@ -106,9 +101,10 @@ def empty_payload(user, scope, preview):
 		"is_org_wide": scope["org_wide"],
 		"can_preview": can_preview(),
 		"preview": preview,
+		"task_only": scope.get("task_only", False),
+		"can_create_project": can_create_project(user),
 		"projects": [],
-		"facets": {"status": {}, "stage": {}, "total": 0},
-		"stage_order": list(STAGE_ORDER),
+		"facets": {"status": {}, "total": 0},
 	}
 
 
@@ -196,12 +192,10 @@ def elapsed_pct(project, today):
 
 
 def build_facets(projects):
-	status, stage = {}, {}
+	status = {}
 
 	for project in projects:
 		if project.status:
 			status[project.status] = status.get(project.status, 0) + 1
-		if project.journey_stage:
-			stage[project.journey_stage] = stage.get(project.journey_stage, 0) + 1
 
-	return {"status": status, "stage": stage, "total": len(projects)}
+	return {"status": status, "total": len(projects)}

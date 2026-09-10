@@ -69,21 +69,42 @@ def run():
 	check("PM1 does NOT see Project B", PROJECT_B not in names)
 	check("PM1 is not org-wide", data["is_org_wide"] is False)
 
-	# Field Officer reaches Project A through the planned activity row.
+	# Field Officer works from tasks only — no project level at all now.
 	frappe.set_user("fo1_test@krushivikas.org")
 	data = get_dashboard_data(year)
-	names = project_names(data)
-	check("FO1 sees Project A", PROJECT_A in names)
-	check("FO1 does NOT see Project B", PROJECT_B not in names)
 	check("FO1 stats are personal", "my_tasks" in data["stats"])
+	check("FO1 is task-only", data["task_only"] is True)
+	check("FO1 sees no projects at all", not project_names(data))
+	check("FO1 has no Annual Plan", data["can_see_plan"] is False)
+	check("FO1 cannot create projects", data["can_create_project"] is False)
 
-	# Project Director is org-wide.
+	# Coordinators and managers are scoped but keep project-level views.
+	frappe.set_user("pc1_test@krushivikas.org")
+	pc = get_dashboard_data(year)
+	check("PC is not task-only", pc["task_only"] is False)
+	check("PC has no Annual Plan", pc["can_see_plan"] is False)
+
+	# Project Director is scoped like everyone below them: only what is
+	# assigned. They keep the Annual Plan panel.
 	frappe.set_user("dir_test@krushivikas.org")
 	data = get_dashboard_data(year)
 	names = project_names(data)
-	check("Director sees Project A", PROJECT_A in names)
-	check("Director sees Project B", PROJECT_B in names)
-	check("Director scope is org-wide", data["is_org_wide"] is True)
+	check("Director is NOT org-wide", data["is_org_wide"] is False)
+	check("Director sees nothing unassigned", not (names & {PROJECT_A, PROJECT_B}))
+	check("Director keeps the Annual Plan", data["can_see_plan"] is True)
+
+	# Assigning a project to the director brings it into their scope.
+	frappe.set_user("Administrator")
+	assign_project(PROJECT_A, "dir_test@krushivikas.org")
+	frappe.set_user("dir_test@krushivikas.org")
+	check("Director sees a project assigned to them",
+		PROJECT_A in project_names(get_dashboard_data(year)))
+
+	# CEO stays org-wide.
+	frappe.set_user("ceo_test@krushivikas.org")
+	data = get_dashboard_data(year)
+	check("CEO is org-wide", data["is_org_wide"] is True)
+	check("CEO keeps the Annual Plan", data["can_see_plan"] is True)
 
 	# A user with no Krushi Vikas role sees nothing.
 	frappe.set_user("Administrator")
@@ -100,11 +121,17 @@ def run():
 	as_fo = get_dashboard_data(year, preview_user="fo1_test@krushivikas.org")
 	check("Preview reports the previewed user", as_fo["user"] == "fo1_test@krushivikas.org")
 	check("Preview applies that user's role", as_fo["role_label"] == "Field Officer")
-	# Containment, not equality: other suites commit projects that FO1 is
-	# legitimately assigned to, and this check is about scoping, not isolation.
+	# A field officer is task-only, so previewing one shows no projects at
+	# all — the preview must reproduce their view, not a softened version.
+	check("Preview reproduces the task-only view", as_fo["task_only"] is True)
+	check("Preview shows a field officer no projects", not project_names(as_fo))
+	check("Preview hides the plan from a field officer", as_fo["can_see_plan"] is False)
+
+	# Previewing a coordinator still narrows to their own projects.
+	as_pc = get_dashboard_data(year, preview_user="pc1_test@krushivikas.org")
 	check(
-		"Preview narrows the project list",
-		PROJECT_A in project_names(as_fo) and PROJECT_B not in project_names(as_fo),
+		"Preview narrows a coordinator to their own projects",
+		PROJECT_A in project_names(as_pc) and PROJECT_B not in project_names(as_pc),
 	)
 	check("Preview records who is previewing", as_fo["preview"]["viewer"] == "Administrator")
 	check("Preview does NOT switch the session", frappe.session.user == "Administrator")
@@ -151,6 +178,23 @@ def run():
 		print("=== ALL DASHBOARD SCOPE CHECKS PASSED ===")
 
 	return not failures
+
+
+def assign_project(project_name, user):
+	"""Frappe's own assignment — how a director is given a project."""
+	name = frappe.get_all("KV Project", filters={"project_name": project_name}, pluck="name")[0]
+
+	if frappe.db.exists("ToDo", {"reference_type": "KV Project",
+			"reference_name": name, "allocated_to": user}):
+		return
+
+	todo = frappe.new_doc("ToDo")
+	todo.reference_type = "KV Project"
+	todo.reference_name = name
+	todo.allocated_to = user
+	todo.description = f"Own {project_name}"
+	todo.insert(ignore_permissions=True)
+	frappe.db.commit()
 
 
 def raises_permission_error(fn):
