@@ -13,7 +13,8 @@
   "status",
   "description",
   "input_output",
-  "impact"
+  "impact",
+  "linked_activity"
  ],
  "fields": [
   {
@@ -73,11 +74,21 @@
    "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Impact"
+  },
+  {
+   "columns": 2,
+   "description": "The Activity record this row created. Set automatically.",
+   "fieldname": "linked_activity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Activity",
+   "options": "Activity",
+   "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-09-11 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "KV Project Activity",

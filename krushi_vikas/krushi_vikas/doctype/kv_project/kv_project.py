@@ -41,6 +41,62 @@ class KVProject(Document):
 
         self.set_journey_stage()
 
+    # The grid uses planning words; Activity uses working ones.
+    STATUS_MAP = {"Planned": "Open", "In Progress": "In Progress",
+                  "Completed": "Completed", "Cancelled": "Cancelled"}
+
+    def on_update(self):
+        self.sync_activities()
+
+    def sync_activities(self):
+        """Turn each row of the Activities grid into a real Activity.
+
+        Without this the grid is a scratchpad: the rows look like activities
+        but nothing can link to them, so tasks have nothing to attach to.
+        Each row remembers the Activity it created, so saving again updates
+        rather than duplicates.
+        """
+        for row in self.get("activities") or []:
+            if not row.activity_name:
+                continue
+
+            values = {
+                "activity_name": row.activity_name,
+                "project": self.name,
+                "theme": self.theme,
+                "assignee": row.assignee,
+                "status": self.STATUS_MAP.get(row.status, "Open"),
+                "start_date": row.start_date or self.start_date,
+                "end_date": row.end_date or self.end_date,
+                "description": row.description,
+                "input_output": row.input_output,
+                "impact": row.impact,
+            }
+
+            if row.linked_activity and frappe.db.exists("Activity", row.linked_activity):
+                activity = frappe.get_doc("Activity", row.linked_activity)
+                activity.update(values)
+                activity.save(ignore_permissions=True)
+                continue
+
+            # An activity of the same name under this project is the same
+            # activity — adopt it rather than making a second one.
+            existing = frappe.db.get_value(
+                "Activity",
+                {"project": self.name, "activity_name": row.activity_name},
+                "name",
+            )
+
+            if existing:
+                activity = frappe.get_doc("Activity", existing)
+                activity.update(values)
+                activity.save(ignore_permissions=True)
+            else:
+                activity = frappe.get_doc(dict(doctype="Activity", **values))
+                activity.insert(ignore_permissions=True)
+
+            row.db_set("linked_activity", activity.name, update_modified=False)
+
     def after_insert(self):
         """Route the project to whoever is above the person who raised it."""
         from krushi_vikas.approvals import start_approval
