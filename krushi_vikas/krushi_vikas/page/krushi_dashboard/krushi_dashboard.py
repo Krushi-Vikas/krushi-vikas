@@ -30,28 +30,6 @@ PREVIEWABLE_ROLES = (
 	"Field Officer",
 )
 
-# Doctypes shown in the access matrix, mapped to their permission checker.
-ACCESS_MATRIX_DOCTYPES = (
-	("KV Project", "krushi_vikas.api.has_project_permission"),
-	("Activity", "krushi_vikas.api.has_activity_permission"),
-	("Task", "krushi_vikas.api.has_task_permission"),
-)
-
-ACCESS_PTYPES = ("read", "create", "write", "delete")
-
-# Conditions the permission functions apply per document that a
-# document-less check cannot express. Shown as a footnote in the UI so the
-# matrix is not read as broader than it is.
-ACCESS_CAVEATS = {
-	("Project Coordinator", "KV Project", "write"): "only projects they coordinate or own",
-	("Project Coordinator", "Activity", "write"): "only activities in their own projects",
-	("Project Coordinator", "Task", "write"): "only tasks in their own projects",
-	("Project Manager", "Activity", "write"): "only activities assigned to them",
-	("Project Manager", "Task", "write"): "only tasks in their own activities",
-	("Field Officer", "Task", "write"): "only tasks assigned to them",
-}
-
-
 @frappe.whitelist()
 def get_dashboard_data(year=None, preview_user=None):
 	"""Role-scoped dashboard payload.
@@ -110,7 +88,6 @@ def get_dashboard_data(year=None, preview_user=None):
 		"my_tasks": my_tasks,
 		"preview": preview,
 		"can_preview": can_preview(),
-		"access": get_access_matrix(user),
 	}
 
 
@@ -189,40 +166,6 @@ def get_users_for_role(role=None):
 
 	return users
 
-
-def get_access_matrix(user):
-	"""What this user may do to each doctype, straight from the permission
-	functions in krushi_vikas.api — never a second copy of the rules."""
-	roles = set(frappe.get_roles(user))
-	primary_role = get_primary_role(user, roles)
-
-	rows = []
-
-	for doctype, checker_path in ACCESS_MATRIX_DOCTYPES:
-		checker = frappe.get_attr(checker_path)
-		permissions = {}
-
-		for ptype in ACCESS_PTYPES:
-			try:
-				allowed = bool(checker(doc=None, ptype=ptype, user=user))
-			except Exception:
-				# A checker that cannot answer without a document is
-				# reported as unknown rather than as a silent "allowed".
-				allowed = None
-
-			permissions[ptype] = {
-				"allowed": allowed,
-				"caveat": ACCESS_CAVEATS.get((primary_role, doctype, ptype)),
-			}
-
-		rows.append({"doctype": doctype, "permissions": permissions})
-
-	return {"role_label": primary_role, "ptypes": list(ACCESS_PTYPES), "rows": rows}
-
-
-# ─────────────────────────────────────────────
-# Scope resolution
-# ─────────────────────────────────────────────
 
 def build_scope(user, roles=None):
 	"""Work out exactly which projects this user is allowed to see.

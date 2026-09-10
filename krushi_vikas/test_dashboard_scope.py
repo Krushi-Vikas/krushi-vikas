@@ -109,13 +109,15 @@ def run():
 	check("Preview records who is previewing", as_fo["preview"]["viewer"] == "Administrator")
 	check("Preview does NOT switch the session", frappe.session.user == "Administrator")
 
-	access = {
-		row["doctype"]: {p: v["allowed"] for p, v in row["permissions"].items()}
-		for row in as_fo["access"]["rows"]
-	}
-	check("FO cannot create projects", access["KV Project"]["create"] is False)
-	check("FO cannot write projects", access["KV Project"]["write"] is False)
-	check("FO can write tasks", access["Task"]["write"] is True)
+	from krushi_vikas.api import has_project_permission, has_task_permission
+
+	fo = "fo1_test@krushivikas.org"
+	check("FO cannot create projects",
+		has_project_permission(None, "create", fo) is False)
+	check("FO cannot write projects",
+		has_project_permission(None, "write", fo) is False)
+	check("FO can write tasks",
+		bool(has_task_permission(None, "write", fo)) is True)
 
 	options = get_preview_options("Field Officer")
 	check(
