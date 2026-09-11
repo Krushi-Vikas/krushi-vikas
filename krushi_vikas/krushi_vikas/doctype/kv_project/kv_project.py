@@ -76,6 +76,10 @@ class KVProject(Document):
             if row.linked_activity and frappe.db.exists("Activity", row.linked_activity):
                 activity = frappe.get_doc("Activity", row.linked_activity)
                 activity.update(values)
+                # Activity.on_update() mirrors changes back into this same
+                # grid; this flag tells it that this save originated here,
+                # so it does not turn around and re-sync into us.
+                activity.flags.skip_project_sync = True
                 activity.save(ignore_permissions=True)
                 continue
 
@@ -90,9 +94,11 @@ class KVProject(Document):
             if existing:
                 activity = frappe.get_doc("Activity", existing)
                 activity.update(values)
+                activity.flags.skip_project_sync = True
                 activity.save(ignore_permissions=True)
             else:
                 activity = frappe.get_doc(dict(doctype="Activity", **values))
+                activity.flags.skip_project_sync = True
                 activity.insert(ignore_permissions=True)
 
             row.db_set("linked_activity", activity.name, update_modified=False)
