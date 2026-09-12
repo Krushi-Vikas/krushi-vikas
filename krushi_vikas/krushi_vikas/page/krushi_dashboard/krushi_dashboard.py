@@ -100,6 +100,7 @@ def get_dashboard_data(year=None, preview_user=None):
 		"my_tasks": my_tasks,
 		"preview": preview,
 		"approvals": get_approvals_for(user),
+		"recent_approvals": get_recent_approvals_for(user),
 		"can_preview": can_preview(),
 	}
 
@@ -113,6 +114,14 @@ def get_approvals_for(user):
 	from krushi_vikas.approvals import get_pending_approvals
 
 	return get_pending_approvals(user)
+
+
+def get_recent_approvals_for(user):
+	"""Decisions this person already made — otherwise a cleared approval
+	simply disappears with no record of having acted on it."""
+	from krushi_vikas.approvals import get_recent_approvals
+
+	return get_recent_approvals(user)
 
 
 def can_create_project(user):

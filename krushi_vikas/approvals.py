@@ -10,10 +10,12 @@ Who approves a document depends on who raised it, not on a fixed route:
     Project Director     CEO
     CEO / Administrator  nobody — approved on submission
 
-Each step resolves to a specific person where the document names one (the
-project's own coordinator or manager), and to a role otherwise, so any
-director or CEO can clear it. Both are matched when listing what is waiting
-for someone.
+Each step resolves to a specific person where the document names one (its
+coordinator, manager, or — if set — its project_director), and to the role
+at large otherwise. An unnamed step is a broadcast: every person holding
+that role sees it in their queue, and it clears for all of them the moment
+one of them acts. CEO has no equivalent field and is always a broadcast,
+since an organisation typically has one.
 """
 
 import frappe
@@ -40,9 +42,13 @@ RANK = (
 )
 
 # Where a step can be pinned to the person the document already names.
+# Director is optional: with several people holding that role, an unset
+# project_director broadcasts the step to all of them — whoever clears it
+# first clears it for everyone. Set it to route to one specific Director.
 NAMED_ON_DOC = {
 	"Project Coordinator": "project_coordinator",
 	"Project Manager": "project_manager",
+	"Project Director": "project_director",
 }
 
 PENDING = "Pending Approval"
@@ -289,6 +295,51 @@ def get_pending_approvals(user=None):
 			)
 
 	return items
+
+
+@frappe.whitelist()
+def get_recent_approvals(user=None, limit=5):
+	"""What this person has approved or rejected recently.
+
+	Once cleared, an item leaves get_pending_approvals() and would
+	otherwise vanish from view entirely — this is what a Director (or
+	anyone else) checks to see the decisions they already made.
+	"""
+	user = user or frappe.session.user
+	items = []
+
+	for doctype in APPROVABLE:
+		if not frappe.db.table_exists(doctype):
+			continue
+
+		rows = frappe.get_all(
+			"KV Approval Log",
+			filters={
+				"parenttype": doctype,
+				"actor": user,
+				"action": ["in", ["Approved", "Rejected"]],
+			},
+			fields=["parent", "action", "acted_on", "notes"],
+			order_by="acted_on desc",
+			limit_page_length=limit,
+		)
+
+		for row in rows:
+			items.append(
+				{
+					"doctype": doctype,
+					"name": row.parent,
+					"title": frappe.db.get_value(doctype, row.parent, "project_name")
+					or row.parent,
+					"action": row.action,
+					"notes": row.notes,
+					"acted_on": row.acted_on,
+					"status_now": frappe.db.get_value(doctype, row.parent, "approval_status"),
+				}
+			)
+
+	items.sort(key=lambda i: i["acted_on"], reverse=True)
+	return items[: int(limit)]
 
 
 def check_approvable(doctype):

@@ -2,6 +2,17 @@ frappe.ui.form.on('KV Project', {
     refresh(frm) {
         frm.trigger('calc_remaining');
         if (!frm.is_new()) {
+            frm.fields_dict.activities.grid.add_custom_button(__('New Task'), () => {
+                const rows = frm.fields_dict.activities.grid.get_selected_children();
+                if (!rows.length) return frappe.msgprint(__('Select an activity row first.'));
+                const row = rows[0];
+                if (!row.linked_activity) return frappe.msgprint(__('Save the project first.'));
+                frappe.new_doc('Task', {
+                    custom_activity: row.linked_activity,
+                    custom_activity_owner: row.assignee,
+                    status: 'Open'
+                });
+            });
             if (frm.doc.linked_baseline_survey) {
                 frm.add_custom_button(__('Baseline Survey'), function() {
                     frappe.set_route('Form', 'Baseline Survey', frm.doc.linked_baseline_survey);

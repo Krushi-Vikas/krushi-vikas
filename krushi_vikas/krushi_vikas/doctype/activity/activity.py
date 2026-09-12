@@ -76,6 +76,66 @@ class Activity(Document):
 
     def on_update(self):
         self.sync_into_project_grid()
+        self.sync_tasks()
+
+    def on_trash(self):
+        """Remove the mirrored row from the project's Activities grid.
+
+        KV Project Activity carries a Link field back to this Activity
+        (linked_activity), and Frappe blocks deleting anything still
+        referenced by a Link field anywhere — including inside a child
+        table. Without this, an Activity could never be deleted once it
+        had synced into a project's grid.
+
+        Frappe calls on_trash() before it runs that link check, so
+        clearing the row here first is enough for the delete to go
+        through normally afterwards. A direct table delete, not a parent
+        save, so KVProject.on_update() never fires from this.
+        """
+        frappe.db.delete("KV Project Activity", {"linked_activity": self.name})
+
+    def sync_tasks(self):
+        """Turn each row of the Tasks grid into a real Task.
+
+        Same reasoning as KVProject.sync_activities(): rows here look like
+        tasks but nothing can assign or route them until they exist as real
+        Task records. Each row remembers the Task it created via
+        linked_task, so saving again updates it instead of duplicating it.
+        """
+        for row in self.get("tasks") or []:
+            if not row.subject:
+                continue
+
+            values = {
+                "subject": row.subject,
+                "status": row.status or "Open",
+                "priority": row.priority,
+                "custom_activity": self.name,
+                "custom_activity_owner": row.assignee,
+                "exp_start_date": row.exp_start_date or self.start_date,
+                "exp_end_date": row.exp_end_date or self.end_date,
+                "description": row.description,
+            }
+
+            if row.linked_task and frappe.db.exists("Task", row.linked_task):
+                task = frappe.get_doc("Task", row.linked_task)
+                task.update(values)
+                task.save(ignore_permissions=True)
+                continue
+
+            existing = frappe.db.get_value(
+                "Task", {"custom_activity": self.name, "subject": row.subject}, "name"
+            )
+
+            if existing:
+                task = frappe.get_doc("Task", existing)
+                task.update(values)
+                task.save(ignore_permissions=True)
+            else:
+                task = frappe.get_doc(dict(doctype="Task", **values))
+                task.insert(ignore_permissions=True)
+
+            row.db_set("linked_task", task.name, update_modified=False)
 
     def sync_into_project_grid(self):
         """Mirror this activity into its project's Activities grid.

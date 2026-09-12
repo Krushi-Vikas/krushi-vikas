@@ -38,6 +38,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		right: `<path d="m9 18 6-6-6-6"/>`,
 		down: `<path d="m6 9 6 6 6-6"/>`,
 		eye: `<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>`,
+		logout: `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>`,
 		back: `<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>`
 	};
 
@@ -102,6 +103,10 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 						<button class="kv-menu-action danger is-hidden" id="kv-reset">
 							${icon("back")}<span>Back to my own view</span>
+						</button>
+
+						<button class="kv-menu-action danger" id="kv-logout">
+							${icon("logout")}<span>Log out</span>
 						</button>
 					</div>
 				</div>
@@ -179,6 +184,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 					<span class="kv-pill alert"><strong id="kv-approval-count">0</strong><span>to review</span></span>
 				</div>
 				<div id="kv-approval-list"></div>
+				<div id="kv-recent-approvals" class="is-hidden"></div>
 			</section>
 
 			<div class="kv-split" id="kv-split">
@@ -396,16 +402,50 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		$("#kpi-done-sub").text(total ? `${Math.round((done / total) * 100)}% of portfolio` : "—");
 	}
 
-	function renderApprovals(data) {
-		const items = data.approvals || [];
-		const $card = $("#kv-approvals");
+	function renderRecentApprovals(data) {
+		const items = data.recent_approvals || [];
+		const $box = $("#kv-recent-approvals");
 
 		if (!items.length) {
-			$card.addClass("is-hidden");
+			$box.addClass("is-hidden").empty();
 			return;
 		}
 
-		$card.removeClass("is-hidden");
+		$box.removeClass("is-hidden").html(`
+			<div class="kv-recent-head">Recently decided by you</div>
+			${items
+				.map((item) => {
+					const decided = item.action === "Rejected" ? "s-cancelled" : "s-completed";
+					return `
+						<div class="kv-recent-row">
+							<span class="kv-row-body">
+								<strong>${esc(item.title)}</strong>
+								<span>${esc(item.action)} · ${esc(
+									frappe.datetime.comment_when(item.acted_on)
+								)}${
+									item.status_now && item.status_now !== item.action
+										? ` · now ${esc(item.status_now)}`
+										: ""
+								}</span>
+							</span>
+							<span class="kv-tag ${decided}">${esc(item.action)}</span>
+						</div>`;
+				})
+				.join("")}
+		`);
+	}
+
+	function renderApprovals(data) {
+		const items = data.approvals || [];
+
+		// Visibility of the whole card is decided once both this and the
+		// recent-decisions list have rendered — see toggleApprovalsCard().
+		if (!items.length) {
+			$("#kv-approval-list").empty();
+			$("#kv-approval-count").text(0);
+			return;
+		}
+
 		$("#kv-approval-count").text(items.length);
 
 		$("#kv-approval-list").html(
@@ -663,6 +703,11 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		applyRoleView(data);
 		renderKpis(data.stats || {});
 		renderApprovals(data);
+		renderRecentApprovals(data);
+		$("#kv-approvals").toggleClass(
+			"is-hidden",
+			!(data.approvals || []).length && !(data.recent_approvals || []).length
+		);
 		renderMyWork(data);
 		renderStatus(data.stats || {});
 		if (data.can_see_plan) renderPlan(data.projects || []);
@@ -727,6 +772,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		closeMenu();
 		loadDashboard();
 	});
+
+	$main.on("click", "#kv-logout", () => frappe.app.logout());
 
 	$main.on("click", "#kv-reset, #kv-preview-exit", function () {
 		previewUser = "";

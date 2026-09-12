@@ -208,6 +208,7 @@ def setup_custom_fields():
                 "options": "User",
                 "insert_after": "custom_is_milestone_activity",
                 "in_list_view": 1,
+                "allow_in_quick_entry": 1,
                 "module": "Krushi Vikas"
             },
             {
@@ -282,7 +283,8 @@ def setup_custom_fields():
                 "insert_after": "project",
                 "in_list_view": 1,
                 "in_standard_filter": 1,
-                "module": "Krushi Vikas"
+                "module": "Krushi Vikas",
+                "allow_in_quick_entry": 1
             }
         ],
         "Project": [
@@ -505,6 +507,7 @@ def setup_workflows():
             {"state": "PC Approval", "action": "Approve", "next_state": "Director Signoff",
              "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 1"},
             {"state": "Director Signoff", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Director Signoff", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
         ],
     )
 
@@ -593,7 +596,9 @@ def setup_journey_workflows():
             {"state": "Draft", "action": "Submit for Review", "next_state": "Under Review",
              "allowed": "Project Coordinator"},
             {"state": "Under Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Under Review", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
             {"state": "Under Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
+            {"state": "Under Review", "action": "Reject", "next_state": "Rejected", "allowed": "CEO"},
             {"state": "Rejected", "action": "Submit for Review", "next_state": "Under Review",
              "allowed": "Project Coordinator"},
         ],
@@ -612,7 +617,9 @@ def setup_journey_workflows():
             {"state": "Draft", "action": "Submit for Review", "next_state": "Management Review",
              "allowed": "Project Coordinator"},
             {"state": "Management Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Management Review", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
             {"state": "Management Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
+            {"state": "Management Review", "action": "Reject", "next_state": "Rejected", "allowed": "CEO"},
             {"state": "Rejected", "action": "Submit for Review", "next_state": "Management Review",
              "allowed": "Project Coordinator"},
         ],
@@ -638,7 +645,9 @@ def setup_journey_workflows():
             {"state": "PC Review", "action": "Send Back", "next_state": "Draft",
              "allowed": "Project Coordinator"},
             {"state": "Director Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Director Review", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
             {"state": "Director Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
+            {"state": "Director Review", "action": "Reject", "next_state": "Rejected", "allowed": "CEO"},
             {"state": "Rejected", "action": "Submit for Review", "next_state": "PC Review",
              "allowed": "Project Manager"},
         ],

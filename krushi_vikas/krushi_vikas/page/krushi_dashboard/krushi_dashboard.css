@@ -1180,3 +1180,25 @@ button.kv-kpi:hover {
 	font-style: italic;
 	white-space: nowrap;
 }
+
+.kv-recent-head {
+	padding: 10px 12px 6px;
+	color: var(--kv-ink-faint);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	border-top: 1px solid var(--kv-line);
+	margin-top: 4px;
+}
+
+.kv-recent-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 9px 12px;
+}
+
+.kv-recent-row .kv-row-body strong { font-size: 12.5px; }
+.kv-recent-row .kv-row-body span { font-size: 11px; }
+.kv-recent-row .kv-tag { margin-left: auto; }

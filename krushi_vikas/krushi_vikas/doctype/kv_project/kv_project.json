@@ -26,6 +26,7 @@
   "approval_status",
   "pending_approver",
   "column_break_approval",
+  "project_director",
   "pending_approver_role",
   "raised_by",
   "approval_step",
@@ -187,6 +188,14 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "Optional. When set, a Director-level approval on this project goes to them specifically rather than to any Project Director.",
+   "fieldname": "project_director",
+   "fieldtype": "Link",
+   "insert_after": "project_manager",
+   "label": "Project Director",
+   "options": "User"
+  },
+  {
    "fieldname": "pending_approver_role",
    "fieldtype": "Data",
    "label": "Waiting On Role",
@@ -312,7 +321,7 @@
   }
  ],
  "links": [],
- "modified": "2026-09-11 12:00:00.000000",
+ "modified": "2026-09-11 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "KV Project",

@@ -1037,12 +1037,22 @@ def has_project_permission(doc=None, ptype="read", user=None):
         
     # 4. Write / Edit
     if ptype == "write":
+        if not doc:
+            return any(r in roles for r in ["Project Coordinator", "Project Manager"])
+
+        # Whoever raised it may keep working on it — otherwise a rejected
+        # project raised by a manager could never be corrected.
+        if doc.owner == user:
+            return True
+
         if "Project Coordinator" in roles:
-            if not doc:
-                return True
-            assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator") or doc.get("owner")
-            # Allowed ONLY if this Project Coordinator owns/is assigned to it
-            return assigned_coord == user or doc.owner == user
+            assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+            return assigned_coord == user
+
+        if "Project Manager" in roles:
+            # Scoped to the project they are named on — not every project.
+            return doc.get("project_manager") == user
+
         return False
         
     if ptype == "delete":
@@ -2254,3 +2264,16 @@ def get_journey_status(project=None):
 		"journey_stage": doc.journey_stage,
 		"stages": stages,
 	}
+
+
+def cleanup_activity_task_row(doc, method=None):
+	"""Remove the mirrored row from its Activity's Tasks grid.
+
+	Activity Task Detail carries a Link back to this Task (linked_task),
+	which otherwise blocks deleting a Task that was created from — or has
+	synced into — an activity's own Tasks table. Task is a core doctype,
+	so this runs via the on_trash doc_event in hooks.py rather than a
+	controller override. Frappe calls on_trash before its link check, so
+	clearing the row here is enough for the delete to proceed.
+	"""
+	frappe.db.delete("Activity Task Detail", {"linked_task": doc.name})

@@ -23,7 +23,8 @@ doc_events = {
 		"validate": [
 			"krushi_vikas.api.enforce_dependency_gate",
 			"krushi_vikas.api.enforce_task_least_privilege"
-		]
+		],
+		"on_trash": "krushi_vikas.api.cleanup_activity_task_row"
 	},
 	"Activity Outcome": {
 		"on_update_after_submit": "krushi_vikas.api.push_actual_to_kre",
