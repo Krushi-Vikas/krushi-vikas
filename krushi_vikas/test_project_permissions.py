@@ -24,12 +24,12 @@ def provision_test_users():
         user.enabled = 1
         user.user_type = "System User"
         user.set("roles", [{"role": role}])
-        user.new_password = "admin"
         user.save(ignore_permissions=True)
+        frappe.utils.password.update_password(user=email, pwd="1234")
         frappe.clear_cache(user=email)
 
     frappe.db.commit()
-    print("Provisioned 8 local test users. Password: admin")
+    print("Provisioned 8 local test users. Password: 1234")
 
 
 def run():
