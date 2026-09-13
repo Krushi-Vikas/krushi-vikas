@@ -125,6 +125,14 @@ def setup_docperms():
         {"parent": "KV Project Template", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
         {"parent": "KV Project Template", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
         {"parent": "KV Project Template", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Feedback Survey — Field Officers conduct and submit surveys from the
+        # field. Peer Field Officers are isolated from each other's submissions,
+        # while management retains supervisory review and oversight.
+        {"parent": "Feedback Survey", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "cancel": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "cancel": 0, "report": 1, "export": 1, "print": 1},
     ]
     for p in perms:
         if not frappe.db.exists("DocType", p["parent"]):

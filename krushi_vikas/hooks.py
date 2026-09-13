@@ -39,6 +39,9 @@ doc_events = {
 	},
 	"Activity": {
 		"validate": "krushi_vikas.api.enforce_activity_least_privilege"
+	},
+	"Feedback Survey": {
+		"validate": "krushi_vikas.api.enforce_feedback_survey_least_privilege"
 	}
 }
 
@@ -50,7 +53,8 @@ has_permission = {
 	"KV Project": "krushi_vikas.api.has_project_permission",
 	"Project": "krushi_vikas.api.has_project_permission",
 	"Activity": "krushi_vikas.api.has_activity_permission",
-	"Task": "krushi_vikas.api.has_task_permission"
+	"Task": "krushi_vikas.api.has_task_permission",
+	"Feedback Survey": "krushi_vikas.api.has_feedback_survey_permission"
 }
 
 doctype_js = {

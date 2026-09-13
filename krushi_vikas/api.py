@@ -1220,6 +1220,78 @@ def has_task_permission(doc=None, ptype="read", user=None):
     return False
 
 
+def has_feedback_survey_permission(doc=None, ptype="read", user=None):
+    """
+    Evaluates role-based least privilege permissions for Feedback Survey:
+    - Administrator, System Manager, CEO, Project Director: Unrestricted access.
+    - Read: Allowed for all authenticated internal roles.
+    - Create: Allowed for Field Officer, Project Manager, Project Coordinator, Project Director, CEO, System Manager.
+    - Write / Edit:
+        * CEO, Project Director, System Manager, Administrator: Can edit ANY survey.
+        * Project Coordinator: Can edit surveys under projects they coordinate, or surveys they own.
+        * Project Manager: Can edit surveys under projects they manage, or surveys they own.
+        * Field Officer: Can edit ONLY surveys where doc.field_officer == user or doc.owner == user.
+          (Peer Field Officers are strictly blocked from editing each other's surveys - lateral isolation).
+    - Submit:
+        * Field Officer can submit their own survey (doc.field_officer == user or doc.owner == user).
+        * PM, PC, Project Director, CEO, System Manager can submit.
+    - Delete: Allowed ONLY for CEO, Project Director, System Manager, Administrator.
+    """
+    if not user:
+        user = frappe.session.user
+
+    if user in ("Administrator", "System Administrator"):
+        return True
+
+    roles = frappe.get_roles(user)
+
+    # 1. Organization-wide executives
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+
+    if ptype == "read":
+        return True
+
+    if ptype == "create":
+        return any(r in roles for r in ["Field Officer", "Project Manager", "Project Coordinator"])
+
+    if ptype in ("write", "submit"):
+        if not doc:
+            return any(r in roles for r in ["Field Officer", "Project Manager", "Project Coordinator"])
+
+        # Creator / owner always retains editing rights
+        if doc.owner == user:
+            return True
+
+        # Field Officer: strictly limited to their own assigned survey
+        if "Field Officer" in roles:
+            fo = doc.get("field_officer") or doc.owner
+            return fo == user
+
+        # Project Manager: can edit if they manage the linked project
+        if "Project Manager" in roles:
+            if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                if pm == user:
+                    return True
+            return False
+
+        # Project Coordinator: can edit if they coordinate the linked project
+        if "Project Coordinator" in roles:
+            if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                if coord == user:
+                    return True
+            return False
+
+        return False
+
+    if ptype in ("delete", "cancel"):
+        return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+
+    return False
+
+
 def enforce_activity_least_privilege(doc, method=None):
     """Validates Activity creation & edit rules strictly against hierarchy and ownership"""
     user = frappe.session.user
@@ -1339,6 +1411,48 @@ def enforce_project_least_privilege(doc, method=None):
                 frappe._("Permission Denied: Project Managers and Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Coordinator, Project Director, or CEO."),
                 frappe.PermissionError
             )
+
+
+def enforce_feedback_survey_least_privilege(doc, method=None):
+    """Validates Feedback Survey creation & edit rules strictly against hierarchy and lateral isolation"""
+    user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return
+
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return
+
+    # If new and created by a Field Officer, ensure field_officer defaults to current user
+    if doc.is_new() and "Field Officer" in roles and not doc.get("field_officer"):
+        doc.field_officer = user
+
+    if not doc.is_new():
+        if "Field Officer" in roles:
+            fo = doc.get("field_officer") or doc.owner
+            if fo != user and doc.owner != user:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Feedback Survey '{doc.name}' was conducted by Field Officer '{fo}'. Another Field Officer cannot edit this survey."),
+                    frappe.PermissionError
+                )
+        elif "Project Manager" in roles:
+            if doc.owner != user:
+                if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                    pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                    if pm and pm != user:
+                        frappe.throw(
+                            frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project managed by '{pm}'. You cannot edit this survey."),
+                            frappe.PermissionError
+                        )
+        elif "Project Coordinator" in roles:
+            if doc.owner != user:
+                if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                    coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                    if coord and coord != user:
+                        frappe.throw(
+                            frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project coordinated by '{coord}'. You cannot edit this survey."),
+                            frappe.PermissionError
+                        )
 
 
 def validate_project_finances_and_activities(doc, method=None):
