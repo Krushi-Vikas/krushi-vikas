@@ -41,7 +41,8 @@ doc_events = {
 		"validate": "krushi_vikas.api.enforce_activity_least_privilege"
 	},
 	"Feedback Survey": {
-		"validate": "krushi_vikas.api.enforce_feedback_survey_least_privilege"
+		"validate": "krushi_vikas.api.enforce_feedback_survey_least_privilege",
+		"on_submit": "krushi_vikas.notifications.notify_feedback_survey_submitted"
 	}
 }
 

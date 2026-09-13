@@ -160,6 +160,35 @@ def notify_aging_approvals():
                 _push(user, subject, doctype, row.name)
 
 
+def notify_feedback_survey_submitted(doc, method=None):
+    """Notify Project Manager and Coordinator via Notification Log, ToDo, and WhatsApp when a Feedback Survey is submitted."""
+    if not doc.get("project"):
+        return
+
+    proj = frappe.db.get_value(
+        "KV Project",
+        doc.project,
+        ["name", "project_manager", "project_coordinator", "project_director"],
+        as_dict=True,
+    )
+    if not proj:
+        return
+
+    village = doc.get("village") or "Village"
+    field_officer = doc.get("field_officer") or doc.owner or "Field Officer"
+    subject = frappe._("Feedback Survey Submitted: {0} ({1}) by {2}").format(
+        village, doc.name, field_officer
+    )
+
+    recipients = set()
+    for field in ("project_manager", "project_coordinator"):
+        if proj.get(field):
+            recipients.add(proj[field])
+
+    for user in recipients:
+        _push(user, subject, "Feedback Survey", doc.name)
+
+
 @frappe.whitelist()
 def get_notifications(user=None, limit=20):
     """Feed for the dashboard's Notifications card: unread bell items."""

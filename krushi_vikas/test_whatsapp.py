@@ -21,6 +21,7 @@ def run():
     test_send_whatsapp_unconfigured()
     test_send_whatsapp_mocked_success()
     test_send_whatsapp_error_handling()
+    test_feedback_survey_submission_whatsapp_alert()
 
     print("\n=======================================================")
     print("🎉 ALL WHATSAPP INTEGRATION & EVENT TESTS PASSED! 🎉")
@@ -188,3 +189,39 @@ def test_send_whatsapp_error_handling():
             assert "100" in res["message"]
             assert "Parameter template['name'] is invalid" in res["message"]
             print("  [PASS] send_whatsapp accurately captures and reports Meta Graph API error codes.")
+
+
+def test_feedback_survey_submission_whatsapp_alert():
+    from krushi_vikas.notifications import notify_feedback_survey_submitted
+
+    doc = MagicMock()
+    doc.name = "FS-2026-00042"
+    doc.project = "KV-PROJ-TEST"
+    doc.village = "Ralegaon"
+    doc.field_officer = "fo@krushivikas.org"
+    doc.owner = "fo@krushivikas.org"
+    doc.get = lambda k: getattr(doc, k, None)
+
+    mock_project_data = {
+        "name": "KV-PROJ-TEST",
+        "project_manager": "pm@krushivikas.org",
+        "project_coordinator": "pc@krushivikas.org",
+        "project_director": "pd@krushivikas.org",
+    }
+
+    with patch("frappe.db.get_value", return_value=mock_project_data):
+        with patch("krushi_vikas.notifications._push") as mock_push:
+            notify_feedback_survey_submitted(doc)
+            assert mock_push.call_count == 2
+            called_users = {call[0][0] for call in mock_push.call_args_list}
+            assert "pm@krushivikas.org" in called_users
+            assert "pc@krushivikas.org" in called_users
+            for call in mock_push.call_args_list:
+                subject = call[0][1]
+                assert "Feedback Survey Submitted" in subject
+                assert "Ralegaon" in subject
+                assert "FS-2026-00042" in subject
+                assert "fo@krushivikas.org" in subject
+                assert call[0][2] == "Feedback Survey"
+                assert call[0][3] == "FS-2026-00042"
+    print("  [PASS] notify_feedback_survey_submitted triggers alerts to assigned PM and Coordinator.")
