@@ -25,6 +25,7 @@
 		"kre",
 		"activity-outcome",
 		"baseline-survey",
+		"village-profile",
 		"feedback-survey",
 		"beneficiary",
 	];
@@ -40,7 +41,18 @@
 		// straight past it — so it's just as off-limits as any other route.
 		if (!route || !route.length) return false;
 		const head = String(route[0] || "").toLowerCase();
-		return ALLOWED_ROUTE_ROOTS.some((root) => head === root || head.startsWith(root));
+		const routesToCheck = [head];
+
+		// Desk shortcuts use List/<DocType> and Form/<DocType>/<name>, while
+		// direct navigation uses the DocType's slug. Restrict both forms to
+		// the same approved Krushi Vikas document set.
+		if (["list", "form"].includes(head) && route[1]) {
+			routesToCheck.push(String(route[1]).toLowerCase().replace(/\s+/g, "-"));
+		}
+
+		return routesToCheck.some((candidate) =>
+			ALLOWED_ROUTE_ROOTS.some((root) => candidate === root || candidate.startsWith(root))
+		);
 	}
 
 	function enforce() {
