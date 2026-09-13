@@ -1,6 +1,7 @@
 frappe.ui.form.on('KV Project', {
     onload(frm) {
         frm.set_query('theme', 'activities', () => ({ filters: { is_group: 1 } }));
+        frm.set_query('village_profile', 'project_villages', () => ({ filters: { docstatus: 1 } }));
         frm.set_query('sub_theme', 'activities', (doc, cdt, cdn) => {
             const row = locals[cdt][cdn];
             return { filters: { is_group: 0, parent_project_theme: row.theme || '' } };

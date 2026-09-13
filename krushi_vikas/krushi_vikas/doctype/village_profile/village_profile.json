@@ -218,6 +218,7 @@
   {
    "fieldname": "project",
    "fieldtype": "Link",
+    "hidden": 1,
    "label": "Linked Project",
    "options": "Project"
   },

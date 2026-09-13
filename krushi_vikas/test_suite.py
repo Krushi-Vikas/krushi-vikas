@@ -419,6 +419,8 @@ def test_village_profile_lifecycle(company):
 def test_baseline_survey_lifecycle(company):
     print("\n[Test 7] Testing Baseline Survey DocType, Validations, and Submission API...")
     from krushi_vikas.api import submit_baseline_survey, get_baseline_survey_options
+    village_profile = frappe.db.get_value("Village Profile", {"docstatus": 1}, "name")
+    assert village_profile, "A submitted Village Profile is required before testing household baselines."
 
     # 1. Test Options API
     opts = get_baseline_survey_options()
@@ -431,6 +433,7 @@ def test_baseline_survey_lifecycle(company):
         "doctype": "Baseline Survey",
         "farmer_name": "Ramesh Tukaram Patil",
         "contact_number": "9823456789",
+        "village_profile": village_profile,
         "village": "Rampur",
         "survey_date": "2024-05-20",
         "field_officer": "Administrator",
@@ -546,6 +549,7 @@ def test_baseline_survey_lifecycle(company):
     api_res = submit_baseline_survey({
         "farmer_name": "Sunita Rahul Shinde",
         "contact_number": "9765432101",
+        "village_profile": village_profile,
         "village": "Sonapur",
         "total_landholding_acres": 3.0,
         "irrigated_land_acres": 1.5,
@@ -585,6 +589,7 @@ def test_baseline_survey_lifecycle(company):
     raw_user_json_payload = {
         "organization_name": "Institute of Agriculture Development and Rural Training",
         "form_title": "Family Survey Form",
+        "village_profile": village_profile,
         "basic_information": {
             "1.head_of_family_name": "Anil Dagadu Shinde",
             "1.mobile_number": "9822334455",

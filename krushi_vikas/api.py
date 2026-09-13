@@ -301,7 +301,15 @@ def assert_can_collect_survey(what="survey"):
 def _project_leads(project):
     """(coordinator, manager) for an ERPNext Project, tolerating either the
     custom field or the KV Project naming."""
-    if not project or not frappe.db.exists("Project", project):
+    if not project:
+        return None, None
+
+    if frappe.db.exists("KV Project", project):
+        return frappe.db.get_value("KV Project", project, "project_coordinator"), frappe.db.get_value(
+            "KV Project", project, "project_manager"
+        )
+
+    if not frappe.db.exists("Project", project):
         return None, None
 
     coordinator = manager = None
@@ -332,11 +340,23 @@ def has_survey_permission(doc, ptype="read", user=None):
     if collector == user or getattr(doc, "owner", None) == user:
         return True
 
-    coordinator, manager = _project_leads(doc.get("project") if hasattr(doc, "get") else None)
-    if "Project Coordinator" in roles and coordinator and coordinator == user:
-        return True
-    if "Project Manager" in roles and manager and manager == user:
-        return True
+    projects = {doc.get("project")} if hasattr(doc, "get") and doc.get("project") else set()
+    village_profile = doc.get("village_profile") if hasattr(doc, "get") else None
+    if village_profile and frappe.db.exists("DocType", "Project Village Detail"):
+        projects.update(
+            frappe.get_all(
+                "Project Village Detail",
+                filters={"village_profile": village_profile, "parenttype": "KV Project"},
+                pluck="parent",
+            )
+        )
+
+    for project in projects:
+        coordinator, manager = _project_leads(project)
+        if "Project Coordinator" in roles and coordinator == user:
+            return True
+        if "Project Manager" in roles and manager == user:
+            return True
 
     return False
 
@@ -577,6 +597,7 @@ def submit_baseline_survey(data):
         "doctype": "Baseline Survey",
         "farmer_name": data.get("farmer_name") or basic_info.get("1.head_of_family_name") or "Farmer",
         "contact_number": data.get("contact_number") or basic_info.get("1.mobile_number") or "9999999999",
+        "village_profile": data.get("village_profile"),
         "village": data.get("village") or basic_info.get("2.village_name") or "Sonapur",
         "survey_date": data.get("survey_date") or frappe.utils.today(),
         "field_officer": data.get("field_officer") or "Administrator",
@@ -1599,6 +1620,11 @@ def submit_kv_project(data):
         "linked_baseline_survey": data.get("linked_baseline_survey"),
         "linked_field_tracking_form": data.get("linked_field_tracking_form")
     })
+
+    for village in data.get("project_villages") or []:
+        village_profile = village if isinstance(village, str) else village.get("village_profile")
+        if village_profile:
+            doc.append("project_villages", {"village_profile": village_profile})
     
     for act in data.get("activities") or []:
         if not act.get("activity_name"):
@@ -2315,42 +2341,48 @@ def create_proposal_from_rra(rra_report):
 
 
 @frappe.whitelist()
-def create_project_from_proposal(proposal, coordinator=None):
-	"""06 <- 04. Creates the operational project once the proposal is
-	approved. Everything the proposal settled is carried over rather than
-	re-keyed, so the project cannot disagree with what was signed off."""
-	doc = frappe.get_doc("Project Proposal", proposal)
+def create_project_from_proposal(proposal, coordinator=None, village_profiles=None):
+    """06 <- 04. Creates the operational project once the proposal is
+    approved. Everything the proposal settled is carried over rather than
+    re-keyed, so the project cannot disagree with what was signed off."""
+    doc = frappe.get_doc("Project Proposal", proposal)
 
-	if doc.docstatus != 1:
-		frappe.throw(frappe._("Proposal {0} has not been submitted.").format(proposal))
+    if doc.docstatus != 1:
+        frappe.throw(frappe._("Proposal {0} has not been submitted.").format(proposal))
 
-	if doc.workflow_state != "Approved":
-		frappe.throw(
-			frappe._(
-				"Proposal {0} is at '{1}'. A project can only be created from an "
-				"approved proposal (step 04)."
-			).format(proposal, doc.workflow_state or "Draft")
-		)
+    if doc.workflow_state != "Approved":
+        frappe.throw(
+            frappe._(
+                "Proposal {0} is at '{1}'. A project can only be created from an "
+                "approved proposal (step 04)."
+            ).format(proposal, doc.workflow_state or "Draft")
+        )
 
-	if doc.kv_project:
-		frappe.throw(frappe._("Project {0} was already created from this proposal.").format(doc.kv_project))
+    if doc.kv_project:
+        frappe.throw(frappe._("Project {0} was already created from this proposal.").format(doc.kv_project))
 
-	project = frappe.new_doc("KV Project")
-	project.project_name = doc.title
-	project.theme = doc.thematic_area
-	project.project_phase = "Execution"
-	project.status = "Planning"
-	project.project_manager = doc.project_manager
-	project.project_coordinator = coordinator or doc.proposed_coordinator or frappe.session.user
-	project.start_date = doc.planned_start_date
-	project.end_date = doc.planned_end_date
-	project.budget = doc.total_budget
-	project.proposal = doc.name
-	project.insert()
+    project = frappe.new_doc("KV Project")
+    project.project_name = doc.title
+    project.theme = doc.thematic_area
+    project.project_phase = "Execution"
+    project.status = "Planning"
+    project.project_manager = doc.project_manager
+    project.project_coordinator = coordinator or doc.proposed_coordinator or frappe.session.user
+    project.start_date = doc.planned_start_date
+    project.end_date = doc.planned_end_date
+    project.budget = doc.total_budget
+    project.proposal = doc.name
+    if isinstance(village_profiles, str):
+        village_profiles = frappe.parse_json(village_profiles)
+    for village in village_profiles or []:
+        village_profile = village if isinstance(village, str) else village.get("village_profile")
+        if village_profile:
+            project.append("project_villages", {"village_profile": village_profile})
+    project.insert()
 
-	frappe.db.set_value("Project Proposal", doc.name, "kv_project", project.name)
+    frappe.db.set_value("Project Proposal", doc.name, "kv_project", project.name)
 
-	return project.name
+    return project.name
 
 
 @frappe.whitelist()

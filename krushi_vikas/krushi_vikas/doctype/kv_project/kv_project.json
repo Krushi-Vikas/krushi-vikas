@@ -39,6 +39,7 @@
   "journey_stage",
   "workflow_state",
   "structural_forms_section",
+    "project_villages",
   "linked_baseline_survey",
   "column_break_4",
   "linked_field_tracking_form",
@@ -282,8 +283,15 @@
    "label": "Linked Structural Forms"
   },
   {
+    "fieldname": "project_villages",
+    "fieldtype": "Table",
+    "label": "Project Villages and Baseline Coverage",
+    "options": "Project Village Detail"
+  },
+  {
    "fieldname": "linked_baseline_survey",
    "fieldtype": "Link",
+    "hidden": 1,
    "label": "Linked Baseline Form",
    "options": "Baseline Survey"
   },

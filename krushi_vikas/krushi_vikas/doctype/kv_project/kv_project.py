@@ -43,6 +43,7 @@ class KVProject(Document):
         from krushi_vikas.api import enforce_project_least_privilege
         enforce_project_least_privilege(self)
 
+        self.refresh_baseline_coverage()
         if self.start_date and self.end_date and str(self.end_date) < str(self.start_date):
             frappe.throw("End Date cannot be before Start Date for KV Project.")
             
@@ -58,6 +59,37 @@ class KVProject(Document):
 
         self.set_journey_stage()
         self.recompute_themes_covered()
+
+    def refresh_baseline_coverage(self):
+        villages = self.get("project_villages") or []
+        seen_profiles = set()
+        warnings = []
+
+        if not villages:
+            warnings.append("No Village Profile is linked, so household baseline coverage cannot be monitored.")
+
+        for row in villages:
+            if row.village_profile in seen_profiles:
+                frappe.throw("A Village Profile can only be linked to a project once.")
+            seen_profiles.add(row.village_profile)
+
+            profile = frappe.get_doc("Village Profile", row.village_profile)
+            row.village_name = profile.village_name
+            row.district = profile.district
+            row.total_households = profile.total_households or 0
+            row.submitted_baseline_surveys = frappe.db.count(
+                "Baseline Survey", {"village_profile": profile.name, "docstatus": 1}
+            )
+            row.baseline_coverage_percent = (
+                (row.submitted_baseline_surveys / row.total_households) * 100
+                if row.total_households else 0
+            )
+
+            if not row.submitted_baseline_surveys:
+                warnings.append("{0} has no submitted household baseline surveys.".format(profile.village_name))
+
+        if warnings:
+            frappe.msgprint("<br>".join(warnings), title="Baseline Evidence", indicator="orange")
 
     def recompute_themes_covered(self):
         """A project spans whatever Themes its Activities actually carry —

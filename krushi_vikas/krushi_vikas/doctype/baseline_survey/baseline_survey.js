@@ -2,6 +2,17 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Baseline Survey", {
+	setup: function(frm) {
+		frm.set_query("village_profile", () => ({ filters: { docstatus: 1 } }));
+	},
+
+	village_profile: function(frm) {
+		if (!frm.doc.village_profile) return;
+		frappe.db.get_value("Village Profile", frm.doc.village_profile, "village_name").then((result) => {
+			frm.set_value("village", result.message.village_name);
+		});
+	},
+
 	refresh: function(frm) {
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Export to Excel / CSV"), function() {
