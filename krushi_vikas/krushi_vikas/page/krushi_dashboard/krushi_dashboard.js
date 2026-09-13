@@ -14,7 +14,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		activities: () => frappe.set_route("krushi-activities"),
 		themes: () => frappe.set_route("krushi-themes"),
 		beneficiaries: () => frappe.set_route("List", "Beneficiary", "List"),
-		surveys: () => frappe.set_route("List", "Baseline Survey", "List"),
+		baselineSurvey: () => frappe.set_route("List", "Baseline Survey", "List"),
+		villageSurvey: () => frappe.set_route("List", "Village Profile", "List"),
 		proposals: () => frappe.set_route("List", "Project Proposal", "List")
 	};
 
@@ -126,7 +127,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				<button class="kv-nav-item" data-route="proposals" data-perm="proposal">${icon("clipboard")}<span>Proposals</span></button>
 				<button class="kv-nav-item" data-route="themes" data-perm="theme">${icon("sprout")}<span>Themes</span></button>
 				<button class="kv-nav-item" data-route="beneficiaries" data-perm="beneficiary">${icon("users")}<span>Beneficiaries</span></button>
-				<button class="kv-nav-item" data-route="surveys" data-perm="survey">${icon("tasks")}<span>Surveys</span></button>
+				<button class="kv-nav-item" data-route="baselineSurvey" data-perm="survey">${icon("tasks")}<span>Household Survey</span></button>
+				<button class="kv-nav-item" data-route="villageSurvey" data-perm="survey">${icon("sprout")}<span>Village Survey</span></button>
 			</nav>
 
 			<section class="kv-hero">
