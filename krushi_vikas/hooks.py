@@ -68,7 +68,7 @@ doctype_js = {
 # Vikas if they land on anything outside it (ERPNext modules, Settings,
 # the app switcher) — see the file for why this is a route guard and not
 # a hidden sidebar link.
-app_include_js = ["/assets/krushi_vikas/js/kiosk_mode.js"]
+app_include_js = ["/assets/krushi_vikas/js/kiosk_mode.js?v=2"]
 
 # The login page is a website page (not Desk), so it reads web_include_*
 # rather than app_include_*. Scoped entirely under .for-login in the file
