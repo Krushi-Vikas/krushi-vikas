@@ -56,6 +56,40 @@ class Activity(Document):
                     "End Date cannot be before Start Date."
                 )
 
+        self.enforce_task_sequence()
+
+    def enforce_task_sequence(self):
+        """Tasks in the grid are a step-by-step checklist by default.
+
+        A row can't be marked Completed until its predecessor is Completed.
+        The predecessor is whatever `depends_on_task` names explicitly, or
+        — when that's blank — simply the row above it (idx - 1), matching
+        the field team's own checklist ordering (identify -> prep material
+        -> concept note -> approval -> payment, one after another).
+        """
+        rows = sorted(self.get("tasks") or [], key=lambda r: r.idx)
+
+        for i, row in enumerate(rows):
+            if row.status != "Completed":
+                continue
+
+            predecessor = None
+
+            if row.depends_on_task:
+                if frappe.db.exists("Task", row.depends_on_task):
+                    predecessor = frappe.db.get_value(
+                        "Task", row.depends_on_task, ["subject", "status"], as_dict=True
+                    )
+            elif i > 0:
+                prev = rows[i - 1]
+                predecessor = frappe._dict(subject=prev.subject, status=prev.status)
+
+            if predecessor and predecessor.status != "Completed":
+                frappe.throw(
+                    f"Task '{row.subject}' is blocked: predecessor "
+                    f"'{predecessor.subject}' is not Completed yet."
+                )
+
 
     def before_save(self):
         """
@@ -94,6 +128,13 @@ class Activity(Document):
         """
         frappe.db.delete("KV Project Activity", {"linked_activity": self.name})
 
+        if self.project and frappe.db.exists("KV Project", self.project):
+            from krushi_vikas.krushi_vikas.doctype.kv_project.kv_project import (
+                recompute_themes_covered_db,
+            )
+
+            recompute_themes_covered_db(self.project)
+
     def sync_tasks(self):
         """Turn each row of the Tasks grid into a real Task.
 
@@ -102,7 +143,9 @@ class Activity(Document):
         Task records. Each row remembers the Task it created via
         linked_task, so saving again updates it instead of duplicating it.
         """
-        for row in self.get("tasks") or []:
+        rows = sorted(self.get("tasks") or [], key=lambda r: r.idx)
+
+        for i, row in enumerate(rows):
             if not row.subject:
                 continue
 
@@ -121,21 +164,44 @@ class Activity(Document):
                 task = frappe.get_doc("Task", row.linked_task)
                 task.update(values)
                 task.save(ignore_permissions=True)
-                continue
-
-            existing = frappe.db.get_value(
-                "Task", {"custom_activity": self.name, "subject": row.subject}, "name"
-            )
-
-            if existing:
-                task = frappe.get_doc("Task", existing)
-                task.update(values)
-                task.save(ignore_permissions=True)
             else:
-                task = frappe.get_doc(dict(doctype="Task", **values))
-                task.insert(ignore_permissions=True)
+                existing = frappe.db.get_value(
+                    "Task", {"custom_activity": self.name, "subject": row.subject}, "name"
+                )
 
-            row.db_set("linked_task", task.name, update_modified=False)
+                if existing:
+                    task = frappe.get_doc("Task", existing)
+                    task.update(values)
+                    task.save(ignore_permissions=True)
+                else:
+                    task = frappe.get_doc(dict(doctype="Task", **values))
+                    task.insert(ignore_permissions=True)
+
+                row.db_set("linked_task", task.name, update_modified=False)
+
+            self.sync_task_dependency(row, rows[i - 1] if i > 0 else None, task.name)
+
+    def sync_task_dependency(self, row, prev_row, task_name):
+        """Mirror the checklist ordering onto the real Task's own
+        `depends_on` table, so api.enforce_dependency_gate blocks
+        completion there too — not only when edited via this grid.
+        """
+        predecessor_task = None
+
+        if row.depends_on_task:
+            predecessor_task = row.depends_on_task
+        elif prev_row and prev_row.linked_task:
+            predecessor_task = prev_row.linked_task
+
+        task = frappe.get_doc("Task", task_name)
+        current = {d.task for d in (task.depends_on or [])}
+
+        if predecessor_task and predecessor_task not in current:
+            task.append("depends_on", {"task": predecessor_task})
+            task.save(ignore_permissions=True)
+        elif not predecessor_task and task.depends_on:
+            task.set("depends_on", [])
+            task.save(ignore_permissions=True)
 
     def sync_into_project_grid(self):
         """Mirror this activity into its project's Activities grid.
@@ -157,13 +223,18 @@ class Activity(Document):
 
         values = {
             "activity_name": self.activity_name,
+            "theme": self.theme,
+            "sub_theme": self.sub_theme,
             "assignee": self.assignee,
             "status": GRID_STATUS_MAP.get(self.status, "Planned"),
             "start_date": self.start_date,
             "end_date": self.end_date,
-            "description": self.description,
-            "input_output": self.input_output,
-            "impact": self.impact,
+            "approved_budget": self.approved_budget,
+            "total_expenditure": self.total_expenditure,
+            "target": self.target,
+            "achievement": self.achievement,
+            "project_manager_email": self.project_manager_email,
+            "project_coordinator_email": self.project_coordinator_email,
             "linked_activity": self.name,
         }
 
@@ -181,28 +252,34 @@ class Activity(Document):
             frappe.db.set_value(
                 "KV Project Activity", existing_row, values, update_modified=False
             )
-            return
-
-        # No grid row for this activity yet under this project. Insert one
-        # directly as a child record rather than loading and saving the
-        # whole project — that would fire KVProject.on_update() and run
-        # sync_activities() for no reason, since this row is already correct.
-        next_idx = (
-            frappe.db.count(
-                "KV Project Activity",
-                {"parent": self.project, "parenttype": "KV Project"},
+        else:
+            # No grid row for this activity yet under this project. Insert
+            # one directly as a child record rather than loading and saving
+            # the whole project — that would fire KVProject.on_update() and
+            # run sync_activities() for no reason, since this row is already
+            # correct.
+            next_idx = (
+                frappe.db.count(
+                    "KV Project Activity",
+                    {"parent": self.project, "parenttype": "KV Project"},
+                )
+                + 1
             )
-            + 1
+
+            row = frappe.get_doc(
+                {
+                    "doctype": "KV Project Activity",
+                    "parent": self.project,
+                    "parenttype": "KV Project",
+                    "parentfield": "activities",
+                    "idx": next_idx,
+                    **values,
+                }
+            )
+            row.insert(ignore_permissions=True)
+
+        from krushi_vikas.krushi_vikas.doctype.kv_project.kv_project import (
+            recompute_themes_covered_db,
         )
 
-        row = frappe.get_doc(
-            {
-                "doctype": "KV Project Activity",
-                "parent": self.project,
-                "parenttype": "KV Project",
-                "parentfield": "activities",
-                "idx": next_idx,
-                **values,
-            }
-        )
-        row.insert(ignore_permissions=True)
+        recompute_themes_covered_db(self.project)

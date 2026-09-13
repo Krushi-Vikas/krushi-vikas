@@ -7,7 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "project_name",
-  "theme",
+  "themes_covered",
   "project_phase",
   "status",
   "column_break_1",
@@ -59,12 +59,12 @@
    "reqd": 1
   },
   {
-   "fieldname": "theme",
-   "fieldtype": "Link",
+   "fieldname": "themes_covered",
+   "fieldtype": "Small Text",
    "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Theme",
-   "options": "Project Theme"
+   "label": "Themes Covered",
+   "read_only": 1,
+   "description": "Auto-computed from the Theme/Sub-Theme set on each Activity below — a project usually spans several."
   },
   {
    "default": "Execution",

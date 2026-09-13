@@ -9,8 +9,37 @@ def run():
     setup_custom_fields()
     setup_workspace()
     setup_workflows()
+    setup_branding()
     frappe.db.commit()
     print("All site configurations and workflows completed successfully!")
+
+
+def setup_branding():
+    """Replace the default Frappe/ERPNext mark on the login page and desk
+    with Krushi Vikas's own — shipped as a real app asset (not a runtime
+    File upload) so it survives a fresh install with no manual step.
+    """
+    print("Setting up Branding...")
+    ws = frappe.get_single("Website Settings")
+    changed = False
+
+    if ws.app_name != "Krushi Vikas":
+        ws.app_name = "Krushi Vikas"
+        changed = True
+
+    # The version suffix isn't for cache-busting the file itself (Frappe
+    # doesn't hash this path) — it's so that swapping the actual image on
+    # disk, as happened here, forces browsers who already cached the old
+    # bytes at the old URL to fetch fresh ones from a URL they've never
+    # seen. Bump it whenever the logo file changes.
+    logo_url = "/assets/krushi_vikas/images/logo.png?v=2"
+
+    if ws.app_logo != logo_url:
+        ws.app_logo = logo_url
+        changed = True
+
+    if changed:
+        ws.save(ignore_permissions=True)
 
 def setup_roles():
     print("Setting up Roles...")
@@ -79,6 +108,23 @@ def setup_docperms():
         {"parent": "Project Proposal", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Project Proposal", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Project Proposal", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Project Theme / Sub-theme catalog. Only senior roles curate the
+        # tree; everyone else (including Project Manager and Coordinator)
+        # can only pick from what already exists — they never get create
+        # or write here, no matter what role grants it on other doctypes.
+        {"parent": "Project Theme", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Project Coordinator", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # KV Project Template — only executives/coordinators manage the
+        # template catalog; Managers and Field Officers can read it (to
+        # build a project from one) but not create or edit templates.
+        {"parent": "KV Project Template", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
     ]
     for p in perms:
         if not frappe.db.exists("DocType", p["parent"]):
@@ -126,6 +172,7 @@ def setup_naming():
         ("Concept Note", "title"),
         ("RRA Report", "title"),
         ("Project Proposal", "title"),
+        ("KV Project Template", "template_name"),
     ]
 
     for doctype, title_field in titles:
@@ -434,6 +481,16 @@ def setup_custom_fields():
                 "insert_after": "custom_activities_sec",
                 "module": "Krushi Vikas"
             }
+        ],
+        "User": [
+            {
+                "fieldname": "whatsapp_number",
+                "label": "WhatsApp Number",
+                "fieldtype": "Data",
+                "insert_after": "mobile_no",
+                "description": "E.164 format, digits only, no leading + (e.g. 919876543210). Used for overdue-task and approval WhatsApp alerts.",
+                "module": "Krushi Vikas"
+            }
         ]
     }
     create_custom_fields(custom_fields, update=True)
@@ -668,7 +725,8 @@ def json_workspace_content():
             {"type": "Link", "link_type": "DocType", "link_to": "Project", "label": "Projects"},
             {"type": "Link", "link_type": "DocType", "link_to": "Task", "label": "Activities / Tasks"},
             {"type": "Link", "link_type": "DocType", "link_to": "Project Goal", "label": "Project Goals & Objectives"},
-            {"type": "Link", "link_type": "DocType", "link_to": "Project Theme", "label": "Themes & Sub-themes"}
+            {"type": "Link", "link_type": "DocType", "link_to": "Project Theme", "label": "Themes & Sub-themes"},
+            {"type": "Link", "link_type": "DocType", "link_to": "KV Project Template", "label": "Project Templates"}
         ]}},
         {"type": "card", "data": {"card_name": "Results & KRE (OKRs)", "links": [
             {"type": "Link", "link_type": "DocType", "link_to": "KRE", "label": "Key Result Expectations (KRE)"},

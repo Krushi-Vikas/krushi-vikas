@@ -101,6 +101,8 @@ def get_dashboard_data(year=None, preview_user=None):
 		"preview": preview,
 		"approvals": get_approvals_for(user),
 		"recent_approvals": get_recent_approvals_for(user),
+		"overdue_tasks": get_overdue_tasks_for(user),
+		"notifications": get_notifications_for(user),
 		"can_preview": can_preview(),
 	}
 
@@ -122,6 +124,18 @@ def get_recent_approvals_for(user):
 	from krushi_vikas.approvals import get_recent_approvals
 
 	return get_recent_approvals(user)
+
+
+def get_overdue_tasks_for(user):
+	from krushi_vikas.notifications import get_overdue_tasks
+
+	return get_overdue_tasks(user)
+
+
+def get_notifications_for(user):
+	from krushi_vikas.notifications import get_notifications
+
+	return get_notifications(user)
 
 
 def can_create_project(user):
@@ -408,7 +422,7 @@ def get_scoped_projects(scope, year_start, year_end):
 		fields=[
 			"name",
 			"project_name",
-			"theme",
+			"themes_covered",
 			"project_phase",
 			"status",
 			"project_manager",
@@ -436,8 +450,8 @@ def get_my_activities(user):
 			"status",
 			"start_date",
 			"end_date",
-			"planned_budget",
-			"actual_expenditure",
+			"approved_budget",
+			"total_expenditure",
 		],
 		order_by="end_date asc",
 		limit_page_length=25,

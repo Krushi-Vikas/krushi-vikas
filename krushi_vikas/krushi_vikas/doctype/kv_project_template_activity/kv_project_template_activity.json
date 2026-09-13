@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "activity_name",
+  "theme",
+  "sub_theme",
+  "duration_days",
+  "approved_budget",
+  "total_expenditure",
+  "target",
+  "achievement"
+ ],
+ "fields": [
+  {
+   "fieldname": "activity_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Activity Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "theme",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Theme",
+   "options": "Project Theme"
+  },
+  {
+   "fieldname": "sub_theme",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sub-Theme",
+   "options": "Project Theme"
+  },
+  {
+   "default": "30",
+   "fieldname": "duration_days",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Duration (Days from Project Start)"
+  },
+  {
+   "default": "0",
+   "fieldname": "approved_budget",
+   "fieldtype": "Currency",
+   "label": "Approved Budget"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_expenditure",
+   "fieldtype": "Currency",
+   "label": "Total Expenditure"
+  },
+  {
+   "default": "0",
+   "fieldname": "target",
+   "fieldtype": "Float",
+   "label": "Target"
+  },
+  {
+   "default": "0",
+   "fieldname": "achievement",
+   "fieldtype": "Float",
+   "label": "Achievement"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "KV Project Template Activity",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

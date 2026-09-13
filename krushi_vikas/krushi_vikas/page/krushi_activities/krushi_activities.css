@@ -312,3 +312,13 @@
 	.kvp-grid { grid-template-columns: 1fr; }
 	.kvp-count { margin-left: 0; width: 100%; }
 }
+
+/* ── Activity-specific ──────────────────────────────────────── */
+
+.kva-project {
+	display: flex; align-items: center; gap: 6px;
+	font-size: 12px; color: var(--kv-ink-faint); font-weight: 600;
+	margin: 2px 0 6px;
+}
+
+.kva-project .kv-icon { width: 13px; height: 13px; }

@@ -2,6 +2,23 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import flt
 
+def recompute_themes_covered_db(project_name):
+    """Same rollup as KVProject.recompute_themes_covered(), for callers that
+    write the Activities grid straight to the database (Activity.on_update's
+    sync_into_project_grid) without loading and saving the parent doc.
+    """
+    rows = frappe.get_all(
+        "KV Project Activity",
+        filters={"parent": project_name, "parenttype": "KV Project"},
+        fields=["theme"],
+        distinct=True,
+    )
+    themes = sorted({r.theme for r in rows if r.theme})
+    frappe.db.set_value(
+        "KV Project", project_name, "themes_covered", ", ".join(themes), update_modified=False
+    )
+
+
 class KVProject(Document):
     def onload(self):
         """Loads and updates linked feedback surveys under this project"""
@@ -40,6 +57,15 @@ class KVProject(Document):
                 frappe.throw(f"Activity '{act.activity_name}': End Date cannot be before Start Date.")
 
         self.set_journey_stage()
+        self.recompute_themes_covered()
+
+    def recompute_themes_covered(self):
+        """A project spans whatever Themes its Activities actually carry —
+        never just the one 'default' Link field. Recomputed from the grid
+        already on this doc, so it needs no extra query here.
+        """
+        themes = sorted({row.theme for row in (self.get("activities") or []) if row.theme})
+        self.themes_covered = ", ".join(themes)
 
     # The grid uses planning words; Activity uses working ones.
     STATUS_MAP = {"Planned": "Open", "In Progress": "In Progress",
@@ -63,14 +89,16 @@ class KVProject(Document):
             values = {
                 "activity_name": row.activity_name,
                 "project": self.name,
-                "theme": self.theme,
+                "theme": row.theme,
+                "sub_theme": row.sub_theme,
                 "assignee": row.assignee,
                 "status": self.STATUS_MAP.get(row.status, "Open"),
                 "start_date": row.start_date or self.start_date,
                 "end_date": row.end_date or self.end_date,
-                "description": row.description,
-                "input_output": row.input_output,
-                "impact": row.impact,
+                "approved_budget": row.approved_budget,
+                "total_expenditure": row.total_expenditure,
+                "target": row.target,
+                "achievement": row.achievement,
             }
 
             if row.linked_activity and frappe.db.exists("Activity", row.linked_activity):
@@ -104,13 +132,22 @@ class KVProject(Document):
             row.db_set("linked_activity", activity.name, update_modified=False)
 
     def after_insert(self):
-        """Route the project to whoever is above the person who raised it."""
+        """Route the project to whoever is above the person who raised it.
+
+        Normally that's just whoever clicked Save (self.owner). Creating a
+        project from a template is the exception: an Administrator/Director
+        commonly builds it on behalf of the Manager or Coordinator actually
+        named on it, and routing by the literal owner would let their rank
+        skip the whole chain — see kv_project_template.py, which sets
+        flags.raised_by_override to the person the project is really for.
+        """
         from krushi_vikas.approvals import start_approval
 
         if self.approval_status and self.approval_status != "Draft":
             return
 
-        start_approval(self, raised_by=self.owner)
+        raised_by = self.flags.get("raised_by_override") or self.owner
+        start_approval(self, raised_by=raised_by)
 
     def refresh_journey_stage(self):
         """Recompute and persist the stage outside a save.

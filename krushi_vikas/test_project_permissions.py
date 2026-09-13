@@ -83,7 +83,7 @@ def run():
     a1.project = p1.name
     a1.assignee = "pm1_test@krushivikas.org"
     a1.status = "Open"
-    a1.planned_budget = 100000
+    a1.approved_budget = 100000
     a1.insert()
     frappe.db.commit()
     print(f"Setup: Created Activity '{a1.name}' (Assigned to PM1 under {p1.name})")
@@ -153,7 +153,7 @@ def run():
     # 2.1 PM1 (Assigned Owner) edits A1 -> MUST PASS
     frappe.session.user = "pm1_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 110000
+    doc_a.approved_budget = 110000
     doc_a.save()
     print("  [2.1] PASS: Assigned Project Manager PM1 edited Activity A1.")
 
@@ -161,7 +161,7 @@ def run():
     frappe.session.user = "pm2_test@krushivikas.org"
     try:
         doc_a = frappe.get_doc("Activity", a1.name)
-        doc_a.planned_budget = 120000
+        doc_a.approved_budget = 120000
         doc_a.save()
         print("  [2.2] FAIL: PM2 was able to edit PM1's activity!")
     except Exception as e:
@@ -170,7 +170,7 @@ def run():
     # 2.3 PC1 (Coordinator owning P1) edits Activity A1 -> MUST PASS (Hierarchical access)
     frappe.session.user = "pc1_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 130000
+    doc_a.approved_budget = 130000
     doc_a.save()
     print("  [2.3] PASS: PC1 edited Activity A1 (because PC1 owns Project P1).")
 
@@ -178,7 +178,7 @@ def run():
     frappe.session.user = "pc2_test@krushivikas.org"
     try:
         doc_a = frappe.get_doc("Activity", a1.name)
-        doc_a.planned_budget = 140000
+        doc_a.approved_budget = 140000
         doc_a.save()
         print("  [2.4] FAIL: PC2 was able to edit Activity in PC1's project!")
     except Exception as e:
@@ -188,7 +188,7 @@ def run():
     frappe.session.user = "fo1_test@krushivikas.org"
     try:
         doc_a = frappe.get_doc("Activity", a1.name)
-        doc_a.planned_budget = 150000
+        doc_a.approved_budget = 150000
         doc_a.save()
         print("  [2.5] FAIL: Field Officer was able to edit Activity!")
     except Exception as e:
@@ -197,13 +197,13 @@ def run():
     # 2.6 Project Director & CEO edit Activity -> MUST PASS
     frappe.session.user = "dir_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 160000
+    doc_a.approved_budget = 160000
     doc_a.save()
     print("  [2.6] PASS: Project Director edited Activity A1.")
 
     frappe.session.user = "ceo_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 170000
+    doc_a.approved_budget = 170000
     doc_a.save()
     print("  [2.7] PASS: CEO edited Activity A1.")
 

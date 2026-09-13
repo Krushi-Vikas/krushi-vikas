@@ -1,4 +1,13 @@
 frappe.ui.form.on("Activity", {
+	onload(frm) {
+		frm.set_query("theme", () => ({ filters: { is_group: 1 } }));
+		frm.set_query("sub_theme", () => ({
+			filters: { is_group: 0, parent_project_theme: frm.doc.theme || "" }
+		}));
+	},
+	theme(frm) {
+		frm.set_value("sub_theme", "");
+	},
 	refresh(frm) {
 		if (frm.is_new()) return;
 

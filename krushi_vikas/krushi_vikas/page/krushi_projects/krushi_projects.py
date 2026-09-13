@@ -11,7 +11,7 @@ from krushi_vikas.krushi_vikas.page.krushi_dashboard.krushi_dashboard import (
 CARD_FIELDS = (
 	"name",
 	"project_name",
-	"theme",
+	"themes_covered",
 	"status",
 	"project_phase",
 	"journey_stage",
@@ -66,7 +66,7 @@ def get_project_cards(search=None, status=None, preview_user=None):
 		"KV Project",
 		filters=filters,
 		or_filters=(
-			[["project_name", "like", f"%{search}%"], ["theme", "like", f"%{search}%"]]
+			[["project_name", "like", f"%{search}%"], ["themes_covered", "like", f"%{search}%"]]
 			if search
 			else None
 		),

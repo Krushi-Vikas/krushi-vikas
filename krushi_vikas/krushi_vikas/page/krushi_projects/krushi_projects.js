@@ -172,6 +172,16 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 			</div>`;
 	}
 
+	function themeChips(project) {
+		const themes = (project.themes_covered || "").split(",").map((t) => t.trim()).filter(Boolean);
+
+		if (!themes.length) {
+			return `<span class="kvp-theme-chip is-empty">No themes yet</span>`;
+		}
+
+		return themes.map((t) => `<span class="kvp-theme-chip">${esc(t)}</span>`).join("");
+	}
+
 	function card(project) {
 		const owner = project.project_coordinator || project.project_manager;
 
@@ -181,7 +191,7 @@ frappe.pages["krushi-projects"].on_page_load = function (wrapper) {
 				<div class="kvp-card-top">
 					<div class="kvp-card-title">
 						<strong>${esc(project.project_name || project.name)}</strong>
-						<span>${esc(project.theme || "No theme")}</span>
+						<span class="kvp-theme-chips">${themeChips(project)}</span>
 					</div>
 					<span class="kvp-tag ${statusClass(project.status)}">${esc(project.status || "Planning")}</span>
 				</div>

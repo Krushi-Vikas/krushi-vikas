@@ -1622,9 +1622,9 @@ def get_project_detail(project_id=None):
             "Activity",
             filters={"project": ["in", [p_name, p_title]]},
             fields=[
-                "name", "activity_name", "project", "theme", "status",
-                "assignee", "goal", "linked_kre", "start_date", "end_date",
-                "input_output", "impact", "planned_budget", "actual_expenditure", "description"
+                "name", "activity_name", "project", "theme", "sub_theme", "status",
+                "assignee", "start_date", "end_date",
+                "approved_budget", "total_expenditure", "target", "achievement"
             ],
             order_by="creation asc"
         )
@@ -1645,11 +1645,8 @@ def get_project_detail(project_id=None):
                 "assignee": a.assignee or "Administrator",
                 "start_date": a.start_date or "2026-01-01",
                 "end_date": a.end_date or "2026-03-31",
-                "input_output": a.input_output or "",
-                "impact": a.impact or "",
-                "planned_budget": flt(getattr(a, "planned_budget", 0)),
-                "actual_expenditure": flt(getattr(a, "actual_expenditure", 0)),
-                "description": a.description or "",
+                "approved_budget": flt(getattr(a, "approved_budget", 0)),
+                "total_expenditure": flt(getattr(a, "total_expenditure", 0)),
                 "task_count": frappe.db.count("Task", {"custom_activity": a.linked_activity or a.name}) or 0
             })
             
@@ -1793,18 +1790,15 @@ def get_activity_detail(activity_id=None):
             "project": act.project,
             "project_title": project_title,
             "theme": act.theme,
+            "sub_theme": act.sub_theme,
             "status": act.status or "Open",
             "assignee": act.assignee,
-            "goal": act.goal,
-            "linked_kre": act.linked_kre,
             "start_date": act.start_date,
             "end_date": act.end_date,
-            "timeline_description": act.timeline_description,
-            "input_output": act.input_output,
-            "impact": act.impact,
-            "planned_budget": flt(act.planned_budget),
-            "actual_expenditure": flt(act.actual_expenditure),
-            "description": act.description
+            "approved_budget": flt(act.approved_budget),
+            "total_expenditure": flt(act.total_expenditure),
+            "target": flt(act.target),
+            "achievement": flt(act.achievement)
         },
         "tasks": tasks
     }
@@ -1827,18 +1821,15 @@ def save_activity(data):
     doc.activity_name = data.get("activity_name")
     doc.project = data.get("project")
     doc.theme = data.get("theme")
+    doc.sub_theme = data.get("sub_theme")
     doc.status = data.get("status") or "Open"
     doc.assignee = data.get("assignee")
-    doc.goal = data.get("goal")
-    doc.linked_kre = data.get("linked_kre")
     doc.start_date = data.get("start_date")
     doc.end_date = data.get("end_date")
-    doc.timeline_description = data.get("timeline_description")
-    doc.input_output = data.get("input_output")
-    doc.impact = data.get("impact")
-    doc.planned_budget = flt(data.get("planned_budget") or 0)
-    doc.actual_expenditure = flt(data.get("actual_expenditure") or 0)
-    doc.description = data.get("description")
+    doc.approved_budget = flt(data.get("approved_budget") or 0)
+    doc.total_expenditure = flt(data.get("total_expenditure") or 0)
+    doc.target = flt(data.get("target") or 0)
+    doc.achievement = flt(data.get("achievement") or 0)
     
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -1941,9 +1932,9 @@ def get_global_activities(project=None, status=None, assignee=None, search=None)
         "Activity",
         filters=filters,
         fields=[
-            "name", "activity_name", "project", "theme", "status",
-            "assignee", "goal", "start_date", "end_date", "impact",
-            "planned_budget", "actual_expenditure", "creation"
+            "name", "activity_name", "project", "theme", "sub_theme", "status",
+            "assignee", "start_date", "end_date",
+            "approved_budget", "total_expenditure", "target", "achievement", "creation"
         ],
         order_by="modified desc"
     )
@@ -2277,3 +2268,21 @@ def cleanup_activity_task_row(doc, method=None):
 	clearing the row here is enough for the delete to proceed.
 	"""
 	frappe.db.delete("Activity Task Detail", {"linked_task": doc.name})
+
+
+def has_krushi_vikas_app_permission():
+	"""Every real Krushi Vikas role sees the app tile on the apps screen —
+	the same five roles that ever get to be logged in at all here.
+	"""
+	roles = frappe.get_roles(frappe.session.user)
+	return bool(
+		set(roles)
+		& {
+			"System Manager",
+			"CEO",
+			"Project Director",
+			"Project Coordinator",
+			"Project Manager",
+			"Field Officer",
+		}
+	)

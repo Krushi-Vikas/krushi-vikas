@@ -11,8 +11,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 	const routes = {
 		projects: () => frappe.set_route("krushi-projects"),
-		activities: () => frappe.set_route("List", "Activity", "List"),
-		themes: () => frappe.set_route("List", "Project Theme", "Tree"),
+		activities: () => frappe.set_route("krushi-activities"),
+		themes: () => frappe.set_route("krushi-themes"),
 		beneficiaries: () => frappe.set_route("List", "Beneficiary", "List"),
 		surveys: () => frappe.set_route("List", "Baseline Survey", "List"),
 		proposals: () => frappe.set_route("List", "Project Proposal", "List")
@@ -39,6 +39,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 		down: `<path d="m6 9 6 6 6-6"/>`,
 		eye: `<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>`,
 		logout: `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>`,
+		bell: `<path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z"/><path d="M10 20a2 2 0 0 0 4 0"/>`,
 		back: `<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>`
 	};
 
@@ -60,7 +61,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 
 			<header class="kv-topbar">
 				<div class="kv-brand">
-					<div class="kv-mark">${icon("leaf")}</div>
+					<div class="kv-mark"><img src="/assets/krushi_vikas/images/logo.png?v=2" alt="Krushi Vikas"></div>
 					<div>
 						<h1>Krushi Vikas</h1>
 					</div>
@@ -140,6 +141,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 						<strong id="kv-year">${selectedYear}</strong>
 						<button id="kv-next-year" title="Next year">${icon("right")}</button>
 					</div>
+					<button class="kv-cta ghost" id="kv-templates">${icon("clipboard")}<span>Manage Templates</span></button>
 					<button class="kv-cta" id="kv-create">${icon("folderPlus")}<span>New Project</span></button>
 				</div>
 			</section>
@@ -185,6 +187,17 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				</div>
 				<div id="kv-approval-list"></div>
 				<div id="kv-recent-approvals" class="is-hidden"></div>
+			</section>
+
+			<section class="kv-card kv-notifications is-hidden" id="kv-notifications">
+				<div class="kv-card-head">
+					<div class="kv-card-title">
+						<span class="kv-title-chip red">${icon("bell")}</span>
+						<div><h3>Notifications</h3><p>Overdue tasks & alerts</p></div>
+					</div>
+					<span class="kv-pill alert"><strong id="kv-notif-count">0</strong><span>overdue</span></span>
+				</div>
+				<div id="kv-notif-list"></div>
 			</section>
 
 			<div class="kv-split" id="kv-split">
@@ -264,7 +277,10 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			if (!can[$(this).data("perm")]) $(this).remove();
 		});
 
-		if (!frappe.model.can_create("KV Project")) $("#kv-create").addClass("is-hidden");
+		if (!frappe.model.can_create("KV Project")) {
+			$("#kv-create").addClass("is-hidden");
+			$("#kv-templates").addClass("is-hidden");
+		}
 	}
 
 	// ── Helpers ────────────────────────────────────────────────────
@@ -332,6 +348,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			: frappe.model.can_create("KV Project");
 
 		$("#kv-create").toggleClass("is-hidden", !mayCreate);
+		$("#kv-templates").toggleClass("is-hidden", !mayCreate || !frappe.model.can_read("KV Project Template"));
 
 		if (data.can_preview) {
 			$("#kv-viewas").removeClass("is-hidden");
@@ -420,8 +437,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 						<div class="kv-recent-row">
 							<span class="kv-row-body">
 								<strong>${esc(item.title)}</strong>
-								<span>${esc(item.action)} · ${esc(
-									frappe.datetime.comment_when(item.acted_on)
+								<span>${esc(item.action)} · ${frappe.datetime.comment_when(
+									item.acted_on
 								)}${
 									item.status_now && item.status_now !== item.action
 										? ` · now ${esc(item.status_now)}`
@@ -466,6 +483,46 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 				)
 				.join("")
 		);
+	}
+
+	function renderNotifications(data) {
+		const overdue = data.overdue_tasks || [];
+		const alerts = data.notifications || [];
+		const $box = $("#kv-notif-list");
+
+		if (!overdue.length && !alerts.length) {
+			$box.empty();
+			$("#kv-notif-count").text(0);
+			return;
+		}
+
+		$("#kv-notif-count").text(overdue.length);
+
+		$box.html(`
+			${overdue
+				.map(
+					(t) => `
+					<div class="kv-approval-row">
+						<span class="kv-row-body">
+							<strong>${esc(t.subject)}</strong>
+							<span>Overdue by ${esc(t.days_overdue)} day(s)</span>
+						</span>
+						<span class="kv-tag s-cancelled">Overdue</span>
+					</div>`
+				)
+				.join("")}
+			${alerts
+				.map(
+					(a) => `
+					<div class="kv-approval-row">
+						<span class="kv-row-body">
+							<strong>${esc(a.subject)}</strong>
+							<span>${frappe.datetime.comment_when(a.creation)}</span>
+						</span>
+					</div>`
+				)
+				.join("")}
+		`);
 	}
 
 	function actOnApproval(action, doctype, name) {
@@ -708,6 +765,11 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			"is-hidden",
 			!(data.approvals || []).length && !(data.recent_approvals || []).length
 		);
+		renderNotifications(data);
+		$("#kv-notifications").toggleClass(
+			"is-hidden",
+			!(data.overdue_tasks || []).length && !(data.notifications || []).length
+		);
 		renderMyWork(data);
 		renderStatus(data.stats || {});
 		if (data.can_see_plan) renderPlan(data.projects || []);
@@ -797,6 +859,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	});
 
 	$main.on("click", "#kv-create", () => frappe.new_doc("KV Project"));
+	$main.on("click", "#kv-templates", () => frappe.set_route("List", "KV Project Template", "List"));
 	$main.on("click", "#kv-viewall", () => routes.projects());
 	$main.on("click", "#kv-prev-year", () => { selectedYear -= 1; loadDashboard(); });
 	$main.on("click", "#kv-next-year", () => { selectedYear += 1; loadDashboard(); });
