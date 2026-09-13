@@ -11,6 +11,7 @@
   "village_name",
   "village_code",
   "gram_panchayat",
+  "attached_villages",
   "block_taluka",
   "district",
   "column_admin_2",
@@ -20,65 +21,114 @@
   "project",
   "date_of_survey",
   "geo_coordinates",
-  "section_demographics",
+  "section_general",
   "total_population",
   "male_population",
   "female_population",
+  "column_general_2",
   "total_households",
-  "literacy_rate_pct",
-  "column_demo_2",
-  "sc_households",
-  "st_households",
-  "obc_general_households",
-  "bpl_households",
-  "female_headed_households",
-  "section_agriculture",
-  "total_geographical_area_ha",
-  "cultivable_land_ha",
-  "irrigated_area_ha",
-  "rainfed_area_ha",
-  "forest_wasteland_ha",
-  "column_agri_2",
-  "marginal_farmers_count",
-  "small_farmers_count",
-  "medium_large_farmers_count",
-  "landless_households_count",
-  "soil_type",
+  "annual_rainfall_mm",
+  "birth_rate",
+  "death_rate",
+  "section_caste",
+  "caste_demographics_table",
+  "section_land",
+  "land_use_table",
   "section_crops",
-  "major_crops_kharif",
-  "major_crops_rabi",
+  "cropping_pattern_table",
+  "organic_farming_families",
+  "organic_farming_area",
   "column_crops_2",
-  "horticulture_crops",
-  "section_water",
-  "watershed_name",
-  "primary_drinking_water_source",
-  "summer_water_scarcity_status",
-  "primary_irrigation_practice",
+  "total_forest_area",
+  "major_forest_trees",
+  "section_drinking_water",
+  "water_sources_table",
+  "annual_village_water_tap_bill",
+  "annual_private_water_tap_bill",
   "column_water_2",
-  "open_wells_count",
-  "borewells_count",
-  "check_dams_count",
-  "farm_ponds_count",
-  "percolation_tanks_count",
+  "annual_house_rent_per_family",
+  "summer_water_problem",
+  "section_sanitation",
+  "human_defecation_management",
+  "families_with_toilets",
+  "families_without_toilets",
+  "families_toilet_not_using",
+  "families_constructing_toilets",
+  "column_sanitation_2",
+  "families_shoshkhadda_toilet",
+  "families_septic_tank_toilet",
+  "families_ikosan_toilet",
+  "public_toilets_count",
+  "public_toilet_seats",
+  "public_toilet_seats_used",
+  "public_toilet_water_supply",
+  "section_drainage",
+  "daily_contaminated_water_litres",
+  "families_on_public_drainage",
+  "families_having_shoshkhadda",
+  "families_having_kitchen_garden",
+  "families_no_pds_connection",
+  "column_drainage_2",
+  "total_drainage_length_m",
+  "open_drain_length_m",
+  "closed_drain_length_m",
+  "drain_water_management",
+  "section_waste",
+  "daily_waste_production_kg",
+  "families_worm_compost_unit",
+  "column_waste_2",
+  "families_throwing_waste_open",
+  "families_using_dustbin",
+  "waste_management_description",
+  "section_health",
+  "health_facilities_table",
+  "section_education",
+  "education_facilities_table",
   "section_institutions",
+  "public_institutions_table",
+  "section_fuel",
+  "families_using_firewood",
+  "families_using_gas",
+  "families_using_kerosene",
+  "column_fuel_2",
+  "families_using_biogas",
+  "families_using_smokeless_hearth",
+  "section_irrigation",
+  "families_having_shet_tali",
+  "families_having_wells",
+  "families_having_borewells",
+  "column_irrigation_2",
+  "families_having_black_land",
+  "families_having_laterite_land",
+  "families_having_white_land",
+  "section_livestock",
+  "total_animals_in_village",
+  "families_having_animals",
+  "column_livestock_2",
+  "total_daily_milk_production",
+  "livestock_table",
+  "section_employment",
+  "families_having_job_cards",
+  "people_working_mgnrega",
+  "migrated_families_for_job",
+  "column_employment_2",
+  "daily_migration_people",
+  "families_with_govt_servant",
+  "families_with_private_servant",
+  "section_problems",
+  "major_problems_in_village",
+  "surveyor_observations",
+  "section_additional",
   "total_shgs_count",
   "active_fpos_count",
   "fpo_name",
-  "column_inst_2",
-  "has_primary_school",
-  "has_secondary_school",
-  "has_primary_health_center",
-  "has_veterinary_clinic",
-  "has_milk_chilling_center",
-  "has_custom_hiring_center",
+  "column_additional_2",
   "has_bank_csc",
   "all_weather_road_connectivity",
-  "section_needs",
-  "key_development_priorities",
-  "water_conservation_interventions",
-  "livelihood_interventions",
-  "surveyor_observations",
-  "column_needs_2",
+  "watershed_name",
+  "section_dynamic",
+  "survey_response_json",
+  "section_status",
   "profile_status",
   "approved_by",
   "amended_from"
@@ -120,14 +170,20 @@
    "fieldname": "gram_panchayat",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Gram Panchayat",
+   "label": "Name of Gram Panchayat",
    "reqd": 1
+  },
+  {
+   "description": "Other villages attached to this Gram Panchayat",
+   "fieldname": "attached_villages",
+   "fieldtype": "Small Text",
+   "label": "Villages Attached to this Gram Panchayat"
   },
   {
    "fieldname": "block_taluka",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Block / Taluka",
+   "label": "Taluka / Block",
    "reqd": 1
   },
   {
@@ -173,19 +229,21 @@
    "reqd": 1
   },
   {
+   "description": "Captured on device at the village. Used for field verification.",
    "fieldname": "geo_coordinates",
    "fieldtype": "Data",
    "label": "GPS Coordinates (Lat, Long)"
   },
   {
-   "fieldname": "section_demographics",
+   "fieldname": "section_general",
    "fieldtype": "Section Break",
-   "label": "2. Demographics & Socio-Economic Profile"
+   "label": "2. General Information of Village"
   },
   {
    "default": "0",
    "fieldname": "total_population",
    "fieldtype": "Int",
+   "in_list_view": 1,
    "label": "Total Population",
    "reqd": 1
   },
@@ -193,190 +251,131 @@
    "default": "0",
    "fieldname": "male_population",
    "fieldtype": "Int",
-   "label": "Male Population"
+   "label": "Men"
   },
   {
    "default": "0",
    "fieldname": "female_population",
    "fieldtype": "Int",
-   "label": "Female Population"
+   "label": "Women"
+  },
+  {
+   "fieldname": "column_general_2",
+   "fieldtype": "Column Break"
   },
   {
    "default": "0",
    "fieldname": "total_households",
    "fieldtype": "Int",
-   "label": "Total Households",
+   "in_list_view": 1,
+   "label": "Village Families (Total Households)",
    "reqd": 1
   },
   {
-   "fieldname": "literacy_rate_pct",
-   "fieldtype": "Percent",
-   "label": "Literacy Rate (%)"
-  },
-  {
-   "fieldname": "column_demo_2",
-   "fieldtype": "Column Break"
+   "default": "0",
+   "fieldname": "annual_rainfall_mm",
+   "fieldtype": "Float",
+   "label": "Annual Rainfall (mm)",
+   "precision": "2"
   },
   {
    "default": "0",
-   "fieldname": "sc_households",
-   "fieldtype": "Int",
-   "label": "SC Households"
+   "fieldname": "birth_rate",
+   "fieldtype": "Float",
+   "label": "Birth Rate",
+   "precision": "2"
   },
   {
    "default": "0",
-   "fieldname": "st_households",
-   "fieldtype": "Int",
-   "label": "ST Households"
+   "fieldname": "death_rate",
+   "fieldtype": "Float",
+   "label": "Death Rate",
+   "precision": "2"
   },
   {
-   "default": "0",
-   "fieldname": "obc_general_households",
-   "fieldtype": "Int",
-   "label": "OBC / General Households"
-  },
-  {
-   "default": "0",
-   "fieldname": "bpl_households",
-   "fieldtype": "Int",
-   "label": "BPL Households (Below Poverty Line)"
-  },
-  {
-   "default": "0",
-   "fieldname": "female_headed_households",
-   "fieldtype": "Int",
-   "label": "Female Headed Households"
-  },
-  {
-   "fieldname": "section_agriculture",
+   "fieldname": "section_caste",
    "fieldtype": "Section Break",
-   "label": "3. Landholding & Agricultural Profile"
+   "label": "3. Caste-wise Family & Population Details"
   },
   {
-   "default": "0",
-   "fieldname": "total_geographical_area_ha",
-   "fieldtype": "Float",
-   "label": "Total Geographical Area (Hectares)",
-   "reqd": 1
+   "fieldname": "caste_demographics_table",
+   "fieldtype": "Table",
+   "label": "Caste-wise Breakdown",
+   "options": "Village Caste Demographic"
   },
   {
-   "default": "0",
-   "fieldname": "cultivable_land_ha",
-   "fieldtype": "Float",
-   "label": "Total Cultivable Land (Hectares)",
-   "reqd": 1
+   "fieldname": "section_land",
+   "fieldtype": "Section Break",
+   "label": "4. Description of Land"
   },
   {
-   "default": "0",
-   "fieldname": "irrigated_area_ha",
-   "fieldtype": "Float",
-   "label": "Net Irrigated Area (Hectares)"
-  },
-  {
-   "default": "0",
-   "fieldname": "rainfed_area_ha",
-   "fieldtype": "Float",
-   "label": "Rainfed / Dryland Area (Hectares)"
-  },
-  {
-   "default": "0",
-   "fieldname": "forest_wasteland_ha",
-   "fieldtype": "Float",
-   "label": "Forest / Wasteland / Common Land (Ha)"
-  },
-  {
-   "fieldname": "column_agri_2",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "marginal_farmers_count",
-   "fieldtype": "Int",
-   "label": "Marginal Farmers [< 1 Ha]"
-  },
-  {
-   "default": "0",
-   "fieldname": "small_farmers_count",
-   "fieldtype": "Int",
-   "label": "Small Farmers [1 - 2 Ha]"
-  },
-  {
-   "default": "0",
-   "fieldname": "medium_large_farmers_count",
-   "fieldtype": "Int",
-   "label": "Medium & Large Farmers [> 2 Ha]"
-  },
-  {
-   "default": "0",
-   "fieldname": "landless_households_count",
-   "fieldtype": "Int",
-   "label": "Landless Agricultural Labourers"
-  },
-  {
-   "default": "Medium Black Soil",
-   "fieldname": "soil_type",
-   "fieldtype": "Select",
-   "label": "Dominant Soil Type",
-   "options": "Deep Black Soil\nMedium Black Soil\nRed Sandy Soil\nLoamy Soil\nLaterite Soil\nMixed Soil"
+   "fieldname": "land_use_table",
+   "fieldtype": "Table",
+   "label": "Land Type & Area",
+   "options": "Village Land Use"
   },
   {
    "fieldname": "section_crops",
    "fieldtype": "Section Break",
-   "label": "Cropping Pattern"
+   "label": "5. Description of Cropping Pattern"
   },
   {
-   "default": "Soybean, Cotton, Tur (Pigeonpea), Green Gram",
-   "fieldname": "major_crops_kharif",
-   "fieldtype": "Small Text",
-   "label": "Major Kharif Crops"
+   "fieldname": "cropping_pattern_table",
+   "fieldtype": "Table",
+   "label": "Season-wise Cropping Pattern",
+   "options": "Village Cropping Pattern"
   },
   {
-   "default": "Wheat, Gram (Chickpea), Jowar",
-   "fieldname": "major_crops_rabi",
-   "fieldtype": "Small Text",
-   "label": "Major Rabi Crops"
+   "default": "0",
+   "fieldname": "organic_farming_families",
+   "fieldtype": "Int",
+   "label": "Families Doing Organic Farming"
+  },
+  {
+   "default": "0",
+   "fieldname": "organic_farming_area",
+   "fieldtype": "Float",
+   "label": "Total Area Under Organic Farming",
+   "precision": "3"
   },
   {
    "fieldname": "column_crops_2",
    "fieldtype": "Column Break"
   },
   {
-   "default": "Vegetables, Citrus / Sweet Orange, Pomegranate",
-   "fieldname": "horticulture_crops",
+   "default": "0",
+   "fieldname": "total_forest_area",
+   "fieldtype": "Float",
+   "label": "Total Area Under Forest",
+   "precision": "3"
+  },
+  {
+   "fieldname": "major_forest_trees",
    "fieldtype": "Small Text",
-   "label": "Horticulture & Cash Crops"
+   "label": "Major Trees in Forest"
   },
   {
-   "fieldname": "section_water",
+   "fieldname": "section_drinking_water",
    "fieldtype": "Section Break",
-   "label": "4. Water Resources & Irrigation Status"
+   "label": "6. Drinking Water Facilities"
   },
   {
-   "fieldname": "watershed_name",
-   "fieldtype": "Data",
-   "label": "Watershed / Drainage Basin Name"
+   "fieldname": "water_sources_table",
+   "fieldtype": "Table",
+   "label": "Water Supply Sources",
+   "options": "Village Water Source"
   },
   {
-   "default": "GP Piped Water Supply",
-   "fieldname": "primary_drinking_water_source",
-   "fieldtype": "Select",
-   "label": "Primary Drinking Water Source",
-   "options": "GP Piped Water Supply\nCommunity Open Wells\nHandpumps / Borewells\nWater Tankers (Seasonal)\nRiver / Canal"
+   "default": "0",
+   "fieldname": "annual_village_water_tap_bill",
+   "fieldtype": "Currency",
+   "label": "Annual Village Water Tap Bill"
   },
   {
-   "default": "Moderate Scarcity",
-   "fieldname": "summer_water_scarcity_status",
-   "fieldtype": "Select",
-   "label": "Summer Drinking & Farm Water Scarcity",
-   "options": "Severe / Tanker Dependent\nModerate Scarcity\nMinor Scarcity\nAdequate / No Scarcity",
-   "reqd": 1
-  },
-  {
-   "default": "Mixed",
-   "fieldname": "primary_irrigation_practice",
-   "fieldtype": "Select",
-   "label": "Primary Irrigation Practice",
-   "options": "Flood Irrigation\nDrip & Sprinkler Micro-Irrigation\nMixed"
+   "default": "0",
+   "fieldname": "annual_private_water_tap_bill",
+   "fieldtype": "Currency",
+   "label": "Annual Private Water Tap Bill"
   },
   {
    "fieldname": "column_water_2",
@@ -384,149 +383,490 @@
   },
   {
    "default": "0",
-   "fieldname": "open_wells_count",
-   "fieldtype": "Int",
-   "label": "Open Wells Count"
+   "fieldname": "annual_house_rent_per_family",
+   "fieldtype": "Currency",
+   "label": "Annual House Rent for a Family"
+  },
+  {
+   "description": "Is there any problem with water supply in summer season? If yes, why, and how do you deal with it?",
+   "fieldname": "summer_water_problem",
+   "fieldtype": "Text",
+   "label": "Summer Water Supply Problem"
+  },
+  {
+   "fieldname": "section_sanitation",
+   "fieldtype": "Section Break",
+   "label": "7. Environmental Hygiene - Human Defecation Management"
+  },
+  {
+   "fieldname": "human_defecation_management",
+   "fieldtype": "Small Text",
+   "label": "Management of Human Defecation"
   },
   {
    "default": "0",
-   "fieldname": "borewells_count",
+   "fieldname": "families_with_toilets",
    "fieldtype": "Int",
-   "label": "Borewells Count"
+   "label": "Families Having Toilets"
   },
   {
    "default": "0",
-   "fieldname": "check_dams_count",
+   "fieldname": "families_without_toilets",
    "fieldtype": "Int",
-   "label": "Check Dams / Nalla Bunds"
+   "label": "Families Not Having Toilets"
   },
   {
    "default": "0",
-   "fieldname": "farm_ponds_count",
+   "fieldname": "families_toilet_not_using",
    "fieldtype": "Int",
-   "label": "Farm Ponds Count"
+   "label": "Families Having Toilets But Not Using"
   },
   {
    "default": "0",
-   "fieldname": "percolation_tanks_count",
+   "fieldname": "families_constructing_toilets",
    "fieldtype": "Int",
-   "label": "Percolation Tanks / KT Weirs"
+   "label": "Families Who Are Constructing Toilets"
+  },
+  {
+   "fieldname": "column_sanitation_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Type of toilet - Shoshkhadda",
+   "fieldname": "families_shoshkhadda_toilet",
+   "fieldtype": "Int",
+   "label": "Shoshkhadda Having Families"
+  },
+  {
+   "default": "0",
+   "description": "Type of toilet - Septic Tank",
+   "fieldname": "families_septic_tank_toilet",
+   "fieldtype": "Int",
+   "label": "Septic Tank Having Families"
+  },
+  {
+   "default": "0",
+   "description": "Type of toilet - Ikosan",
+   "fieldname": "families_ikosan_toilet",
+   "fieldtype": "Int",
+   "label": "Ikosan Type Having Families"
+  },
+  {
+   "default": "0",
+   "fieldname": "public_toilets_count",
+   "fieldtype": "Int",
+   "label": "Public Toilets"
+  },
+  {
+   "default": "0",
+   "fieldname": "public_toilet_seats",
+   "fieldtype": "Int",
+   "label": "Public Toilets - How Many Seats"
+  },
+  {
+   "default": "0",
+   "fieldname": "public_toilet_seats_used",
+   "fieldtype": "Int",
+   "label": "Public Toilets - Seats Being Used"
+  },
+  {
+   "fieldname": "public_toilet_water_supply",
+   "fieldtype": "Data",
+   "label": "Public Toilets - Type of Water Supply"
+  },
+  {
+   "fieldname": "section_drainage",
+   "fieldtype": "Section Break",
+   "label": "8. Drainage Management"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily_contaminated_water_litres",
+   "fieldtype": "Float",
+   "label": "Daily Production of Contaminated Water (Litres)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_on_public_drainage",
+   "fieldtype": "Int",
+   "label": "Families Attached to Public Drainage System"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_shoshkhadda",
+   "fieldtype": "Int",
+   "label": "Families Having Shoshkhadda"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_kitchen_garden",
+   "fieldtype": "Int",
+   "label": "Families Having Kitchen Garden"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_no_pds_connection",
+   "fieldtype": "Int",
+   "label": "Families Having No Connection With PDS"
+  },
+  {
+   "fieldname": "column_drainage_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_drainage_length_m",
+   "fieldtype": "Float",
+   "label": "Total Length of Drainage System (m)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "open_drain_length_m",
+   "fieldtype": "Float",
+   "label": "Length of Open Drain (m)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "closed_drain_length_m",
+   "fieldtype": "Float",
+   "label": "Length of Closed Drain (m)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "drain_water_management",
+   "fieldtype": "Text",
+   "label": "Management of Drain Water in Village"
+  },
+  {
+   "fieldname": "section_waste",
+   "fieldtype": "Section Break",
+   "label": "9. Waste (Kachara) Management"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily_waste_production_kg",
+   "fieldtype": "Float",
+   "label": "Total Production of Waste Per Day (kg)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_worm_compost_unit",
+   "fieldtype": "Int",
+   "label": "Families Having Unit for Worm Compost"
+  },
+  {
+   "fieldname": "column_waste_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_throwing_waste_open",
+   "fieldtype": "Int",
+   "label": "Families Which Throw Waste in the Open"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_using_dustbin",
+   "fieldtype": "Int",
+   "label": "Families Having and Using Dustbin"
+  },
+  {
+   "fieldname": "waste_management_description",
+   "fieldtype": "Text",
+   "label": "What is the Management for Waste in Village?"
+  },
+  {
+   "fieldname": "section_health",
+   "fieldtype": "Section Break",
+   "label": "10. Health Facilities in Village"
+  },
+  {
+   "fieldname": "health_facilities_table",
+   "fieldtype": "Table",
+   "label": "Health Facilities",
+   "options": "Village Health Facility"
+  },
+  {
+   "fieldname": "section_education",
+   "fieldtype": "Section Break",
+   "label": "11. Description of Education Facilities"
+  },
+  {
+   "fieldname": "education_facilities_table",
+   "fieldtype": "Table",
+   "label": "Education Facilities",
+   "options": "Village Education Facility"
   },
   {
    "fieldname": "section_institutions",
    "fieldtype": "Section Break",
-   "label": "5. Community Institutions & Infrastructure"
+   "label": "12. Public Institutions"
+  },
+  {
+   "fieldname": "public_institutions_table",
+   "fieldtype": "Table",
+   "label": "Public Institutions",
+   "options": "Village Public Institution"
+  },
+  {
+   "fieldname": "section_fuel",
+   "fieldtype": "Section Break",
+   "label": "13. Cooking Fuel Usage"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_using_firewood",
+   "fieldtype": "Int",
+   "label": "No. of Families Using Fire Wood"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_using_gas",
+   "fieldtype": "Int",
+   "label": "No. of Families Using Gas"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_using_kerosene",
+   "fieldtype": "Int",
+   "label": "No. of Families Using Kerosene"
+  },
+  {
+   "fieldname": "column_fuel_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_using_biogas",
+   "fieldtype": "Int",
+   "label": "No. of Families Using Bio-Gas"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_using_smokeless_hearth",
+   "fieldtype": "Int",
+   "label": "No. of Families Using Smokeless Hearth"
+  },
+  {
+   "fieldname": "section_irrigation",
+   "fieldtype": "Section Break",
+   "label": "14. Irrigation Facilities & Land Type"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_shet_tali",
+   "fieldtype": "Int",
+   "label": "Families Having Shet-Tali (Farm Pond)"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_wells",
+   "fieldtype": "Int",
+   "label": "Families Having Wells"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_borewells",
+   "fieldtype": "Int",
+   "label": "Families Having Bore Wells"
+  },
+  {
+   "fieldname": "column_irrigation_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_black_land",
+   "fieldtype": "Int",
+   "label": "Families Having Black Land"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_laterite_land",
+   "fieldtype": "Int",
+   "label": "Families Having Laterite Land"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_white_land",
+   "fieldtype": "Int",
+   "label": "Families Having White Land"
+  },
+  {
+   "fieldname": "section_livestock",
+   "fieldtype": "Section Break",
+   "label": "15. Animal Rearing"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_animals_in_village",
+   "fieldtype": "Int",
+   "label": "Total No. of Animals in Village"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_animals",
+   "fieldtype": "Int",
+   "label": "Total No. of Families Having Animals"
+  },
+  {
+   "fieldname": "column_livestock_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_daily_milk_production",
+   "fieldtype": "Float",
+   "label": "Total Milk Production in Village (Daily, Litres)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "livestock_table",
+   "fieldtype": "Table",
+   "label": "Livestock Strength",
+   "options": "Village Livestock"
+  },
+  {
+   "fieldname": "section_employment",
+   "fieldtype": "Section Break",
+   "label": "16. Employment Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_having_job_cards",
+   "fieldtype": "Int",
+   "label": "Families Having Job Cards"
+  },
+  {
+   "default": "0",
+   "fieldname": "people_working_mgnrega",
+   "fieldtype": "Int",
+   "label": "Present People Working Under MGNREGA"
+  },
+  {
+   "default": "0",
+   "fieldname": "migrated_families_for_job",
+   "fieldtype": "Int",
+   "label": "Migrated Families for Job"
+  },
+  {
+   "fieldname": "column_employment_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily_migration_people",
+   "fieldtype": "Int",
+   "label": "Daily Migration of People for Job"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_with_govt_servant",
+   "fieldtype": "Int",
+   "label": "No. of Families Having Govt. Servant"
+  },
+  {
+   "default": "0",
+   "fieldname": "families_with_private_servant",
+   "fieldtype": "Int",
+   "label": "No. of Families Having Private Servants"
+  },
+  {
+   "fieldname": "section_problems",
+   "fieldtype": "Section Break",
+   "label": "17. Major Problems in Village"
+  },
+  {
+   "fieldname": "major_problems_in_village",
+   "fieldtype": "Text",
+   "label": "Major Problems in Village"
+  },
+  {
+   "fieldname": "surveyor_observations",
+   "fieldtype": "Text",
+   "label": "Surveyor Observations"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_additional",
+   "fieldtype": "Section Break",
+   "label": "18. Additional Institutional Information"
   },
   {
    "default": "0",
    "fieldname": "total_shgs_count",
    "fieldtype": "Int",
-   "label": "Women SHGs Count (Self Help Groups)"
+   "label": "Total SHGs in Village"
   },
   {
    "default": "0",
    "fieldname": "active_fpos_count",
    "fieldtype": "Int",
-   "label": "Active FPOs / FPCs in Village"
+   "label": "Active FPOs"
   },
   {
    "fieldname": "fpo_name",
    "fieldtype": "Data",
-   "label": "Name of Active FPO / Cooperative"
+   "label": "FPO Name"
   },
   {
-   "fieldname": "column_inst_2",
+   "fieldname": "column_additional_2",
    "fieldtype": "Column Break"
   },
   {
-   "default": "1",
-   "fieldname": "has_primary_school",
-   "fieldtype": "Check",
-   "label": "Has Primary / ZP School"
-  },
-  {
    "default": "0",
-   "fieldname": "has_secondary_school",
-   "fieldtype": "Check",
-   "label": "Has Secondary / High School"
-  },
-  {
-   "default": "0",
-   "fieldname": "has_primary_health_center",
-   "fieldtype": "Check",
-   "label": "Has PHC / Health Sub-Center"
-  },
-  {
-   "default": "0",
-   "fieldname": "has_veterinary_clinic",
-   "fieldtype": "Check",
-   "label": "Has Veterinary Clinic / AI Center"
-  },
-  {
-   "default": "0",
-   "fieldname": "has_milk_chilling_center",
-   "fieldtype": "Check",
-   "label": "Has Dairy / Milk Collection Center"
-  },
-  {
-   "default": "0",
-   "fieldname": "has_custom_hiring_center",
-   "fieldtype": "Check",
-   "label": "Has Custom Hiring Center (Farm Tools)"
-  },
-  {
-   "default": "1",
    "fieldname": "has_bank_csc",
    "fieldtype": "Check",
-   "label": "Has Bank Branch / CSC / BC Point"
+   "label": "Has Bank / CSC"
   },
   {
-   "default": "1",
+   "default": "0",
    "fieldname": "all_weather_road_connectivity",
    "fieldtype": "Check",
-   "label": "Has All-Weather Pucca Road Connectivity"
+   "label": "All Weather Road Connectivity"
   },
   {
-   "fieldname": "section_needs",
+   "fieldname": "watershed_name",
+   "fieldtype": "Data",
+   "label": "Watershed Name"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_dynamic",
    "fieldtype": "Section Break",
-   "label": "6. Needs Assessment & Prioritized Interventions (PRA)"
+   "label": "19. Additional / Unanticipated Observations"
   },
   {
-   "fieldname": "key_development_priorities",
-   "fieldtype": "Small Text",
-   "label": "Key Village Development Priorities"
+   "description": "Dynamic questionnaire feed. Captures unanticipated environmental ripple effects as structured JSON.",
+   "fieldname": "survey_response_json",
+   "fieldtype": "Long Text",
+   "label": "Survey Response JSON"
   },
   {
-   "fieldname": "water_conservation_interventions",
-   "fieldtype": "Small Text",
-   "label": "Proposed Water Conservation / Nalla Treatment"
-  },
-  {
-   "fieldname": "livelihood_interventions",
-   "fieldtype": "Small Text",
-   "label": "Proposed Farm / Livelihood Interventions"
-  },
-  {
-   "fieldname": "surveyor_observations",
-   "fieldtype": "Text",
-   "label": "Surveyor / Field Team Observations"
-  },
-  {
-   "fieldname": "column_needs_2",
-   "fieldtype": "Column Break"
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
   },
   {
    "default": "Draft",
    "fieldname": "profile_status",
    "fieldtype": "Select",
-   "label": "Status",
-   "options": "Draft\nVerified\nApproved"
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Profile Status",
+   "options": "Draft\nSubmitted\nVerified"
   },
   {
    "fieldname": "approved_by",
    "fieldtype": "Link",
-   "label": "Approved By",
-   "options": "User"
+   "label": "Ingested / Locked By",
+   "options": "User",
+   "read_only": 1
   },
   {
    "fieldname": "amended_from",
@@ -538,17 +878,16 @@
    "read_only": 1
   }
  ],
- "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-09-13 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "Village Profile",
- "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -560,37 +899,10 @@
    "share": 1,
    "submit": 1,
    "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 0,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Field Officer",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Project Manager",
-   "share": 1,
-   "submit": 1,
-   "write": 1
   }
  ],
- "sort_field": "modified",
+ "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "title_field": "village_name",
  "track_changes": 1
 }

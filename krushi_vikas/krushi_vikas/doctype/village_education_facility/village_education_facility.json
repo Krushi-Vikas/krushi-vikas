@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "school_type",
+  "students_girls",
+  "students_boys",
+  "has_drinking_water",
+  "toilets_girls",
+  "toilets_boys",
+  "has_compound",
+  "has_trees",
+  "has_dustbin_management",
+  "other_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "school_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type of School",
+   "options": "Anganwadi\nPrimary School\nSecondary School\nJunior College\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "students_girls",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Students - Girls"
+  },
+  {
+   "default": "0",
+   "fieldname": "students_boys",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Students - Boys"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_drinking_water",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Drinking Water Facility"
+  },
+  {
+   "default": "0",
+   "fieldname": "toilets_girls",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Toilets - Girls"
+  },
+  {
+   "default": "0",
+   "fieldname": "toilets_boys",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Toilets - Boys"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_compound",
+   "fieldtype": "Check",
+   "label": "Compound for School"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_trees",
+   "fieldtype": "Check",
+   "label": "Trees in School"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_dustbin_management",
+   "fieldtype": "Check",
+   "label": "Dustbin Management"
+  },
+  {
+   "fieldname": "other_details",
+   "fieldtype": "Data",
+   "label": "Other"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Village Education Facility",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

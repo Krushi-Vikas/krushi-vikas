@@ -55,7 +55,9 @@ has_permission = {
 	"Project": "krushi_vikas.api.has_project_permission",
 	"Activity": "krushi_vikas.api.has_activity_permission",
 	"Task": "krushi_vikas.api.has_task_permission",
-	"Feedback Survey": "krushi_vikas.api.has_feedback_survey_permission"
+	"Feedback Survey": "krushi_vikas.api.has_feedback_survey_permission",
+	"Baseline Survey": "krushi_vikas.api.has_survey_permission",
+	"Village Profile": "krushi_vikas.api.has_survey_permission"
 }
 
 doctype_js = {

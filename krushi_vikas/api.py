@@ -268,115 +268,152 @@ def get_village_profile_options():
         "talukas": talukas,
         "field_officers": field_officers,
         "projects": projects,
-        "soil_types": [
-            "Deep Black Soil",
-            "Medium Black Soil",
-            "Red Sandy Soil",
-            "Loamy Soil",
-            "Laterite Soil",
-            "Mixed Soil"
-        ],
-        "drinking_water_sources": [
-            "GP Piped Water Supply",
-            "Community Open Wells",
-            "Handpumps / Borewells",
-            "Water Tankers (Seasonal)",
-            "River / Canal"
-        ],
-        "water_scarcity_levels": [
-            "Severe / Tanker Dependent",
-            "Moderate Scarcity",
-            "Minor Scarcity",
-            "Adequate / No Scarcity"
-        ],
-        "irrigation_practices": [
-            "Flood Irrigation",
-            "Drip & Sprinkler Micro-Irrigation",
-            "Mixed"
-        ]
     }
 
-@frappe.whitelist(allow_guest=True)
+# Step 05 of the roadmap is field collection. These roles may record it; a
+# Project Manager reviews surveys but does not raise them, and Guest never can.
+SURVEY_COLLECTOR_ROLES = (
+    "Field Officer",
+    "Project Coordinator",
+    "Project Director",
+    "CEO",
+    "System Manager",
+    "Administrator",
+)
+
+
+def assert_can_collect_survey(what="survey"):
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(
+            _("You must be signed in to record a {0}.").format(what),
+            frappe.PermissionError,
+        )
+    if user == "Administrator":
+        return
+    if not set(frappe.get_roles(user)) & set(SURVEY_COLLECTOR_ROLES):
+        frappe.throw(
+            _("Only a Field Officer can record a {0}.").format(what),
+            frappe.PermissionError,
+        )
+
+
+def _project_leads(project):
+    """(coordinator, manager) for an ERPNext Project, tolerating either the
+    custom field or the KV Project naming."""
+    if not project or not frappe.db.exists("Project", project):
+        return None, None
+
+    coordinator = manager = None
+    if frappe.db.has_column("Project", "custom_project_coordinator"):
+        coordinator = frappe.db.get_value("Project", project, "custom_project_coordinator")
+    if frappe.db.has_column("Project", "custom_project_manager"):
+        manager = frappe.db.get_value("Project", project, "custom_project_manager")
+    return coordinator, manager
+
+
+def has_survey_permission(doc, ptype="read", user=None):
+    """Row-level scope for Baseline Survey and Village Profile.
+
+    Mirrors the survey column of the role matrix in USER_JOURNEY.md: executives
+    see every survey, a Coordinator sees the ones in their project, a Manager
+    sees the ones in projects they run, and a Field Officer sees only the
+    surveys they filed themselves.
+    """
+    user = user or frappe.session.user
+    if user == "Administrator":
+        return True
+
+    roles = set(frappe.get_roles(user))
+    if roles & {"System Manager", "CEO", "Project Director"}:
+        return True
+
+    collector = doc.get("field_officer") if hasattr(doc, "get") else None
+    if collector == user or getattr(doc, "owner", None) == user:
+        return True
+
+    coordinator, manager = _project_leads(doc.get("project") if hasattr(doc, "get") else None)
+    if "Project Coordinator" in roles and coordinator and coordinator == user:
+        return True
+    if "Project Manager" in roles and manager and manager == user:
+        return True
+
+    return False
+
+
+VILLAGE_PROFILE_CHILD_TABLES = {    "caste_demographics_table": ("caste_demographics", "Village Caste Demographic"),
+    "land_use_table": ("land_use", "Village Land Use"),
+    "cropping_pattern_table": ("cropping_pattern", "Village Cropping Pattern"),
+    "water_sources_table": ("water_sources", "Village Water Source"),
+    "health_facilities_table": ("health_facilities", "Village Health Facility"),
+    "education_facilities_table": ("education_facilities", "Village Education Facility"),
+    "public_institutions_table": ("public_institutions", "Village Public Institution"),
+    "livestock_table": ("livestock", "Village Livestock"),
+}
+
+VILLAGE_PROFILE_SCALAR_FIELDS = (
+    "village_name", "village_code", "gram_panchayat", "attached_villages",
+    "block_taluka", "district", "state", "pincode", "geo_coordinates",
+    "total_population", "male_population", "female_population", "total_households",
+    "annual_rainfall_mm", "birth_rate", "death_rate",
+    "organic_farming_families", "organic_farming_area", "total_forest_area",
+    "major_forest_trees",
+    "annual_village_water_tap_bill", "annual_private_water_tap_bill",
+    "annual_house_rent_per_family", "summer_water_problem",
+    "human_defecation_management", "families_with_toilets", "families_without_toilets",
+    "families_toilet_not_using", "families_constructing_toilets",
+    "families_shoshkhadda_toilet", "families_septic_tank_toilet", "families_ikosan_toilet",
+    "public_toilets_count", "public_toilet_seats", "public_toilet_seats_used",
+    "public_toilet_water_supply",
+    "daily_contaminated_water_litres", "families_on_public_drainage",
+    "families_having_shoshkhadda", "families_having_kitchen_garden",
+    "families_no_pds_connection", "total_drainage_length_m", "open_drain_length_m",
+    "closed_drain_length_m", "drain_water_management",
+    "daily_waste_production_kg", "families_worm_compost_unit",
+    "families_throwing_waste_open", "families_using_dustbin",
+    "waste_management_description",
+    "families_using_firewood", "families_using_gas", "families_using_kerosene",
+    "families_using_biogas", "families_using_smokeless_hearth",
+    "families_having_shet_tali", "families_having_wells", "families_having_borewells",
+    "families_having_black_land", "families_having_laterite_land",
+    "families_having_white_land",
+    "total_animals_in_village", "families_having_animals", "total_daily_milk_production",
+    "families_having_job_cards", "people_working_mgnrega", "migrated_families_for_job",
+    "daily_migration_people", "families_with_govt_servant", "families_with_private_servant",
+    "major_problems_in_village", "surveyor_observations",
+    "total_shgs_count", "active_fpos_count", "fpo_name", "has_bank_csc",
+    "all_weather_road_connectivity", "watershed_name", "survey_response_json",
+)
+
+
+@frappe.whitelist()
 def submit_village_profile(data):
-    """Submits or creates a Village Profile document"""
+    """Creates a Village Profile (step 05, village level)."""
     import json
     if isinstance(data, str):
         data = json.loads(data)
 
-    doc = frappe.get_doc({
-        "doctype": "Village Profile",
-        "village_name": data.get("village_name"),
-        "village_code": data.get("village_code"),
-        "gram_panchayat": data.get("gram_panchayat") or data.get("village_name"),
-        "block_taluka": data.get("block_taluka"),
-        "district": data.get("district"),
-        "state": data.get("state") or "Maharashtra",
-        "pincode": data.get("pincode"),
-        "field_officer": data.get("field_officer") or "Administrator",
-        "project": data.get("project") or None,
-        "date_of_survey": data.get("date_of_survey") or frappe.utils.today(),
-        "geo_coordinates": data.get("geo_coordinates"),
-        
-        # Demographics
-        "total_population": int(data.get("total_population") or 0),
-        "male_population": int(data.get("male_population") or 0),
-        "female_population": int(data.get("female_population") or 0),
-        "total_households": int(data.get("total_households") or 0),
-        "sc_households": int(data.get("sc_households") or 0),
-        "st_households": int(data.get("st_households") or 0),
-        "obc_general_households": int(data.get("obc_general_households") or 0),
-        "bpl_households": int(data.get("bpl_households") or 0),
-        "female_headed_households": int(data.get("female_headed_households") or 0),
-        "literacy_rate_pct": float(data.get("literacy_rate_pct") or 0) if data.get("literacy_rate_pct") else None,
-        
-        # Land & Agriculture
-        "total_geographical_area_ha": float(data.get("total_geographical_area_ha") or 0),
-        "cultivable_land_ha": float(data.get("cultivable_land_ha") or 0),
-        "irrigated_area_ha": float(data.get("irrigated_area_ha") or 0),
-        "rainfed_area_ha": float(data.get("rainfed_area_ha") or 0),
-        "forest_wasteland_ha": float(data.get("forest_wasteland_ha") or 0),
-        "marginal_farmers_count": int(data.get("marginal_farmers_count") or 0),
-        "small_farmers_count": int(data.get("small_farmers_count") or 0),
-        "medium_large_farmers_count": int(data.get("medium_large_farmers_count") or 0),
-        "landless_households_count": int(data.get("landless_households_count") or 0),
-        "soil_type": data.get("soil_type") or "Medium Black Soil",
-        "major_crops_kharif": data.get("major_crops_kharif"),
-        "major_crops_rabi": data.get("major_crops_rabi"),
-        "horticulture_crops": data.get("horticulture_crops"),
-        
-        # Water Resources
-        "watershed_name": data.get("watershed_name"),
-        "primary_drinking_water_source": data.get("primary_drinking_water_source") or "GP Piped Water Supply",
-        "summer_water_scarcity_status": data.get("summer_water_scarcity_status") or "Moderate Scarcity",
-        "primary_irrigation_practice": data.get("primary_irrigation_practice") or "Mixed",
-        "open_wells_count": int(data.get("open_wells_count") or 0),
-        "borewells_count": int(data.get("borewells_count") or 0),
-        "check_dams_count": int(data.get("check_dams_count") or 0),
-        "farm_ponds_count": int(data.get("farm_ponds_count") or 0),
-        "percolation_tanks_count": int(data.get("percolation_tanks_count") or 0),
-        
-        # Institutions & Facilities
-        "total_shgs_count": int(data.get("total_shgs_count") or 0),
-        "active_fpos_count": int(data.get("active_fpos_count") or 0),
-        "fpo_name": data.get("fpo_name"),
-        "has_primary_school": 1 if data.get("has_primary_school") else 0,
-        "has_secondary_school": 1 if data.get("has_secondary_school") else 0,
-        "has_primary_health_center": 1 if data.get("has_primary_health_center") else 0,
-        "has_veterinary_clinic": 1 if data.get("has_veterinary_clinic") else 0,
-        "has_milk_chilling_center": 1 if data.get("has_milk_chilling_center") else 0,
-        "has_custom_hiring_center": 1 if data.get("has_custom_hiring_center") else 0,
-        "has_bank_csc": 1 if data.get("has_bank_csc") else 0,
-        "all_weather_road_connectivity": 1 if data.get("all_weather_road_connectivity") else 0,
-        
-        # Needs Assessment
-        "key_development_priorities": data.get("key_development_priorities"),
-        "water_conservation_interventions": data.get("water_conservation_interventions"),
-        "livelihood_interventions": data.get("livelihood_interventions"),
-        "surveyor_observations": data.get("surveyor_observations"),
-        "profile_status": "Verified" if data.get("submit_now") else "Draft"
-    })
+    assert_can_collect_survey("Village Profile")
 
-    doc.insert(ignore_permissions=True)
+    doc = frappe.new_doc("Village Profile")
+    doc.field_officer = data.get("field_officer") or frappe.session.user
+    doc.project = data.get("project") or None
+    doc.date_of_survey = data.get("date_of_survey") or frappe.utils.today()
+
+    for fieldname in VILLAGE_PROFILE_SCALAR_FIELDS:
+        if data.get(fieldname) is not None:
+            doc.set(fieldname, data.get(fieldname))
+
+    if not doc.gram_panchayat:
+        doc.gram_panchayat = doc.village_name
+
+    for table_field, (payload_key, _child_doctype) in VILLAGE_PROFILE_CHILD_TABLES.items():
+        for row in data.get(payload_key) or []:
+            doc.append(table_field, row)
+
+    doc.profile_status = "Submitted" if data.get("submit_now") else "Draft"
+    doc.insert()
+
     if data.get("submit_now", True):
         doc.submit()
 
@@ -384,7 +421,7 @@ def submit_village_profile(data):
         "success": True,
         "name": doc.name,
         "village_name": doc.village_name,
-        "message": _("Village Profile created successfully.")
+        "message": _("Village Profile recorded successfully.")
     }
 
 @frappe.whitelist()
@@ -394,7 +431,7 @@ def get_village_profiles_list():
         "Village Profile",
         fields=[
             "name", "village_name", "village_code", "gram_panchayat", "block_taluka", "district",
-            "total_population", "total_households", "cultivable_land_ha", "summer_water_scarcity_status",
+            "total_population", "total_households", "annual_rainfall_mm",
             "docstatus", "profile_status"
         ],
         order_by="village_name asc"

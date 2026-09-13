@@ -276,8 +276,8 @@ def test_village_profile_lifecycle(company):
     # 1. Test Options API
     opts = get_village_profile_options()
     assert "districts" in opts and len(opts["districts"]) > 0
-    assert "soil_types" in opts and len(opts["soil_types"]) > 0
-    print(f"  -> Fetched {len(opts['districts'])} districts and {len(opts['soil_types'])} soil types for Village Profile.")
+    assert "field_officers" in opts
+    print(f"  -> Fetched {len(opts['districts'])} districts for Village Profile.")
 
     # 2. Test Direct DocType Creation and Validation
     profile = frappe.get_doc({
@@ -285,6 +285,7 @@ def test_village_profile_lifecycle(company):
         "village_name": "Rampur",
         "village_code": "MH-AKL-001",
         "gram_panchayat": "Rampur Gram Panchayat",
+        "attached_villages": "Rampur Khurd, Rampur Budruk",
         "block_taluka": "Akot",
         "district": "Akola",
         "state": "Maharashtra",
@@ -295,49 +296,91 @@ def test_village_profile_lifecycle(company):
         "male_population": 740,
         "female_population": 710,
         "total_households": 280,
-        "sc_households": 45,
-        "st_households": 30,
-        "bpl_households": 85,
-        "female_headed_households": 18,
-        "literacy_rate_pct": 74.5,
-        "total_geographical_area_ha": 520.0,
-        "cultivable_land_ha": 420.0,
-        "irrigated_area_ha": 130.0,
-        "rainfed_area_ha": 290.0,
-        "forest_wasteland_ha": 100.0,
-        "marginal_farmers_count": 95,
-        "small_farmers_count": 80,
-        "medium_large_farmers_count": 45,
-        "landless_households_count": 60,
-        "soil_type": "Medium Black Soil",
+        "annual_rainfall_mm": 578.8,
+        "birth_rate": 18.2,
+        "death_rate": 7.4,
+        "caste_demographics_table": [
+            {"caste_category": "SC", "total_families": 45, "total_houses": 44, "population": 210},
+            {"caste_category": "ST", "total_families": 30, "total_houses": 29, "population": 150},
+            {"caste_category": "OBC", "total_families": 120, "total_houses": 118, "population": 640},
+            {"caste_category": "GENERAL", "total_families": 85, "total_houses": 84, "population": 450},
+        ],
+        "land_use_table": [
+            {"land_type": "Total area of village", "area": 520.0, "unit": "Hectare"},
+            {"land_type": "Land under ploughing", "area": 310.0, "unit": "Hectare"},
+            {"land_type": "Bagayati area (Irrigated)", "area": 130.0, "unit": "Hectare"},
+            {"land_type": "Jirayat area (Rainfed)", "area": 60.0, "unit": "Hectare"},
+        ],
+        "cropping_pattern_table": [
+            {"season": "Rainy season (Kharif)", "crops": "Bajra, Soybean", "total_area": 210.0},
+            {"season": "Cold season (Rabi)", "crops": "Jowar, Gram", "total_area": 100.0},
+        ],
+        "water_sources_table": [
+            {"water_supply_type": "Hand Pump", "number_of_sources": 6, "beneficiary_families": 90},
+            {"water_supply_type": "Well", "number_of_sources": 4, "beneficiary_families": 120},
+        ],
+        "health_facilities_table": [
+            {"facility": "Sub Centre", "is_available": "Yes", "working_count": 1},
+            {"facility": "Animal Dispensary", "is_available": "No"},
+        ],
+        "education_facilities_table": [
+            {"school_type": "Anganwadi", "students_girls": 20, "students_boys": 24, "has_drinking_water": 1},
+            {"school_type": "Primary School", "students_girls": 61, "students_boys": 68, "toilets_girls": 2, "toilets_boys": 2},
+        ],
+        "public_institutions_table": [
+            {"facility": "Grampanchayat", "is_available": "Yes", "total_count": 1},
+            {"facility": "Milk Dairy", "is_available": "Yes", "total_count": 1},
+        ],
+        "livestock_table": [
+            {"animal_type": "Cow", "strength": 180},
+            {"animal_type": "Buffalo", "strength": 64},
+            {"animal_type": "Goat", "strength": 210},
+        ],
+        "families_with_toilets": 190,
+        "families_without_toilets": 90,
+        "families_using_firewood": 160,
+        "families_using_gas": 110,
+        "total_animals_in_village": 454,
+        "families_having_animals": 150,
+        "total_daily_milk_production": 620.0,
+        "families_having_job_cards": 175,
+        "people_working_mgnrega": 60,
         "watershed_name": "Manjara Sub-basin Watershed",
-        "primary_drinking_water_source": "GP Piped Water Supply",
-        "summer_water_scarcity_status": "Moderate Scarcity",
-        "primary_irrigation_practice": "Mixed",
-        "open_wells_count": 42,
-        "borewells_count": 68,
-        "check_dams_count": 3,
-        "farm_ponds_count": 12,
         "total_shgs_count": 14,
         "active_fpos_count": 1,
-        "has_primary_school": 1,
         "has_bank_csc": 1,
         "all_weather_road_connectivity": 1,
-        "key_development_priorities": "Deepening of main drainage nalla and micro-irrigation expansion."
+        "major_problems_in_village": "Summer tanker dependency; main drainage nalla needs deepening.",
     }).insert(ignore_permissions=True)
 
     assert profile.name.startswith("VP-")
     assert profile.profile_status == "Draft"
+    assert len(profile.caste_demographics_table) == 4
+    assert len(profile.land_use_table) == 4
+    assert len(profile.livestock_table) == 3
     print(f"  -> Created Village Profile Doc: {profile.name} for {profile.village_name}")
+    print(f"     ({len(profile.caste_demographics_table)} caste rows, "
+          f"{len(profile.land_use_table)} land rows, {len(profile.livestock_table)} livestock rows)")
 
-    # 3. Test Submit
+    # 3. Family counts cannot exceed the number of families in the village
+    bad = frappe.copy_doc(profile)
+    bad.village_code = "MH-AKL-001-X"
+    bad.families_with_toilets = 5000
+    try:
+        bad.insert(ignore_permissions=True)
+        assert False, "Expected a validation error when family count exceeds total households"
+    except frappe.ValidationError:
+        print("  -> Family-count guard correctly blocked an impossible value.")
+
+    # 4. Test Submit locks the record
     profile.submit()
     profile.reload()
     assert profile.docstatus == 1
-    assert profile.profile_status == "Verified"
-    print("  -> Village Profile submitted and marked as Verified successfully.")
+    assert profile.profile_status == "Submitted"
+    assert profile.approved_by
+    print("  -> Village Profile submitted and locked successfully.")
 
-    # 4. Test Web Wizard API Submission
+    # 5. Test API Submission with child tables
     api_res = submit_village_profile({
         "village_name": "Sonapur",
         "village_code": "MH-AKL-002",
@@ -347,20 +390,28 @@ def test_village_profile_lifecycle(company):
         "state": "Maharashtra",
         "total_population": 980,
         "total_households": 190,
-        "total_geographical_area_ha": 380.0,
-        "cultivable_land_ha": 310.0,
-        "irrigated_area_ha": 90.0,
-        "rainfed_area_ha": 220.0,
-        "summer_water_scarcity_status": "Severe / Tanker Dependent",
-        "key_development_priorities": "Urgent construction of 2 cement nalla bunds to alleviate summer water tanker dependency.",
+        "annual_rainfall_mm": 492.2,
+        "caste_demographics": [
+            {"caste_category": "OBC", "total_families": 95, "population": 500},
+        ],
+        "land_use": [
+            {"land_type": "Total area of village", "area": 380.0, "unit": "Hectare"},
+        ],
+        "livestock": [
+            {"animal_type": "Cow", "strength": 120},
+        ],
+        "major_problems_in_village": "Urgent need for 2 cement nalla bunds to cut tanker dependency.",
         "submit_now": True
     })
 
     assert api_res["success"] is True
     assert api_res["name"].startswith("VP-")
-    print(f"  -> Web Wizard Village Profile API submission successful: {api_res['name']} ({api_res['village_name']})")
+    created = frappe.get_doc("Village Profile", api_res["name"])
+    assert len(created.caste_demographics_table) == 1
+    assert len(created.livestock_table) == 1
+    print(f"  -> Village Profile API submission successful: {api_res['name']} ({api_res['village_name']})")
 
-    # 5. Test Listing API
+    # 6. Test Listing API
     profiles_list = get_village_profiles_list()
     assert len(profiles_list) >= 2
     print(f"  -> Retrieved {len(profiles_list)} village profiles successfully!")

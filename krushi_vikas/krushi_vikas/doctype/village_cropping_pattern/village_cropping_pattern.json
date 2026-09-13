@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "season",
+  "crops",
+  "total_area",
+  "unit",
+  "crop_varieties"
+ ],
+ "fields": [
+  {
+   "fieldname": "season",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Season",
+   "options": "Rainy season (Kharif)\nCold season (Rabi)\nSummer\nAnnual crops",
+   "reqd": 1
+  },
+  {
+   "fieldname": "crops",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Crops"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_area",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Total Area",
+   "precision": "3"
+  },
+  {
+   "default": "Hectare",
+   "fieldname": "unit",
+   "fieldtype": "Select",
+   "label": "Unit",
+   "options": "Hectare\nAcre"
+  },
+  {
+   "fieldname": "crop_varieties",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Varieties of Crops"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Village Cropping Pattern",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -3,11 +3,14 @@
 # For license information, please see license.txt
 
 import frappe
-from krushi_vikas.api import get_village_profile_options
+
+# The standalone portal wizard was retired once the Village Profile doctype grew
+# its eight repeating tables, which a flat HTML form cannot capture. The Desk
+# form renders them natively, so this route now forwards there and the existing
+# "Village Profile Form" links across the portal keep working.
+DESK_ROUTE = "/app/village-profile/new"
+
 
 def get_context(context):
-    context.no_cache = 1
-    context.show_sidebar = False
-    context.options = get_village_profile_options()
-    context.today_date = frappe.utils.today()
-    return context
+    frappe.local.flags.redirect_location = DESK_ROUTE
+    raise frappe.Redirect

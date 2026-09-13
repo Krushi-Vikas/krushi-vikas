@@ -14,8 +14,10 @@
   "survey_date",
   "field_officer",
   "surveyor_name",
+  "geolocation_coordinates",
   "project",
   "beneficiary",
+  "beneficiary_uid",
   "column_general_info_2",
   "age",
   "category",
@@ -92,8 +94,10 @@
   "loans_table",
   "family_income_table",
   "family_expenditure_table",
+  "socio_economic_score",
   "section_additional_remarks",
   "other_notes",
+  "survey_response_json",
   "confirmation_consent",
   "submission_status",
   "amended_from"
@@ -193,7 +197,7 @@
    "fieldname": "house_type",
    "fieldtype": "Select",
    "label": "3. House Type",
-   "options": "Pucca (Permanent)\nSemi-Pucca\nKutcha (Temporary)\nHut\nPucca\nKutcha"
+   "options": "Pucca (Permanent)\nSemi-Pucca\nKutcha (Temporary)\nHut"
   },
   {
    "default": "Yes",
@@ -332,11 +336,10 @@
    "options": "Yes\nNo"
   },
   {
-   "default": "Not Applicable",
    "fieldname": "yield_increase_from_soil_test",
    "fieldtype": "Select",
    "label": "17. If yes, increase in yield",
-   "options": "1 Quintal\n2 Quintals\n4 Quintals\n6 Quintals\n1 Qtl.\n2 Qtl.\n4 Qtl.\n6 Qtl.\nMore\nNot Applicable"
+   "options": "1 Quintal\n2 Quintals\n4 Quintals\n6 Quintals"
   },
   {
    "default": "Yes",
@@ -350,7 +353,7 @@
    "fieldname": "tech_info_source",
    "fieldtype": "Select",
    "label": "19. Source of Modern Agri-Technology Info",
-   "options": "Agriculture Department\nKrishi Vigyan Kendra (KVK)\nOrganization / Institution\nAgriculture Service Center\nAgriculture Dept.\nKVK\nNGO-Institute\nKrishi Seva Kendra\nOther"
+   "options": "Agriculture Department\nKrishi Vigyan Kendra (KVK)\nOrganization / Institution\nKrishi Seva Kendra (Agri Service Centre)"
   },
   {
    "default": "No",
@@ -418,7 +421,7 @@
    "fieldname": "nature_of_gpdp_participation",
    "fieldtype": "Select",
    "label": "26. If yes, mode of participation",
-   "options": "\nSuggesting development works in village\nCooperating to implement schemes\nApproving / Sanctioning works\nSuggesting works\nScheme implementation\nApproving works\nOther"
+   "options": "Suggesting development works in village\nCooperating to implement schemes\nApproving / Sanctioning works\nOther"
   },
   {
    "default": "Yes",
@@ -471,14 +474,14 @@
    "fieldname": "drinking_water_source",
    "fieldtype": "Select",
    "label": "33. Primary Source of Drinking Water",
-   "options": "Public Well\nHand Pump\nHandpump\nTanker\nTap (Nal)\nTap Water\nPrivate Well\nTube Well\nTubewell\nOther"
+   "options": "Public Well\nHand Pump\nTanker\nTap (Nal)\nPrivate Well\nTube Well"
   },
   {
    "default": "Public",
    "fieldname": "drinking_water_ownership",
    "fieldtype": "Select",
    "label": "34. Ownership of Drinking Source",
-   "options": "Public\nPersonal/Private\nIndividual"
+   "options": "Public\nPrivate"
   },
   {
    "default": "Yes",
@@ -517,7 +520,7 @@
    "fieldname": "water_supply_duration",
    "fieldtype": "Select",
    "label": "39. Supply Duration per Day",
-   "options": "15 Mins\n30 Mins\n45 Mins\n1 Hour\n15 min\n30 min\n45 min\n1 Hr+"
+   "options": "15 Mins\n30 Mins\n45 Mins\n1 Hour"
   },
   {
    "default": "Yes",
@@ -537,27 +540,26 @@
    "fieldname": "scarcity_water_mgmt",
    "fieldtype": "Select",
    "label": "42. How is water arranged during remaining months?",
-   "options": "Tanker\nWater Tanker\nPrivate Well\nPrivate Borewell\nHand Pump\nHandpump\nOther"
+   "options": "Tanker\nPrivate Well\nPrivate Borewell\nHand Pump"
   },
   {
    "default": "Near House",
    "fieldname": "drinking_water_distance",
    "fieldtype": "Select",
    "label": "43. Distance traveled to fetch drinking water",
-   "options": "Near House\nAt Home\nWithin 100 meters\nWithin 100 m\n100-500 meters\n100-500 m\nMore than 500 meters\nMore than 500 m"
+   "options": "Near House\nWithin 100 m\n100-500 m\nMore than 500 m"
   },
   {
-   "default": "Partially",
    "fieldname": "wsp_awareness",
    "fieldtype": "Select",
    "label": "44. Aware of Water Security Plan (Village/Household Level)?",
-   "options": "Yes\nNo\nTo some extent\nPartially"
+   "options": "Yes\nNo\nTo some extent"
   },
   {
    "fieldname": "wsp_info_source",
    "fieldtype": "Select",
    "label": "45. If yes, source of info",
-   "options": "Agriculture Department\nAgriculture Dept.\nKrishi Vigyan Kendra (KVK)\nKVK\nInstitution / Organization\nOrganization / Institution\nNGO-Institution\nNGO-Institute\nTraining\nOther"
+   "options": "Agriculture Department\nKrishi Vigyan Kendra (KVK)\nOrganization / Institution\nTraining\nOther"
   },
   {
    "default": "No",
@@ -578,7 +580,7 @@
    "fieldname": "water_budgeting_practices",
    "fieldtype": "Select",
    "label": "48. Water security/budgeting practices adopted",
-   "options": "Drip Irrigation\nRainwater Harvesting\nSoil Testing based Fertilizer/Water Planning\nSoil-test based water scheduling\nOther"
+   "options": "Drip Irrigation\nRainwater Harvesting\nSoil Testing based Fertilizer/Water Planning\nOther"
   },
   {
    "fieldname": "section_livestock",
@@ -610,14 +612,14 @@
    "fieldname": "cattle_shed_type",
    "fieldtype": "Select",
    "label": "51. Cattle Shed Available?",
-   "options": "Pucca (Permanent)\nKutcha (Temporary)\nPucca\nKutcha\nNone"
+   "options": "Pucca (Permanent)\nKutcha (Temporary)\nNone"
   },
   {
    "default": "Dairy",
    "fieldname": "milk_sale_channel",
    "fieldtype": "Select",
    "label": "52. Where is milk sold?",
-   "options": "Dairy\nUkhada (Local market/Open space)\nLocal Market (Ukhada)\nDirect\nOther"
+   "options": "Dairy\nUkhada (Local market/Open space)"
   },
   {
    "fieldname": "section_assets",
@@ -686,6 +688,33 @@
    "options": "Baseline Survey",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "beneficiary_uid",
+   "fieldtype": "Data",
+   "label": "Beneficiary UID / Barcode",
+   "unique": 1,
+   "in_standard_filter": 1,
+   "description": "Unique household identifier. Prevents the same household being surveyed twice."
+  },
+  {
+   "fieldname": "geolocation_coordinates",
+   "fieldtype": "Data",
+   "label": "GPS Coordinates (Lat, Long)",
+   "description": "Captured on device at the household. Used for field verification."
+  },
+  {
+   "fieldname": "socio_economic_score",
+   "fieldtype": "Float",
+   "label": "Socio-Economic Score",
+   "precision": "2",
+   "description": "Baseline financial tier, 0.00 to 100.00. Drives eligibility thresholds."
+  },
+  {
+   "fieldname": "survey_response_json",
+   "fieldtype": "Long Text",
+   "label": "Survey Response JSON",
+   "description": "Dynamic questionnaire feed. Captures unanticipated environmental ripple effects."
   }
  ],
  "is_submittable": 1,

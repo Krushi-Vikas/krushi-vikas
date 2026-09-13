@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Collection - User Journey &amp; Design Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1B1E1A;--paper:#EFEDE4;--paper-raised:#F7F5EE;--rule:#CFCABA;--rule-soft:#DEDACC;--muted:#6B6A5F;--draft:#6B6A5F;--pending:#9C7A2E;--pending-bg:#F1E5C6;--approved:#3F6B4E;--approved-bg:#DDE8DD;--rejected:#9C3E33;--rejected-bg:#F0DAD4;--serif:'Fraunces',serif;--sans:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace}
+  *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6}
+  .wrap{display:grid;grid-template-columns:220px minmax(0,760px);gap:56px;max-width:1080px;margin:0 auto;padding:64px 32px 120px;justify-content:center}
+  nav.toc{position:sticky;top:48px;align-self:start;font-size:13px} nav.toc .toc-label{font-family:var(--mono);color:var(--muted);letter-spacing:.02em;margin-bottom:14px} nav.toc a{display:block;color:var(--ink);text-decoration:none;padding:6px 0 6px 14px;border-left:2px solid var(--rule);opacity:.72} nav.toc a:hover{opacity:1;border-left-color:var(--pending)}
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:28px;margin-bottom:8px}.kicker{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:0 0 18px}h1{font-family:var(--serif);font-weight:600;font-size:46px;line-height:1.08;margin:0 0 14px;letter-spacing:-.01em}.dek{font-size:17px;color:#403F37;max-width:56ch;margin:0}
+  section{margin-top:64px}section:first-of-type{margin-top:48px}h2{font-family:var(--serif);font-weight:600;font-size:26px;margin:0 0 6px;display:flex;align-items:baseline;gap:10px}h2 .num{font-family:var(--mono);font-size:14px;color:var(--pending);font-weight:500}h3{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 8px}.section-intro{color:#403F37;max-width:62ch;margin:0 0 28px}p{margin:0 0 14px}
+  .table-scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:700px}table.stage-map{min-width:920px}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top}thead th{font-family:var(--mono);font-weight:500;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--ink);background:var(--paper);position:sticky;top:0}tbody tr:hover{background:var(--paper-raised)}td.stage-name{font-weight:600;white-space:nowrap}td.dim{color:var(--muted)}td.escalation{color:var(--rejected);font-size:13px}td.fieldname{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+  .callout-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.callout{background:var(--paper-raised);border:1px solid var(--rule);border-radius:2px;padding:20px 22px}.callout h3{font-size:15px}.callout ul{margin:0;padding-left:18px}.callout li{margin-bottom:12px;font-size:14.5px}.callout li:last-child{margin-bottom:0}.callout code,td code,li code{font-family:var(--mono);font-size:12.5px;background:#E2DECD;padding:1px 5px;border-radius:2px}
+  .flow{display:flex;align-items:center;gap:0;margin:8px 0 4px;flex-wrap:wrap}.flow-state{font-family:var(--mono);font-size:13.5px;padding:10px 18px;border:1.5px solid var(--ink);border-radius:3px;background:var(--paper-raised);white-space:nowrap}.flow-state.approved{border-color:var(--approved);color:var(--approved);background:var(--approved-bg)}.flow-state.pending{border-color:var(--pending);color:var(--pending);background:var(--pending-bg)}.flow-arrow{color:var(--muted);padding:0 12px;font-size:15px}
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.role-card{border-top:2px solid var(--ink);padding-top:14px}.role-card .role-name{font-family:var(--mono);font-size:12px;color:var(--pending);margin-bottom:6px}.role-card p{font-size:14px;margin:0}
+  .timeline{border-left:2px solid var(--rule);margin-left:8px;padding-left:0}.step{position:relative;padding:0 0 34px 32px}.step:last-child{padding-bottom:0}.step::before{content:attr(data-n);position:absolute;left:-15px;top:0;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;display:flex;align-items:center;justify-content:center}.step-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}.step-title{font-weight:600;font-size:16px}.step-who,.step-where{font-family:var(--mono);font-size:12px;color:var(--pending)}.step-who{font-size:11.5px;color:var(--muted)}.step p{font-size:14.5px;color:#33322C;margin:6px 0}
+  .badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:10px}.badge.mandatory{background:var(--rejected-bg);color:var(--rejected)}.badge.optional{background:var(--rule-soft);color:var(--muted)}.badge.layout{background:#E2DECD;color:var(--muted);font-style:italic}.obs-list{list-style:none;margin:0;padding:0}.obs-list li{padding:14px 0;border-bottom:1px solid var(--rule-soft);font-size:14.5px;display:grid;grid-template-columns:20px 1fr;gap:10px}.obs-list li:first-child{padding-top:0}.obs-list li::before{content:'-';color:var(--pending)}footer{margin-top:72px;padding-top:20px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  @media (max-width:880px){.wrap{grid-template-columns:1fr;padding:36px 20px 80px}nav.toc{display:none}.callout-grid,.roles{grid-template-columns:1fr}h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="toc">
+    <div class="toc-label">On this page</div>
+    <a href="#stage-map">Platform stage map</a>
+    <a href="#domain-model">Custom build</a>
+    <a href="#flow">Field collection flow</a>
+    <a href="#roles">Roles involved</a>
+    <a href="#walkthrough">Step-by-step</a>
+    <a href="#fields">Field reference</a>
+    <a href="#observations">Observations</a>
+  </nav>
+  <main>
+    <header class="masthead">
+      <p class="kicker">Field collection - user journey &amp; design reference</p>
+      <h1>How baseline and village data enter the system</h1>
+      <p class="dek">Stage 5 of the platform journey, documented as two Desk forms: a household Baseline Survey and a Village Profile. Field Officers collect the benchmark data that Project Coordinators use when setting up the project.</p>
+    </header>
+
+    <section id="stage-map">
+      <h2><span class="num">01</span>Platform stage map</h2>
+      <p class="section-intro">Field collection sits after proposal approval and before a Coordinator creates the operational project. It records the starting condition; it does not approve, fund, or start a project.</p>
+      <div class="table-scroll"><table class="stage-map"><thead><tr><th>Stage</th><th>CEO</th><th>Director</th><th>PM</th><th>PC</th><th>Field Officer</th><th>Output</th></tr></thead><tbody>
+        <tr><td class="stage-name">1. Concept Note</td><td class="dim">-</td><td>Approve</td><td>Draft</td><td class="dim">-</td><td class="dim">-</td><td class="dim">Approved idea</td></tr>
+        <tr><td class="stage-name">2. RRA</td><td class="dim">-</td><td class="dim">-</td><td>Select template</td><td class="dim">-</td><td>Collect response</td><td class="dim">Rapid appraisal</td></tr>
+        <tr><td class="stage-name">3-4. Proposal approval</td><td class="dim">-</td><td>Approve</td><td>Draft proposal</td><td class="dim">-</td><td class="dim">-</td><td class="dim">Approved proposal</td></tr>
+        <tr><td class="stage-name">5. Field collection</td><td>Read all</td><td>Read all</td><td>Read assigned-project surveys</td><td>Read/ingest project surveys</td><td>Baseline Survey; Village Profile</td><td class="escalation">Immutable submitted baseline record</td></tr>
+        <tr><td class="stage-name">6. Project creation</td><td class="dim">-</td><td class="dim">-</td><td class="dim">-</td><td>Create KV Project</td><td class="dim">-</td><td class="dim">Operational project</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section id="domain-model">
+      <h2><span class="num">02</span>What is custom to Krushi Vikas</h2>
+      <p class="section-intro">These records deliberately replace the generic Survey Response placeholder for the detailed, source-form-led baseline collection.</p>
+      <div class="callout-grid">
+        <div class="callout"><h3>Household Baseline Survey</h3><ul>
+          <li>One document per household, identified by <code>beneficiary_uid</code> where a barcode or unique identifier is available.</li>
+          <li>Structured child tables preserve repeatable details such as household members, crops, water assets, livestock, loans, income and expenditure.</li>
+          <li>Calculated totals retain household-member, livestock, crop-profit and monthly-to-annual financial consistency.</li>
+        </ul></div>
+        <div class="callout"><h3>Village Profile</h3><ul>
+          <li>One document per village, with an optional unique census or revenue code and device-captured GPS coordinates.</li>
+          <li>Separate child tables hold caste demographics, land use, cropping, water sources, facilities, public institutions and livestock.</li>
+          <li>Controller validation checks future dates, negative totals and counts that exceed the stated village household or population totals.</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <h2><span class="num">03</span>The field collection flow, at a glance</h2>
+      <p class="section-intro">There is no approval workflow for collection. A Field Officer saves work as Draft, then submits it when the source form is complete. Frappe submission locks the before-state record; the Coordinator can use it during project setup.</p>
+      <div class="flow"><div class="flow-state">Draft</div><div class="flow-arrow">-></div><div class="flow-state pending">Complete source-form entries</div><div class="flow-arrow">-></div><div class="flow-state approved">Submitted and locked</div><div class="flow-arrow">-></div><div class="flow-state">Coordinator ingests for project setup</div></div>
+    </section>
+
+    <section id="roles">
+      <h2><span class="num">04</span>Roles involved</h2>
+      <div class="roles">
+        <div class="role-card"><div class="role-name">Field Officer</div><p>Creates, completes and submits records filed under their own user account. Row-level access prevents an officer from opening a peer officer's submissions.</p></div>
+        <div class="role-card"><div class="role-name">Coordinator / Manager</div><p>Reads records in their operational scope. Coordinators use field evidence as an input to project creation; neither role creates a field submission under the standard journey.</p></div>
+        <div class="role-card"><div class="role-name">Director / CEO</div><p>Have organization-wide survey visibility. Submitted records remain the auditable before-state rather than an editable planning document.</p></div>
+      </div>
+    </section>
+
+    <section id="walkthrough">
+      <h2><span class="num">05</span>Step-by-step walkthrough</h2>
+      <div class="timeline">
+        <div class="step" data-n="1"><div class="step-head"><span class="step-title">Field Officer starts the appropriate Desk form</span><span class="step-who">who: Field Officer</span></div><p>Use Baseline Survey for a household and Village Profile for the shared village context. The collector and survey date are recorded with the form.</p><div class="step-where">Desk: Baseline Survey or Village Profile, new record</div></div>
+        <div class="step" data-n="2"><div class="step-head"><span class="step-title">Officer records source-form evidence</span><span class="step-who">who: Field Officer</span></div><p>Each paper-form section has a direct field or child-table destination. Conditional prompts appear only when their preceding answer makes them relevant.</p><div class="step-where">Desk form sections and child-table grids</div></div>
+        <div class="step" data-n="3"><div class="step-head"><span class="step-title">Officer saves or submits deliberately</span><span class="step-who">who: Field Officer</span></div><p>Drafts remain editable. Submit only after completing the source form: submission records the status and locks the baseline snapshot under Frappe's submittable-document behavior.</p><div class="step-where">Save and Submit controls, top-right of the form</div></div>
+        <div class="step" data-n="4"><div class="step-head"><span class="step-title">Coordinator reads the submitted baseline</span><span class="step-who">who: Project Coordinator</span></div><p>The submitted household and village evidence is available to the project team in its permitted scope when they create and plan the operational project. It is not a substitute for proposal approval.</p><div class="step-where">Desk list and submitted record view</div></div>
+      </div>
+    </section>
+
+    <section id="fields">
+      <h2><span class="num">06</span>Field reference</h2>
+      <p class="section-intro">This is an implementation reference, grouped by source-form section. Full field definitions, types and child-table schemas remain in the DocType metadata so the documentation does not duplicate 190+ individual fields.</p>
+      <div class="table-scroll"><table><thead><tr><th>Form</th><th>Source-form section</th><th>Stored fields / tables</th><th>Required</th><th>Notes</th></tr></thead><tbody>
+        <tr><td class="stage-name">Baseline Survey</td><td>Identity and location</td><td class="fieldname">farmer_name, village, survey_date, field_officer, project, beneficiary, beneficiary_uid, geolocation_coordinates</td><td><span class="badge mandatory">name, village, date</span></td><td>Household benchmark and optional project link.</td></tr>
+        <tr><td class="stage-name">Baseline Survey</td><td>Family, SHG and agriculture</td><td class="fieldname">household_members_table; landholding; soil test; SHG and enterprise fields</td><td><span class="badge optional">conditional fields</span></td><td>Migration and SHG follow-up fields depend on preceding Yes/No answers.</td></tr>
+        <tr><td class="stage-name">Baseline Survey</td><td>Crops, water and conservation</td><td class="fieldname">crops_table, irrigation_sources_table, irrigation_equipment_table, farm_conservation_works_table, nullah_conservation_structures_table</td><td><span class="badge optional">source-form driven</span></td><td>Crop-income and livestock totals calculate from their rows.</td></tr>
+        <tr><td class="stage-name">Baseline Survey</td><td>Livelihood and declaration</td><td class="fieldname">livestock_table, family_assets_table, loans_table, family_income_table, family_expenditure_table, socio_economic_score, confirmation_consent</td><td><span class="badge optional">source-form driven</span></td><td>Supports the full household financial baseline.</td></tr>
+        <tr><td class="stage-name">Village Profile</td><td>Administration and population</td><td class="fieldname">village_name, village_code, gram_panchayat, block_taluka, district, state, geo_coordinates, population and household totals</td><td><span class="badge mandatory">village, GP, block, district, state, date, totals</span></td><td>Village code is unique when supplied.</td></tr>
+        <tr><td class="stage-name">Village Profile</td><td>Land, crops, water and sanitation</td><td class="fieldname">caste_demographics_table, land_use_table, cropping_pattern_table, water_sources_table; sanitation, drainage and waste fields</td><td><span class="badge optional">source-form driven</span></td><td>Totals are checked against population, households and village area where applicable.</td></tr>
+        <tr><td class="stage-name">Village Profile</td><td>Facilities, livelihoods and observations</td><td class="fieldname">health_facilities_table, education_facilities_table, public_institutions_table, livestock_table; fuel, employment and observation fields</td><td><span class="badge optional">source-form driven</span></td><td>Preserves recurring facility and livestock data as structured rows.</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section id="observations">
+      <h2><span class="num">07</span>Observations worth flagging</h2>
+      <ul class="obs-list">
+        <li>The former public Village Profile wizard is retired in favour of authenticated Desk collection. This aligns field evidence with Frappe permissions and the documented Field Officer ownership model.</li>
+        <li>The existing generic <code>Survey Template</code> and <code>Survey Response</code> records remain relevant for configurable RRA and endline questionnaires. They are not the canonical storage for the fixed, detailed household and village source forms.</li>
+        <li>Before release, run migration and build assets, then test record creation, submission lock and row-level permissions with the named Field Officer, Coordinator, Manager, Director and CEO test accounts. Static metadata checks alone do not prove the Desk experience.</li>
+        <li>GPS format, socio-economic-score range and JSON payload validation should be enforced in the Baseline Survey controller before using those fields for eligibility or reporting decisions.</li>
+      </ul>
+    </section>
+    <footer>Field collection - user journey &amp; design reference | Covers Baseline Survey and Village Profile</footer>
+  </main>
+</div>
+</body>
+</html>
