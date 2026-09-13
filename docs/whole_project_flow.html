@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krushi Vikas — Complete Project Lifecycle &amp; System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#F7F5EE',
+      primaryBorderColor: '#1B1E1A',
+      primaryTextColor: '#1B1E1A',
+      lineColor: '#6B6A5F',
+      fontSize: '13px',
+      fontFamily: 'IBM Plex Sans'
+    }
+  });
+</script>
+<style>
+  :root{
+    --ink:#1B1E1A;
+    --paper:#EFEDE4;
+    --paper-raised:#F7F5EE;
+    --rule:#CFCABA;
+    --rule-soft:#DEDACC;
+    --muted:#6B6A5F;
+    --draft:#6B6A5F;
+    --pending:#9C7A2E;
+    --pending-bg:#F1E5C6;
+    --approved:#3F6B4E;
+    --approved-bg:#DDE8DD;
+    --reviewed:#2C5282;
+    --reviewed-bg:#EBF8FF;
+    --rejected:#9C3E33;
+    --rejected-bg:#F0DAD4;
+    --accent:#805AD5;
+    --accent-bg:#E9D8FD;
+    --serif:'Fraunces', serif;
+    --sans:'IBM Plex Sans', sans-serif;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns:230px minmax(0,780px);
+    gap:56px;
+    max-width:1120px;
+    margin:0 auto;
+    padding:64px 32px 120px;
+    justify-content:center;
+  }
+  nav.toc{
+    position:sticky;
+    top:40px;
+    align-self:start;
+    font-size:12.5px;
+    max-height:calc(100vh - 80px);
+    overflow-y:auto;
+    padding-right:8px;
+  }
+  nav.toc .toc-label{
+    font-family:var(--mono);
+    color:var(--muted);
+    letter-spacing:.02em;
+    margin-bottom:14px;
+    text-transform:uppercase;
+  }
+  nav.toc a{
+    display:block;
+    color:var(--ink);
+    text-decoration:none;
+    padding:5px 0 5px 12px;
+    border-left:2px solid var(--rule);
+    opacity:.75;
+    transition:all 0.15s ease;
+  }
+  nav.toc a:hover{opacity:1; border-left-color:var(--pending); color:var(--pending);}
+
+  header.masthead{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:28px;
+    margin-bottom:8px;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--muted);
+    margin:0 0 18px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(34px,4.5vw,46px);
+    line-height:1.08;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  .dek{
+    font-size:17px;
+    color:#403F37;
+    max-width:58ch;
+    margin:0;
+  }
+
+  section{margin-top:64px;}
+  section:first-of-type{margin-top:44px;}
+
+  h2{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:26px;
+    margin:0 0 6px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  h2 .num{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--pending);
+    font-weight:500;
+  }
+  h3{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:19px;
+    margin:20px 0 8px;
+  }
+  .section-intro{
+    color:#403F37;
+    max-width:64ch;
+    margin:0 0 28px;
+  }
+  p{margin:0 0 14px;}
+
+  /* tables */
+  .table-scroll{overflow-x:auto; margin:16px -4px; padding:0 4px;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    min-width:760px;
+  }
+  table.stage-map{min-width:940px;}
+  th, td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--rule-soft);
+    vertical-align:top;
+  }
+  thead th{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:11.5px;
+    color:var(--muted);
+    border-bottom:1.5px solid var(--ink);
+    background:var(--paper);
+    position:sticky;
+    top:0;
+  }
+  tbody tr:hover{background:var(--paper-raised);}
+  td.stage-name{font-weight:600; white-space:nowrap;}
+  td.dim{color:var(--muted);}
+  td.escalation{color:var(--rejected); font-size:12.5px;}
+
+  /* callouts */
+  .callout-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-top:16px;
+  }
+  .callout{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    border-radius:3px;
+    padding:20px 22px;
+  }
+  .callout h3{font-size:16px; margin-top:0;}
+  .callout ul{margin:0; padding-left:18px;}
+  .callout li{margin-bottom:10px; font-size:14px;}
+  .callout li:last-child{margin-bottom:0;}
+  .callout code, td code, li code, p code{
+    font-family:var(--mono);
+    font-size:12.5px;
+    background:#E2DECD;
+    padding:1px 5px;
+    border-radius:2px;
+  }
+
+  /* mermaid container */
+  .diagram-box{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    padding:24px;
+    margin:20px 0;
+    overflow-x:auto;
+  }
+
+  /* stepper & phases */
+  .phase-banner{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11.5px;
+    font-weight:600;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:2px;
+    letter-spacing:0.04em;
+    margin-bottom:8px;
+  }
+  .phase-1{background:#E9D8FD; color:#553C9A;}
+  .phase-2{background:#EBF8FF; color:#2B6CB0;}
+  .phase-3{background:#DDE8DD; color:#276749;}
+  .phase-4{background:#FEEBC8; color:#C05621;}
+
+  /* roles */
+  .roles{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+    margin-top:16px;
+  }
+  .role-card{
+    border-top:2px solid var(--ink);
+    padding-top:14px;
+  }
+  .role-card .role-name{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--pending);
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .role-card p{font-size:14px; margin:0;}
+
+  /* walkthrough timeline */
+  .timeline{
+    border-left:2px solid var(--rule);
+    margin-left:12px;
+    padding-left:0;
+    margin-top:24px;
+  }
+  .step{
+    position:relative;
+    padding:0 0 36px 34px;
+  }
+  .step:last-child{padding-bottom:0;}
+  .step::before{
+    content:attr(data-n);
+    position:absolute;
+    left:-16px;
+    top:0;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--mono);
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+  }
+  .step-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:4px;
+  }
+  .step-title{font-weight:600; font-size:16.5px;}
+  .step-who{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .step p{font-size:14.5px; color:#33322C; margin:6px 0 8px;}
+  .step-where{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--pending);
+  }
+
+  /* badges */
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:10px;
+  }
+  .badge.mandatory{background:var(--rejected-bg); color:var(--rejected);}
+  .badge.approved{background:var(--approved-bg); color:var(--approved);}
+  .badge.pending{background:var(--pending-bg); color:var(--pending);}
+  .badge.optional{background:var(--rule-soft); color:var(--muted);}
+
+  /* code block */
+  pre.code-block{
+    background:#1E201E;
+    color:#EAE8E0;
+    padding:16px 20px;
+    border-radius:4px;
+    overflow-x:auto;
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.5;
+  }
+
+  /* observation list */
+  .obs-list{list-style:none; margin:0; padding:0;}
+  .obs-list li{
+    padding:14px 0;
+    border-bottom:1px solid var(--rule-soft);
+    font-size:14.5px;
+    display:grid;
+    grid-template-columns:20px 1fr;
+    gap:10px;
+  }
+  .obs-list li:first-child{padding-top:0;}
+  .obs-list li::before{
+    content:"—";
+    color:var(--pending);
+    font-weight:bold;
+  }
+
+  footer{
+    margin-top:72px;
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+  }
+
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr; padding:36px 20px 80px;}
+    nav.toc{display:none;}
+    .callout-grid{grid-template-columns:1fr;}
+    .roles{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="toc-label">Lifecycle Navigation</div>
+    <a href="#operational-flow">01. End-to-end flow</a>
+    <a href="#phase-matrix">02. 4 Phase roadmap</a>
+    <a href="#stage-matrix">03. 10-Stage role matrix</a>
+    <a href="#lateral-isolation">04. Lateral isolation rules</a>
+    <a href="#code-gates">05. Hand-offs &amp; code gates</a>
+    <a href="#state-machine">06. Dynamic stage machine</a>
+    <a href="#realtime-telemetry">07. Real-time alerts &amp; SLA</a>
+    <a href="#walkthrough">08. Step-by-step lifecycle</a>
+    <a href="#data-lineage">09. DocType data lineage</a>
+    <a href="#observations">10. Architecture notes</a>
+  </nav>
+
+  <main>
+    <header class="masthead">
+      <p class="kicker">Krushi Vikas — Architecture &amp; Lifecycle Specification</p>
+      <h1>How a Project Moves Through Krushi Vikas</h1>
+      <p class="dek">An idea becomes a funded, staffed, monitored, and evaluated agricultural program through ten deterministic stages — complete role boundaries, hard gates, lateral security, and real-time reverse reporting telemetry.</p>
+    </header>
+
+    <!-- SECTION 01: VISUAL FLOW -->
+    <section id="operational-flow">
+      <h2><span class="num">01</span>The 10-Stage Operational Flow</h2>
+      <p class="section-intro">Every hand-off is enforced in code: a step cannot start until the one before it has closed cleanly. The chain cannot be short-circuited or bypassed from the user interface.</p>
+      
+      <div class="diagram-box">
+        <div class="mermaid">
+flowchart TD
+    subgraph P1["Phase 1 · Planning & Conception"]
+        S01["<b>01 · Concept Note</b><br/>👤 Donor / Management<br/><i>Initial proposal framework</i>"]
+        S02["<b>02 · RRA Report</b><br/>👤 Management<br/><i>Rapid rural appraisal & tagging</i>"]
+    end
+
+    subgraph P2["Phase 2 · Formalization & Baseline"]
+        S03["<b>03 · Proposal & Budget</b><br/>👤 Project Manager<br/><i>Thematic activities & budget lines</i>"]
+        S04{"<b>04 · Formal Approval Gate</b><br/>👤 Director / CEO<br/><i>Proposal sign-off</i>"}
+        S05["<b>05 · Baseline Survey</b><br/>👤 Field Officer<br/><i>Ground benchmark metrics & media</i>"]
+    end
+
+    subgraph P3["Phase 3 · System Ingestion & Work Breakdown"]
+        S06["<b>06 · KV Project Creation</b><br/>👤 Project Coordinator<br/><i>Spawn project from approved proposal</i>"]
+        S07{"<b>07 · Internal Approval Gate</b><br/>👤 Director / CEO<br/><i>Maker-checker deployment lock</i>"}
+        S08["<b>08 · Task Assignment</b><br/>👤 Project Manager<br/><i>Activity breakdown & officer allocation</i>"]
+    end
+
+    subgraph P4["Phase 4 · Field Actions & Telemetry"]
+        S09["<b>09 · Field Execution</b><br/>👤 Field Officers / Staff<br/><i>Task progress, outcomes & KRE tracking</i>"]
+        S10["<b>10 · Reverse Reporting</b><br/>👤 Field Officer<br/><i>Feedback surveys, community voice & WhatsApp</i>"]
+        DASH(["<b>📊 Executive Dashboards</b><br/><i>KRE variance, adoption %, reverse telemetry</i>"])
+    end
+
+    S01 -->|"status = Approved"| S02
+    S02 -->|"recommendation = Proceed"| S03
+    S03 --> S04
+    S04 -->|"Approved"| S06
+    S04 -->|"Rejected"| S03
+    S05 -.->|"benchmark data"| S06
+    S06 --> S07
+    S07 -->|"Approved"| S08
+    S07 -->|"Rejected"| S06
+    S08 --> S09
+    S09 --> S10
+    S10 --> DASH
+    DASH -.->|"Informs next cycle"| S01
+
+    classDef p1 fill:#E9D8FD,stroke:#553C9A,stroke-width:1.5px,color:#1B1E1A;
+    classDef p2 fill:#EBF8FF,stroke:#2B6CB0,stroke-width:1.5px,color:#1B1E1A;
+    classDef p3 fill:#DDE8DD,stroke:#276749,stroke-width:1.5px,color:#1B1E1A;
+    classDef p4 fill:#FEEBC8,stroke:#C05621,stroke-width:1.5px,color:#1B1E1A;
+    classDef gate fill:#F0DAD4,stroke:#9C3E33,stroke-width:2px,color:#9C3E33;
+    classDef dash fill:#1B1E1A,stroke:#1B1E1A,stroke-width:2px,color:#EFEDE4;
+
+    class S01,S02 p1;
+    class S03,S05 p2;
+    class S04,S07 gate;
+    class S06,S08 p3;
+    class S09,S10 p4;
+    class DASH dash;
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 02: 4 PHASES -->
+    <section id="phase-matrix">
+      <h2><span class="num">02</span>The Four Core Phases</h2>
+      <p class="section-intro">The platform groups the 10 operational steps into four discrete governance phases:</p>
+
+      <div class="callout-grid">
+        <div class="callout">
+          <span class="phase-banner phase-1">Phase 1 · Planning &amp; Conception</span>
+          <h3>Donor Alignment &amp; Rural Appraisal</h3>
+          <p>Steps 01 – 02. External funding proposals or internal initiatives are conceived, reviewed by leadership, and vetted against Rapid Rural Appraisal (RRA) assessments. Held as reference data; no operational expenditure is unlocked yet.</p>
+        </div>
+        <div class="callout">
+          <span class="phase-banner phase-2">Phase 2 · Formalization &amp; Baseline</span>
+          <h3>Maker-Checker &amp; Ground Truth</h3>
+          <p>Steps 03 – 05. The Project Manager builds the operational budget and project proposal. Leadership formally signs off, and Field Officers capture baseline indicators and village media before any intervention commences.</p>
+        </div>
+        <div class="callout">
+          <span class="phase-banner phase-3">Phase 3 · System Ingestion &amp; Control</span>
+          <h3>Project Creation &amp; Task Allocation</h3>
+          <p>Steps 06 – 08. The Project Coordinator creates the live KV Project from the approved proposal. An internal approval gate ensures compliance, after which the Project Manager assigns activities and tasks to designated Field Officers.</p>
+        </div>
+        <div class="callout">
+          <span class="phase-banner phase-4">Phase 4 · Field Actions &amp; Telemetry</span>
+          <h3>Execution &amp; Reverse Reporting</h3>
+          <p>Steps 09 – 10. Field officers execute tasks, log expenditure, and conduct structured Feedback Surveys. Real-time Meta WhatsApp alerts push field updates to managers, rolling up directly into executive dashboards.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 03: 10-STAGE ROLE MATRIX -->
+    <section id="stage-matrix">
+      <h2><span class="num">03</span>The 10-Stage Platform Role Matrix</h2>
+      <p class="section-intro">Who owns each stage, what DocType they touch, and what happens if a stage stalls or is rejected:</p>
+      
+      <div class="table-scroll">
+        <table class="stage-map">
+          <thead>
+            <tr>
+              <th>#</th><th>Stage</th><th>Owner Role</th><th>DocType</th><th>Gate / Required Condition</th><th>If Blocked / Stalled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>01</td>
+              <td class="stage-name">Concept Note</td>
+              <td>Donor / PM</td>
+              <td><code>Concept Note</code></td>
+              <td>Status must reach <span class="badge approved">Approved</span></td>
+              <td class="escalation">Workflow email to Director; project generation blocked</td>
+            </tr>
+            <tr>
+              <td>02</td>
+              <td class="stage-name">RRA Report</td>
+              <td>Management</td>
+              <td><code>RRA Report</code></td>
+              <td>Recommendation must be <span class="badge approved">Proceed</span></td>
+              <td class="escalation">Proposal cannot be created if flagged "Do Not Proceed"</td>
+            </tr>
+            <tr>
+              <td>03</td>
+              <td class="stage-name">Project Proposal</td>
+              <td>Project Manager</td>
+              <td><code>Project Proposal</code></td>
+              <td>Thematic budget lines and milestones drafted</td>
+              <td class="escalation">Stays in Draft until PM submits for review</td>
+            </tr>
+            <tr>
+              <td>04</td>
+              <td class="stage-name">Proposal Approval Gate</td>
+              <td>Director / CEO</td>
+              <td><code>Project Proposal</code></td>
+              <td>Workflow State moves to <span class="badge approved">Approved</span></td>
+              <td class="escalation">Reverts to Step 03 for revision if Rejected</td>
+            </tr>
+            <tr>
+              <td>05</td>
+              <td class="stage-name">Baseline Survey</td>
+              <td>Field Officer</td>
+              <td><code>Baseline Survey</code></td>
+              <td>Pre-intervention ground indicators &amp; photos logged</td>
+              <td class="escalation">Informs benchmark KPIs on spawned project</td>
+            </tr>
+            <tr>
+              <td>06</td>
+              <td class="stage-name">KV Project Creation</td>
+              <td>Project Coordinator</td>
+              <td><code>KV Project</code></td>
+              <td>Requires an approved proposal (ID carried over)</td>
+              <td class="escalation">Cannot manually create without valid proposal link</td>
+            </tr>
+            <tr>
+              <td>07</td>
+              <td class="stage-name">Internal Approval Gate</td>
+              <td>Director / CEO</td>
+              <td><code>KV Project</code></td>
+              <td>Maker-checker deployment sign-off (<span class="badge approved">Approved</span>)</td>
+              <td class="escalation">Reverts to Coordinator if corrections needed</td>
+            </tr>
+            <tr>
+              <td>08</td>
+              <td class="stage-name">Task Assignment</td>
+              <td>Project Manager</td>
+              <td><code>Activity</code> / <code>Task</code></td>
+              <td>Activities linked to project; tasks assigned to officers</td>
+              <td class="escalation">Tasks cannot be worked until assigned and unblocked</td>
+            </tr>
+            <tr>
+              <td>09</td>
+              <td class="stage-name">Field Execution</td>
+              <td>Field Staff</td>
+              <td><code>Task</code>, <code>Activity Outcome</code></td>
+              <td>Hard predecessor gating (<span class="badge mandatory">depends_on</span> enforced)</td>
+              <td class="escalation">SLA escalation climbs: Officer → PM → PC → Director → CEO</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td class="stage-name">Reverse Reporting</td>
+              <td>Field Officer</td>
+              <td><code>Feedback Survey</code></td>
+              <td>Adoption %, community quotes, lateral isolation locked</td>
+              <td class="escalation">Real-time WhatsApp alert &amp; ToDo sent to PM and PC</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 04: LATERAL ISOLATION & HIERARCHY -->
+    <section id="lateral-isolation">
+      <h2><span class="num">04</span>Multi-Tier Role Hierarchy &amp; 3-Level Lateral Isolation</h2>
+      <p class="section-intro">Krushi Vikas enforces a strict 5-tier vertical hierarchy combined with complete lateral isolation at every operational level:</p>
+
+      <div class="diagram-box">
+        <div class="mermaid">
+flowchart TD
+    subgraph GLOBAL["👑 Executive Tier (Organization-Wide Super Access)"]
+        EXEC["👑 CEO & 🌟 Project Director<br/><i>Full view and update authority over ALL projects, activities, and surveys</i>"]
+    end
+
+    subgraph TREE_A["📁 Project Tree A (Project A)"]
+        PC1["📋 Project Coordinator 1 (PC1)<br/><b>Owner: Project A</b>"]
+        PM1["⚙️ Project Manager 1 (PM1)<br/><b>Owner: Activity A1</b>"]
+        FO1["🌱 Field Officer 1 (FO1)<br/><b>Owner: Task A1 / Survey A1</b>"]
+        
+        PC1 -->|"Vertical Authority: Edit Activity"| PM1
+        PM1 -->|"Vertical Authority: Edit Task"| FO1
+        PC1 -->|"Vertical Authority: Edit Task"| FO1
+    end
+
+    subgraph TREE_B["📁 Project Tree B (Project B)"]
+        PC2["📋 Project Coordinator 2 (PC2)<br/><b>Owner: Project B</b>"]
+        PM2["⚙️ Project Manager 2 (PM2)<br/><b>Owner: Activity B1</b>"]
+        FO2["🌱 Field Officer 2 (FO2)<br/><b>Owner: Task B1 / Survey B1</b>"]
+        
+        PC2 -->|"Vertical Authority: Edit Activity"| PM2
+        PM2 -->|"Vertical Authority: Edit Task"| FO2
+        PC2 -->|"Vertical Authority: Edit Task"| FO2
+    end
+
+    EXEC ==>|"Master Update Key"| TREE_A
+    EXEC ==>|"Master Update Key"| TREE_B
+
+    PC1 <-.->|"⛔ LEVEL 1: Project Isolation (PC1 blocked from Project B)"| PC2
+    PM1 <-.->|"⛔ LEVEL 2: Activity Isolation (PM1 blocked from Activity B1)"| PM2
+    FO1 <-.->|"⛔ LEVEL 3: Task & Survey Isolation (FO1 blocked from Task B1 & Survey B1)"| FO2
+
+    classDef exec fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff;
+    classDef coord fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff;
+    classDef mgr fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fff;
+    classDef fo fill:#083344,stroke:#06b6d4,stroke-width:2px,color:#fff;
+
+    class EXEC exec;
+    class PC1,PC2 coord;
+    class PM1,PM2 mgr;
+    class FO1,FO2 fo;
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Tier / Role</th><th>Edit Project</th><th>Edit Activity</th><th>Edit Task</th><th>Edit Feedback Survey</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>👑 1. CEO</strong></td>
+              <td>✅ ANY project</td><td>✅ ANY activity</td><td>✅ ANY task</td><td>✅ ANY survey</td>
+            </tr>
+            <tr>
+              <td><strong>🌟 2. Project Director</strong></td>
+              <td>✅ ANY project</td><td>✅ ANY activity</td><td>✅ ANY task</td><td>✅ ANY survey</td>
+            </tr>
+            <tr>
+              <td><strong>📋 3. Project Coordinator</strong></td>
+              <td>✅ ONLY projects owned by him (peer PC blocked)</td><td>✅ ANY activity in his project</td><td>✅ ANY task in his project</td><td>✅ ANY survey in his project</td>
+            </tr>
+            <tr>
+              <td><strong>⚙️ 4. Project Manager</strong></td>
+              <td>❌ Read-only on projects</td><td>✅ ONLY activities assigned to him (peer PM blocked)</td><td>✅ ANY task in his assigned activity</td><td>✅ ANY survey in his project</td>
+            </tr>
+            <tr>
+              <td><strong>🌱 5. Field Officer</strong></td>
+              <td>❌ Read-only on projects</td><td>❌ Read-only on activities</td><td>✅ ONLY tasks assigned to him (peer FO blocked)</td><td>✅ ONLY surveys conducted by him (peer FO blocked)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 05: CODE GATES & HAND-OFFS -->
+    <section id="code-gates">
+      <h2><span class="num">05</span>The Hand-Offs &amp; Code Gates</h2>
+      <p class="section-intro">Transitions are whitelisted Python API functions in <code>krushi_vikas/api.py</code> that refuse to run out of order:</p>
+
+      <pre class="code-block"><code># 1. Spawn RRA Report from Approved Concept Note (02 <- 01)
+create_rra_from_concept_note(concept_note)
+# Guard: concept_note.status must == "Approved"
+
+# 2. Spawn Proposal from Favourable RRA Assessment (03 <- 02)
+create_proposal_from_rra(rra_report)
+# Guard: rra_report.recommendation must == "Proceed"
+
+# 3. Spawn KV Project from Approved Proposal (06 <- 04)
+create_project_from_proposal(proposal, coordinator)
+# Guard: proposal.workflow_state must == "Approved"
+# Carries budget, dates, thematic areas, and manager across seamlessly
+
+# 4. Roadmap Readout for Any Project
+get_journey_status(project)
+# Returns current stage, completion %, and next actionable gate</code></pre>
+    </section>
+
+    <!-- SECTION 06: DYNAMIC STAGE MACHINE -->
+    <section id="state-machine">
+      <h2><span class="num">06</span>Dynamic Journey Stage State Machine</h2>
+      <p class="section-intro"><code>KV Project.journey_stage</code> is <strong>derived on every save</strong>, never manually typed. It reads the document's own state and advances monotonically:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Condition Checked</th><th>Derived <code>journey_stage</code></th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>status in ("Completed", "Cancelled")</code></td>
+              <td><code>Closed</code></td>
+              <td>Project lifecycle finished or formally wound down</td>
+            </tr>
+            <tr>
+              <td><code>approval_status in ("Pending", "Rejected")</code></td>
+              <td><code>07 Internal Approval</code></td>
+              <td>Waiting for Director/CEO sign-off or resubmission</td>
+            </tr>
+            <tr>
+              <td>An <code>Activity Outcome</code> or <code>Feedback Survey</code> exists</td>
+              <td><code>10 Reverse Reporting</code></td>
+              <td>Field evidence &amp; qualitative stories are reporting in</td>
+            </tr>
+            <tr>
+              <td><code>status in ("In Progress", "Deployed")</code></td>
+              <td><code>09 Execution</code></td>
+              <td>Ground tasks and agricultural activities in active execution</td>
+            </tr>
+            <tr>
+              <td>Project approved, or <code>Activity</code> rows exist</td>
+              <td><code>08 Task Assignment</code></td>
+              <td>Project Manager assigning work breakdown to officers</td>
+            </tr>
+            <tr>
+              <td>Default on initial creation</td>
+              <td><code>06 Project Created</code></td>
+              <td>Project record spawned; pending internal submission</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 07: REAL-TIME TELEMETRY & SLA -->
+    <section id="realtime-telemetry">
+      <h2><span class="num">07</span>Real-Time Telemetry &amp; SLA Escalation Ladder</h2>
+      <p class="section-intro">Two automated escalation mechanisms keep projects moving without manual policing:</p>
+
+      <div class="callout-grid">
+        <div class="callout">
+          <h3>Tiered SLA Escalation Job</h3>
+          <ul>
+            <li><strong>Day 0 (Due Date)</strong>: Bell notification + High-priority ToDo allocated to the assigned Field Officer.</li>
+            <li><strong>Day 3 (First Breach)</strong>: Escalates to Project Manager &amp; Project Coordinator automatically.</li>
+            <li><strong>Day 7 (Critical Breach)</strong>: Escalates to Project Director and CEO.</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h3>Meta WhatsApp Cloud API Telemetry</h3>
+          <ul>
+            <li><strong>Task Assignment</strong>: Real-time WhatsApp alert sent to officer's mobile when task is allocated.</li>
+            <li><strong>Feedback Submission</strong>: Real-time WhatsApp notification sent to Project Manager and Coordinator the moment a Feedback Survey is submitted.</li>
+            <li><strong>Webhook Events</strong>: Bi-directional receipt of delivery receipts (sent, delivered, read) and incoming officer messages.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 08: STEP-BY-STEP WALKTHROUGH -->
+    <section id="walkthrough">
+      <h2><span class="num">08</span>Step-by-Step Lifecycle Walkthrough</h2>
+      <div class="timeline">
+        <div class="step" data-n="1">
+          <div class="step-head">
+            <span class="step-title">01 · Concept Note Conceived &amp; Approved</span>
+            <span class="step-who">who: donor / pm &rarr; director</span>
+          </div>
+          <p>Initial idea submitted by donor or project manager with target geography, thematic area, estimated beneficiaries, and proposed budget. The Director signs off, setting status to Approved.</p>
+          <div class="step-where">DocType: Concept Note &bull; Action: Approve</div>
+        </div>
+
+        <div class="step" data-n="2">
+          <div class="step-head">
+            <span class="step-title">02 · Rapid Rural Appraisal (RRA) Assessment</span>
+            <span class="step-who">who: management / appraisal team</span>
+          </div>
+          <p>Field market and community feasibility appraisal is conducted. If the assessment confirms village need and viability, recommendation is marked "Proceed", unblocking proposal creation.</p>
+          <div class="step-where">DocType: RRA Report &bull; Gate: recommendation = 'Proceed'</div>
+        </div>
+
+        <div class="step" data-n="3">
+          <div class="step-head">
+            <span class="step-title">03 · Project Proposal &amp; Budget Formulation</span>
+            <span class="step-who">who: project manager</span>
+          </div>
+          <p>The Project Manager drafts work packages, links Project Themes, establishes financial line items (Proposal Budget Lines), and schedules planned milestones.</p>
+          <div class="step-where">DocType: Project Proposal &bull; Status: Draft</div>
+        </div>
+
+        <div class="step" data-n="4">
+          <div class="step-head">
+            <span class="step-title">04 · Executive Formal Proposal Approval</span>
+            <span class="step-who">who: project director / ceo</span>
+          </div>
+          <p>Senior executive formal sign-off. If approved, the proposal locks and permanently certifies the sanctioned budget and scope. If rejected, it returns to the PM with feedback.</p>
+          <div class="step-where">DocType: Project Proposal &bull; Workflow: Approved</div>
+        </div>
+
+        <div class="step" data-n="5">
+          <div class="step-head">
+            <span class="step-title">05 · Ground Baseline Survey</span>
+            <span class="step-who">who: field officer</span>
+          </div>
+          <p>Before interventions start, field staff log household economic data, baseline crop yields, and village photos to establish the scientific control for post-project delta evaluations.</p>
+          <div class="step-where">DocType: Baseline Survey / Survey Response</div>
+        </div>
+
+        <div class="step" data-n="6">
+          <div class="step-head">
+            <span class="step-title">06 · Live KV Project Spawned</span>
+            <span class="step-who">who: project coordinator</span>
+          </div>
+          <p>Coordinator invokes <code>create_project_from_proposal</code>. Budget, timeline, thematic tagging, and manager links port over automatically with zero manual re-keying.</p>
+          <div class="step-where">DocType: KV Project &bull; API: create_project_from_proposal</div>
+        </div>
+
+        <div class="step" data-n="7">
+          <div class="step-head">
+            <span class="step-title">07 · Internal Maker-Checker Sign-off</span>
+            <span class="step-who">who: project director / ceo</span>
+          </div>
+          <p>Internal operational gate. The Director verifies coordinator assignments and sanctions deployment. Moves project status to In Progress.</p>
+          <div class="step-where">DocType: KV Project &bull; Field: approval_status = 'Approved'</div>
+        </div>
+
+        <div class="step" data-n="8">
+          <div class="step-head">
+            <span class="step-title">08 · Work Breakdown &amp; Task Assignment</span>
+            <span class="step-who">who: project manager</span>
+          </div>
+          <p>Manager assigns Activities and granular Tasks to Field Officers. Automatic WhatsApp alerts ping officers with direct task deep-links and expected due dates.</p>
+          <div class="step-where">DocType: Activity &amp; Task &bull; Alert: Meta WhatsApp Cloud API</div>
+        </div>
+
+        <div class="step" data-n="9">
+          <div class="step-head">
+            <span class="step-title">09 · Field Execution &amp; Predecessor Gating</span>
+            <span class="step-who">who: field officers</span>
+          </div>
+          <p>Officers execute soil treatments, sapling distribution, or farmer trainings. Hard dependency checks block dependent tasks until predecessor milestones are formally verified.</p>
+          <div class="step-where">DocType: Task &bull; Validate: depends_on check</div>
+        </div>
+
+        <div class="step" data-n="10">
+          <div class="step-head">
+            <span class="step-title">10 · Reverse Reporting &amp; Telemetry Rollup</span>
+            <span class="step-who">who: field officer &rarr; leadership</span>
+          </div>
+          <p>Field Officer submits qualitative success stories, farmer quotes, and adoption percentages via <code>Feedback Survey</code>. Peer officers are laterally isolated from tampering. Real-time WhatsApp alerts ping the PM and PC, and metrics roll into Executive Dashboards.</p>
+          <div class="step-where">DocType: Feedback Survey &bull; Rollup: KV Project feedback_surveys</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 09: DATA LINEAGE -->
+    <section id="data-lineage">
+      <h2><span class="num">09</span>DocType Data Lineage Map</h2>
+      <p class="section-intro">How records link and inherit metadata throughout the platform:</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Parent Record</th><th>Target Child Record</th><th>Inherited Fields</th><th>Link Fieldname</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>Concept Note</code></td>
+              <td><code>RRA Report</code></td>
+              <td>title, thematic_area, target_geography, estimated_budget</td>
+              <td><code>rra_report.concept_note</code></td>
+            </tr>
+            <tr>
+              <td><code>RRA Report</code></td>
+              <td><code>Project Proposal</code></td>
+              <td>title, thematic_area, target_geography, budget, recommendations</td>
+              <td><code>project_proposal.rra_report</code></td>
+            </tr>
+            <tr>
+              <td><code>Project Proposal</code></td>
+              <td><code>KV Project</code></td>
+              <td>title, theme, start_date, end_date, total_budget, project_manager</td>
+              <td><code>kv_project.proposal</code></td>
+            </tr>
+            <tr>
+              <td><code>KV Project</code></td>
+              <td><code>Activity</code></td>
+              <td>project, project_coordinator</td>
+              <td><code>activity.project</code></td>
+            </tr>
+            <tr>
+              <td><code>Activity</code></td>
+              <td><code>Task</code></td>
+              <td>custom_activity, custom_activity_owner, exp_start_date, exp_end_date</td>
+              <td><code>task.custom_activity</code></td>
+            </tr>
+            <tr>
+              <td><code>KV Project</code></td>
+              <td><code>Feedback Survey</code></td>
+              <td>project (reverse linkage to KV Project child table)</td>
+              <td><code>feedback_survey.project</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 10: ARCHITECTURAL OBSERVATIONS -->
+    <section id="observations">
+      <h2><span class="num">10</span>Architectural Observations &amp; Best Practices</h2>
+      <ul class="obs-list">
+        <li><strong>Zero Data Drifting</strong> — Critical variables (sanctioned budget, thematic tags, target villages) inherit programmatically from Step 01 to Step 06. Manual re-typing is strictly disabled.</li>
+        <li><strong>Lateral Isolation Enforced at API Level</strong> — Permission checks do not rely on UI hiding. <code>has_permission</code> and <code>validate</code> hooks throw permission errors if peer officers or peer coordinators attempt to touch each other's records.</li>
+        <li><strong>Hard Dependency Gating</strong> — Standard Frappe <code>depends_on</code> on Tasks is advisory. Krushi Vikas implements a custom <code>validate</code> hook that prevents a task from moving to Completed if predecessor tasks remain open.</li>
+        <li><strong>Bidirectional WhatsApp Loop</strong> — Field workers do not need constant desktop access. Meta WhatsApp Cloud API pushes actionable deep-links for task allocations, overdue warnings, and survey submissions.</li>
+        <li><strong>Monotonic State Progression</strong> — <code>journey_stage</code> on <code>KV Project</code> is derived dynamically from child activities and surveys, ensuring project progress can never be manually spoofed.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Krushi Vikas — Complete Project Lifecycle &amp; System Architecture</span>
+      <span>Platform Reference Specification &bull; 2026</span>
+    </footer>
+  </main>
+</div>
+</body>
+</html>
