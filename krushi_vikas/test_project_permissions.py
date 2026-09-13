@@ -1,36 +1,41 @@
 import frappe
 
+TEST_USERS = {
+    "fo1_test@krushivikas.org": "Field Officer",
+    "fo2_test@krushivikas.org": "Field Officer",
+    "pm1_test@krushivikas.org": "Project Manager",
+    "pm2_test@krushivikas.org": "Project Manager",
+    "pc1_test@krushivikas.org": "Project Coordinator",
+    "pc2_test@krushivikas.org": "Project Coordinator",
+    "dir_test@krushivikas.org": "Project Director",
+    "ceo_test@krushivikas.org": "CEO",
+}
+
+
+def provision_test_users():
+    """Create local-only demo accounts with their assigned Krushi Vikas role."""
+    if not frappe.conf.developer_mode:
+        frappe.throw("Test users can only be provisioned on a developer-mode site.")
+
+    for email, role in TEST_USERS.items():
+        user = frappe.get_doc("User", email) if frappe.db.exists("User", email) else frappe.new_doc("User")
+        user.email = email
+        user.first_name = email.split("_")[0].upper()
+        user.enabled = 1
+        user.user_type = "System User"
+        user.set("roles", [{"role": role}])
+        user.new_password = "admin"
+        user.save(ignore_permissions=True)
+        frappe.clear_cache(user=email)
+
+    frappe.db.commit()
+    print("Provisioned 8 local test users. Password: admin")
+
+
 def run():
     print("=== TESTING COMPLETE HIERARCHICAL OWNERSHIP & UPDATE RULES ===")
     
-    test_users = {
-        "fo1_test@krushivikas.org": "Field Officer",
-        "fo2_test@krushivikas.org": "Field Officer",
-        "pm1_test@krushivikas.org": "Project Manager",
-        "pm2_test@krushivikas.org": "Project Manager",
-        "pc1_test@krushivikas.org": "Project Coordinator",
-        "pc2_test@krushivikas.org": "Project Coordinator",
-        "dir_test@krushivikas.org": "Project Director",
-        "ceo_test@krushivikas.org": "CEO",
-    }
-    
-    for email, role in test_users.items():
-        if not frappe.db.exists("User", email):
-            u = frappe.new_doc("User")
-            u.email = email
-            u.first_name = email.split("_")[0].upper()
-            u.enabled = 1
-            u.user_type = "System User"
-            u.append("roles", {"role": role})
-            u.insert(ignore_permissions=True)
-        else:
-            u = frappe.get_doc("User", email)
-            roles = [r.role for r in u.roles]
-            if role not in roles:
-                u.append("roles", {"role": role})
-                u.save(ignore_permissions=True)
-                
-    frappe.db.commit()
+    provision_test_users()
     
     # ----------------------------------------------------
     # SETUP TEST DATA: Project P1 (PC1) -> Activity A1 (PM1) -> Task T1 (FO1)
