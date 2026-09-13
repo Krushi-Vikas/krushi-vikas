@@ -42,6 +42,9 @@ doc_events = {
 	}
 }
 
+app_include_css = [
+	"/assets/krushi_vikas/css/krushi_dashboard.css"
+]
 # Permission Hooks for Role-based Least Privilege
 has_permission = {
 	"KV Project": "krushi_vikas.api.has_project_permission",
