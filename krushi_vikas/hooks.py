@@ -42,6 +42,8 @@ has_permission = {
 
 permission_query_conditions = {
 	"KV Project": "krushi_vikas.api.get_project_permission_query_conditions",
+	"Project": "krushi_vikas.api.get_erp_project_permission_query_conditions",
+	"Task": "krushi_vikas.api.get_task_permission_query_conditions",
 }
 
 

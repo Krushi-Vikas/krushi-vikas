@@ -72,41 +72,81 @@ def get_project_filters(user, roles):
 	):
 		return {}
 
-	if "Project Coordinator" in roles and "Project Manager" in roles:
-		# User is both Coordinator and Manager: can see projects where they are either
-		projects_coord = frappe.get_all("KV Project", filters={"project_coordinator": user}, pluck="name")
-		projects_pm = frappe.get_all("KV Project", filters={"project_manager": user}, pluck="name")
-		all_names = list(set(projects_coord + projects_pm))
-		return {
-			"name": ["in", all_names or [""]],
-		}
+	projects = set()
 
 	if "Project Coordinator" in roles:
-		return {
-			"project_coordinator": user,
-		}
-
+		projects.update(frappe.get_all("KV Project", filters={"project_coordinator": user}, pluck="name"))
 	if "Project Manager" in roles:
-		return {
-			"project_manager": user,
-		}
+		projects.update(frappe.get_all("KV Project", filters={"project_manager": user}, pluck="name"))
 
-	if "Field Officer" in roles:
-		project_names = frappe.get_all(
-			"KV Project Activity",
-			filters={
-				"assignee": user,
-				"parenttype": "KV Project",
-			},
-			pluck="parent",
-		)
+	# Activities assigned to user in KV Project Activity child table
+	act_projects = frappe.get_all(
+		"KV Project Activity",
+		filters={"assignee": user, "parenttype": "KV Project"},
+		pluck="parent"
+	)
+	projects.update(act_projects)
 
-		return {
-			"name": ["in", list(set(project_names)) or [""]],
-		}
+	# Standalone Activity assigned to user
+	standalone_acts = frappe.get_all("Activity", filters={"assignee": user}, fields=["project"])
+	for a in standalone_acts:
+		if a.project:
+			projects.add(a.project)
+			kv_name = frappe.db.get_value("KV Project", {"project_name": a.project}, "name")
+			if kv_name:
+				projects.add(kv_name)
 
+	# Tasks assigned to user (either direct user email or linked employee)
+	emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+	task_targets = [user] + emp_ids
+
+	tasks = frappe.get_all(
+		"Task",
+		filters={"custom_activity_owner": ["in", task_targets]},
+		fields=["project", "custom_activity"]
+	)
+	for t in tasks:
+		if t.project:
+			projects.add(t.project)
+			kv_name = frappe.db.get_value("KV Project", {"project_name": t.project}, "name")
+			if kv_name:
+				projects.add(kv_name)
+			erp_name = frappe.db.get_value("Project", t.project, "project_name")
+			if erp_name:
+				kv_name_erp = frappe.db.get_value("KV Project", {"project_name": erp_name}, "name")
+				if kv_name_erp:
+					projects.add(kv_name_erp)
+		if t.custom_activity:
+			p_name = frappe.db.get_value("Activity", t.custom_activity, "project")
+			if p_name:
+				projects.add(p_name)
+				kv_name = frappe.db.get_value("KV Project", {"project_name": p_name}, "name")
+				if kv_name:
+					projects.add(kv_name)
+
+	# Tasks assigned via Frappe _assign
+	assigned_tasks = frappe.db.sql(
+		"""SELECT project, custom_activity FROM `tabTask` WHERE _assign LIKE %s""",
+		(f"%{user}%",),
+		as_dict=True
+	)
+	for t in assigned_tasks:
+		if t.project:
+			projects.add(t.project)
+			kv_name = frappe.db.get_value("KV Project", {"project_name": t.project}, "name")
+			if kv_name:
+				projects.add(kv_name)
+		if t.custom_activity:
+			p_name = frappe.db.get_value("Activity", t.custom_activity, "project")
+			if p_name:
+				projects.add(p_name)
+				kv_name = frappe.db.get_value("KV Project", {"project_name": p_name}, "name")
+				if kv_name:
+					projects.add(kv_name)
+
+	valid_projects = [p for p in projects if p and frappe.db.exists("KV Project", p)]
 	return {
-		"name": ["in", [""]],
+		"name": ["in", valid_projects or [""]],
 	}
 
 

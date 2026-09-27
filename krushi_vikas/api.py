@@ -997,7 +997,7 @@ def is_project_visible_to_user(doc, user, roles):
     """
     Evaluates whether a user can see/read a given project:
     - CXO level (CEO, Project Director, System Manager, Administrator): Can see ALL projects.
-    - Below CXO level: Can ONLY see projects assigned to them (as Coordinator, Manager, or doc owner)
+    - Below CXO level: Can ONLY see projects assigned to them (as Coordinator or Manager)
       OR projects where a subtask or activity is assigned to them.
     """
     if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
@@ -1008,16 +1008,19 @@ def is_project_visible_to_user(doc, user, roles):
         
     coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
     pm = doc.get("project_manager") or doc.get("custom_project_manager")
-    if coord == user or pm == user or doc.owner == user:
+    if coord == user or pm == user:
         return True
         
     proj_name = doc.name
+    proj_title = doc.get("project_name")
     # Check if any activity under this project is assigned to user
     if doc.get("activities"):
         if any(row.get("assignee") == user for row in doc.activities):
             return True
             
     if frappe.db.exists("Activity", {"project": proj_name, "assignee": user}):
+        return True
+    if proj_title and frappe.db.exists("Activity", {"project": proj_title, "assignee": user}):
         return True
         
     # Check if any task under this project is assigned to user (or employee linked to user)
@@ -1027,15 +1030,21 @@ def is_project_visible_to_user(doc, user, roles):
     # Direct task under project
     if frappe.db.exists("Task", {"project": proj_name, "custom_activity_owner": ["in", assigned_targets]}):
         return True
-    if frappe.db.exists("Task", {"project": proj_name, "owner": user}):
+    if proj_title and frappe.db.exists("Task", {"project": proj_title, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    erp_p = frappe.db.get_value("Project", {"project_name": proj_title or proj_name}, "name")
+    if erp_p and frappe.db.exists("Task", {"project": erp_p, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    if frappe.db.exists("Task", {"project": ["in", [proj_name, proj_title, erp_p]], "_assign": ["like", f"%{user}%"]}):
         return True
         
     # Task linked via custom_activity
-    act_names = frappe.get_all("Activity", filters={"project": proj_name}, pluck="name")
+    act_names = frappe.get_all("Activity", filters={"project": ["in", [proj_name, proj_title]]}, pluck="name")
     if act_names:
         if frappe.db.exists("Task", {"custom_activity": ["in", act_names], "custom_activity_owner": ["in", assigned_targets]}):
             return True
-        if frappe.db.exists("Task", {"custom_activity": ["in", act_names], "owner": user}):
+        tasks_with_assign = frappe.db.sql("""SELECT name FROM `tabTask` WHERE custom_activity IN %s AND _assign LIKE %s""", (tuple(act_names), f"%{user}%"), as_dict=True)
+        if tasks_with_assign:
             return True
             
     return False
@@ -1065,10 +1074,10 @@ def get_project_permission_query_conditions(user=None):
         
     return f"""(`tabKV Project`.`project_coordinator` = {user_escaped}
         OR `tabKV Project`.`project_manager` = {user_escaped}
-        OR `tabKV Project`.`owner` = {user_escaped}
         OR EXISTS (
             SELECT 1 FROM `tabActivity` a 
-            WHERE a.project = `tabKV Project`.name AND a.assignee = {user_escaped}
+            WHERE (a.project = `tabKV Project`.name OR a.project = `tabKV Project`.project_name) 
+              AND a.assignee = {user_escaped}
         )
         OR EXISTS (
             SELECT 1 FROM `tabKV Project Activity` kpa 
@@ -1077,8 +1086,47 @@ def get_project_permission_query_conditions(user=None):
         OR EXISTS (
             SELECT 1 FROM `tabTask` t
             WHERE (t.project = `tabKV Project`.name 
-                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabKV Project`.name))
-              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t.owner = {user_escaped})
+                   OR t.project IN (SELECT p_erp.name FROM `tabProject` p_erp WHERE p_erp.project_name = `tabKV Project`.project_name)
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabKV Project`.name OR a2.project = `tabKV Project`.project_name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t._assign LIKE '%{user}%')
+        )
+    )"""
+
+
+def get_erp_project_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to ERPNext Project list views and searches:
+    - CXO level: No restrictions ("").
+    - Below CXO level: Only projects assigned to them or having a subtask/activity assigned to them.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR t.custom_activity_owner IN ({emp_list_escaped})"
+        
+    return f"""(`tabProject`.`custom_project_coordinator` = {user_escaped}
+        OR `tabProject`.`custom_project_manager` = {user_escaped}
+        OR EXISTS (
+            SELECT 1 FROM `tabActivity` a 
+            WHERE (a.project = `tabProject`.name OR a.project = `tabProject`.project_name) 
+              AND a.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabTask` t
+            WHERE (t.project = `tabProject`.name 
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabProject`.name OR a2.project = `tabProject`.project_name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t._assign LIKE '%{user}%')
         )
     )"""
 
@@ -1310,7 +1358,19 @@ def has_task_permission(doc=None, ptype="read", user=None):
         return True
         
     if ptype == "read":
-        return True
+        if not doc:
+            return True
+        emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+        if fo_assigned == user or fo_assigned in emp_ids or doc.owner == user or user in (doc.get("_assign") or ""):
+            return True
+            
+        pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+        if "Project Manager" in roles and pm == user:
+            return True
+        if "Project Coordinator" in roles and coord == user:
+            return True
+        return False
         
     if ptype in ("create", "write"):
         if not doc:
@@ -1345,6 +1405,66 @@ def has_task_permission(doc=None, ptype="read", user=None):
         return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
         
     return False
+
+
+def get_task_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to Task list views and searches:
+    - CXO level: No restrictions ("").
+    - Field Officer: Can ONLY see tasks assigned to them (by employee ID, user email, or _assign).
+    - Project Manager: Tasks under their activities or projects, plus assigned tasks.
+    - Project Coordinator: Tasks under their coordinated projects, plus assigned tasks.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR `tabTask`.`custom_activity_owner` IN ({emp_list_escaped})"
+        
+    conditions = [
+        f"(`tabTask`.`custom_activity_owner` = {user_escaped} {emp_filter_sql} OR `tabTask`.`owner` = {user_escaped} OR `tabTask`.`_assign` LIKE '%{user}%')"
+    ]
+    
+    if "Project Manager" in roles:
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabActivity` act 
+            WHERE act.name = `tabTask`.`custom_activity` AND act.assignee = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabProject` p 
+            WHERE p.name = `tabTask`.`project` AND p.custom_project_manager = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabKV Project` kvp 
+            WHERE kvp.name = `tabTask`.`project` AND kvp.project_manager = {user_escaped}
+        )""")
+        
+    if "Project Coordinator" in roles:
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabProject` p2 
+            WHERE p2.name = `tabTask`.`project` AND p2.custom_project_coordinator = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabKV Project` kvp2 
+            WHERE kvp2.name = `tabTask`.`project` AND kvp2.project_coordinator = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabActivity` act2 
+            JOIN `tabKV Project` kvp3 ON kvp3.name = act2.project OR kvp3.project_name = act2.project
+            WHERE act2.name = `tabTask`.`custom_activity` AND kvp3.project_coordinator = {user_escaped}
+        )""")
+        
+    return f"({' OR '.join(conditions)})"
 
 
 def enforce_activity_least_privilege(doc, method=None):
