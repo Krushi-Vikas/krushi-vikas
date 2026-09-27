@@ -78,7 +78,7 @@ def run():
     frappe.session.user = "pm1_test@krushivikas.org"
     a1 = frappe.new_doc("Activity")
     a1.activity_name = "Sapling Distribution Activity"
-    a1.project = p_erp.name
+    a1.project = p1.name
     a1.assignee = "pm1_test@krushivikas.org"
     a1.status = "Open"
     a1.planned_budget = 100000
@@ -86,12 +86,28 @@ def run():
     frappe.db.commit()
     print(f"Setup: Created Activity '{a1.name}' (Assigned to PM1 under {p_erp.name})")
 
+    # Ensure Employees exist for FO1 and FO2
+    for fo_email in ["fo1_test@krushivikas.org", "fo2_test@krushivikas.org"]:
+        emp_id = frappe.db.get_value("Employee", {"user_id": fo_email}, "name")
+        if not emp_id:
+            emp = frappe.new_doc("Employee")
+            emp.first_name = fo_email.split("_")[0].upper()
+            emp.user_id = fo_email
+            emp.company = company
+            emp.gender = "Female"
+            emp.date_of_birth = "1995-01-01"
+            emp.date_of_joining = "2024-01-01"
+            emp.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    fo1_emp = frappe.db.get_value("Employee", {"user_id": "fo1_test@krushivikas.org"}, "name")
+
     # PM1 creates Task T1 assigned to FO1
     t1 = frappe.new_doc("Task")
     t1.subject = "Verify village nursery stock"
     t1.project = p_erp.name
     t1.custom_activity = a1.name
-    t1.custom_activity_owner = "fo1_test@krushivikas.org"
+    t1.custom_activity_owner = fo1_emp
     t1.status = "Open"
     t1.insert()
     frappe.db.commit()
@@ -119,15 +135,32 @@ def run():
     except Exception as e:
         print(f"  [1.2] PASS: PC2 blocked correctly: {str(e)[:70]}")
 
-    # 1.3 PM1 tries to edit P1 -> MUST FAIL
+    # 1.3 PM1 (Assigned Project Manager) edits P1 -> MUST PASS
     frappe.session.user = "pm1_test@krushivikas.org"
+    doc_p = frappe.get_doc("KV Project", p1.name)
+    doc_p.budget = 540000
+    doc_p.save()
+    print("  [1.3] PASS: Assigned Project Manager PM1 edited their assigned project.")
+
+    # 1.3b PM2 (Another Manager) tries to edit P1 -> MUST FAIL
+    frappe.session.user = "pm2_test@krushivikas.org"
     try:
         doc_p = frappe.get_doc("KV Project", p1.name)
-        doc_p.budget = 540000
+        doc_p.budget = 550000
         doc_p.save()
-        print("  [1.3] FAIL: PM1 was able to edit project!")
+        print("  [1.3b] FAIL: PM2 was able to edit PM1's project!")
     except Exception as e:
-        print(f"  [1.3] PASS: PM1 blocked correctly: {str(e)[:70]}")
+        print(f"  [1.3b] PASS: PM2 blocked correctly: {str(e)[:70]}")
+
+    # 1.3c Field Officer tries to edit P1 -> MUST FAIL
+    frappe.session.user = "fo1_test@krushivikas.org"
+    try:
+        doc_p = frappe.get_doc("KV Project", p1.name)
+        doc_p.budget = 560000
+        doc_p.save()
+        print("  [1.3c] FAIL: Field Officer was able to edit project!")
+    except Exception as e:
+        print(f"  [1.3c] PASS: Field Officer blocked correctly: {str(e)[:70]}")
 
     # 1.4 Project Director (Above in Hierarchy) edits P1 -> MUST PASS
     frappe.session.user = "dir_test@krushivikas.org"

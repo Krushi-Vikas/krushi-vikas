@@ -999,18 +999,20 @@ def has_project_permission(doc=None, ptype="read", user=None):
     Hierarchy:
       1. CEO
       2. Project Director
-      3. Project Coordinator
-      4. Project Manager
+      3. Project Coordinator (Oversees assigned projects)
+      4. Project Manager (Owns assigned project)
       5. Field Officer
     
     Rules:
       - Read: Allowed for all roles.
-      - Create: Allowed ONLY for Project Coordinator, Project Director, CEO, System Manager, Administrator.
+      - Create: Allowed for Project Coordinator, Project Manager, Project Director, CEO, System Manager, Administrator.
       - Write/Edit:
         * CEO, Project Director, System Manager, Administrator: Allowed for any project.
-        * Project Coordinator: Allowed ONLY if assigned to this project (or doc owner).
-        * Another Project Coordinator: DENIED.
-        * Project Manager, Field Officer: DENIED.
+        * Project Coordinator: Allowed for all projects under him/her (assigned_coord == user or doc.owner == user).
+        * Project Manager: Allowed for the project assigned to him/her (assigned_pm == user or doc.owner == user).
+        * Peer Coordinator: DENIED on projects not under them.
+        * Peer Manager: DENIED on projects not assigned to them.
+        * Field Officer: DENIED.
       - Delete: Only CEO, Project Director, System Manager, Administrator.
     """
     if not user:
@@ -1029,18 +1031,28 @@ def has_project_permission(doc=None, ptype="read", user=None):
     if ptype == "read":
         return True
         
-    # 3. Create is allowed for Project Coordinator and above
+    # 3. Create is allowed for Project Coordinator, Project Manager, and above
     if ptype == "create":
-        return "Project Coordinator" in roles
+        return "Project Coordinator" in roles or "Project Manager" in roles
         
     # 4. Write / Edit
     if ptype == "write":
+        if not doc:
+            return "Project Coordinator" in roles or "Project Manager" in roles
+            
+        assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+        assigned_pm = doc.get("project_manager") or doc.get("custom_project_manager")
+        
+        # Project Coordinator can edit all projects under him/her
         if "Project Coordinator" in roles:
-            if not doc:
+            if assigned_coord == user or doc.owner == user:
                 return True
-            assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator") or doc.get("owner")
-            # Allowed ONLY if this Project Coordinator owns/is assigned to it
-            return assigned_coord == user or doc.owner == user
+                
+        # Project Manager can edit the project assigned to him/her
+        if "Project Manager" in roles:
+            if assigned_pm == user or doc.owner == user:
+                return True
+                
         return False
         
     if ptype == "delete":
@@ -1067,7 +1079,7 @@ def get_project_coordinator_for_activity(activity_doc):
 
 
 def get_activity_manager_and_coordinator_for_task(task_doc):
-    """Retrieves the assigned Project Manager (Activity Owner) and Project Coordinator for a given Task"""
+    """Retrieves the assigned Project Manager (Activity Owner / Project Owner) and Project Coordinator for a given Task"""
     if not task_doc:
         return None, None
         
@@ -1075,15 +1087,19 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     if not activity_name:
         proj_name = task_doc.get("project")
         coord = None
+        pm = None
         if proj_name:
             if frappe.db.exists("KV Project", proj_name):
                 coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+                pm = frappe.db.get_value("KV Project", proj_name, "project_manager")
             elif frappe.db.exists("Project", proj_name):
                 if frappe.db.has_column("Project", "custom_project_coordinator"):
                     coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
                 if not coord:
                     coord = frappe.db.get_value("Project", proj_name, "owner")
-        return None, coord
+                if frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+        return pm, coord
         
     activity = frappe.db.get_values("Activity", activity_name, ["assignee", "project", "owner"], as_dict=True)
     if not activity:
@@ -1097,21 +1113,44 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     if proj_name:
         if frappe.db.exists("KV Project", proj_name):
             coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+            proj_pm = frappe.db.get_value("KV Project", proj_name, "project_manager")
+            if proj_pm and not pm:
+                pm = proj_pm
         elif frappe.db.exists("Project", proj_name):
             if frappe.db.has_column("Project", "custom_project_coordinator"):
                 coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
             if not coord:
                 coord = frappe.db.get_value("Project", proj_name, "owner")
+            if frappe.db.has_column("Project", "custom_project_manager"):
+                proj_pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+                if proj_pm and not pm:
+                    pm = proj_pm
                 
     return pm, coord
+
+
+def get_project_manager_for_activity(activity_doc):
+    """Retrieves the assigned Project Manager for a given Activity's Project"""
+    if not activity_doc or not activity_doc.project:
+        return None
+        
+    proj_name = activity_doc.project
+    if frappe.db.exists("KV Project", proj_name):
+        return frappe.db.get_value("KV Project", proj_name, "project_manager")
+    if frappe.db.exists("Project", proj_name):
+        if frappe.db.has_column("Project", "custom_project_manager"):
+            pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+            if pm:
+                return pm
+    return None
 
 
 def has_activity_permission(doc=None, ptype="read", user=None):
     """
     Evaluates role-based permissions for Activity:
     - CEO & Project Director: Can edit ANY activity in the organization.
-    - Project Coordinator: Can edit ANY activity in projects owned/assigned to him.
-    - Project Manager: Can edit ONLY activities assigned/owned by him.
+    - Project Coordinator: Can edit ANY activity in projects overseen/assigned to him.
+    - Project Manager: Owns and can edit activities assigned to him OR under his assigned project.
     - Field Officer: Read-only access.
     """
     if not user:
@@ -1136,18 +1175,26 @@ def has_activity_permission(doc=None, ptype="read", user=None):
         # Project Coordinator can edit if the Activity belongs to their Project
         if "Project Coordinator" in roles:
             coord = get_project_coordinator_for_activity(doc)
-            return coord == user or doc.owner == user
+            if coord == user or doc.owner == user:
+                return True
             
-        # Project Manager can edit ONLY their assigned activity
+        # Project Manager owns and can edit activities assigned to him or under his project
         if "Project Manager" in roles:
-            return doc.assignee == user or doc.owner == user
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                return True
             
         return False
         
     if ptype == "delete":
         if "Project Coordinator" in roles and doc:
             coord = get_project_coordinator_for_activity(doc)
-            return coord == user or doc.owner == user
+            if coord == user or doc.owner == user:
+                return True
+        if "Project Manager" in roles and doc:
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                return True
         return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
         
     return False
@@ -1191,8 +1238,16 @@ def has_task_permission(doc=None, ptype="read", user=None):
             
         # 3. Field Officer can edit ONLY his assigned task
         if "Field Officer" in roles:
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
-            return fo_assigned == user or doc.owner == user
+            if doc.owner == user:
+                return True
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+            if fo_assigned == user:
+                return True
+            if fo_assigned and frappe.db.exists("Employee", fo_assigned):
+                emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
+                if emp_user == user:
+                    return True
+            return False
             
         return False
         
@@ -1220,24 +1275,26 @@ def enforce_activity_least_privilege(doc, method=None):
             )
             
     if not doc.is_new():
+        allowed = False
         if "Project Coordinator" in roles:
             coord = get_project_coordinator_for_activity(doc)
-            if coord != user and doc.owner != user:
+            if coord == user or doc.owner == user:
+                allowed = True
+        if not allowed and "Project Manager" in roles:
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                allowed = True
+        if not allowed:
+            if "Field Officer" in roles:
                 frappe.throw(
-                    frappe._(f"Permission Denied: This Activity belongs to Project Coordinator '{coord}'. You can only edit activities in projects assigned to you."),
+                    frappe._("Permission Denied: Field Officers cannot edit Activity records."),
                     frappe.PermissionError
                 )
-        elif "Project Manager" in roles:
-            if doc.assignee != user and doc.owner != user:
+            else:
                 frappe.throw(
-                    frappe._(f"Permission Denied: Activity '{doc.get('activity_name') or doc.name}' is assigned to Project Manager '{doc.assignee}'. Another Project Manager cannot edit this activity."),
+                    frappe._(f"Permission Denied: You do not have permission to edit Activity '{doc.get('activity_name') or doc.name}'."),
                     frappe.PermissionError
                 )
-        else:
-            frappe.throw(
-                frappe._("Permission Denied: Field Officers cannot edit Activity records."),
-                frappe.PermissionError
-            )
 
 
 def enforce_task_least_privilege(doc, method=None):
@@ -1266,8 +1323,19 @@ def enforce_task_least_privilege(doc, method=None):
                     frappe.PermissionError
                 )
         elif "Field Officer" in roles:
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
-            if fo_assigned != user and doc.owner != user:
+            is_assigned = False
+            if doc.owner == user:
+                is_assigned = True
+            else:
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+                if fo_assigned == user:
+                    is_assigned = True
+                elif fo_assigned and frappe.db.exists("Employee", fo_assigned):
+                    emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
+                    if emp_user == user:
+                        is_assigned = True
+            if not is_assigned:
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or "Another Officer"
                 frappe.throw(
                     frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
                     frappe.PermissionError
@@ -1283,36 +1351,57 @@ def enforce_project_least_privilege(doc, method=None):
     roles = frappe.get_roles(user)
     is_senior_executive = any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
     
-    # 1. Project must always be assigned to a Project Coordinator
+    # 1. Project must always maintain both Project Coordinator and Project Manager
     assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    assigned_pm = doc.get("project_manager") or doc.get("custom_project_manager")
     if not assigned_coord:
         frappe.throw(
             frappe._("A Project must always be assigned to a Project Coordinator. Please assign a valid Project Coordinator."),
             frappe.ValidationError
         )
+    if not assigned_pm:
+        frappe.throw(
+            frappe._("A Project must always be assigned to a Project Manager. Please assign a valid Project Manager."),
+            frappe.ValidationError
+        )
         
     # 2. Check Creation privilege
     if doc.is_new():
-        allowed_to_create = is_senior_executive or ("Project Coordinator" in roles)
+        allowed_to_create = is_senior_executive or ("Project Coordinator" in roles) or ("Project Manager" in roles)
         if not allowed_to_create:
             frappe.throw(
-                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Director, or CEO."),
+                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Manager, Project Director, or CEO."),
                 frappe.PermissionError
             )
             
     # 3. Check Edit / Write privilege
     if not doc.is_new() and not is_senior_executive:
+        allowed = False
+        # Project Coordinator can edit all projects under him/her
         if "Project Coordinator" in roles:
-            if assigned_coord != user and doc.owner != user:
+            if assigned_coord == user or doc.owner == user:
+                allowed = True
+        # Project Manager can edit the project assigned to him/her
+        if not allowed and "Project Manager" in roles:
+            if assigned_pm == user or doc.owner == user:
+                allowed = True
+                
+        if not allowed:
+            if "Project Coordinator" in roles:
                 frappe.throw(
-                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is under Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
                     frappe.PermissionError
                 )
-        else:
-            frappe.throw(
-                frappe._("Permission Denied: Project Managers and Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Coordinator, Project Director, or CEO."),
-                frappe.PermissionError
-            )
+            elif "Project Manager" in roles:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Manager '{assigned_pm}'. Another Project Manager cannot edit this project."),
+                    frappe.PermissionError
+                )
+            else:
+                frappe.throw(
+                    frappe._("Permission Denied: Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Manager, supervising Project Coordinator, Project Director, or CEO."),
+                    frappe.PermissionError
+                )
 
 
 def validate_project_finances_and_activities(doc, method=None):

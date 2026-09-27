@@ -67,13 +67,28 @@ def get_project_filters(user, roles):
 		user == "Administrator"
 		or "System Manager" in roles
 		or "Administrator" in roles
-		or "Project Manager" in roles
+		or "CEO" in roles
+		or "Project Director" in roles
 	):
 		return {}
+
+	if "Project Coordinator" in roles and "Project Manager" in roles:
+		# User is both Coordinator and Manager: can see projects where they are either
+		projects_coord = frappe.get_all("KV Project", filters={"project_coordinator": user}, pluck="name")
+		projects_pm = frappe.get_all("KV Project", filters={"project_manager": user}, pluck="name")
+		all_names = list(set(projects_coord + projects_pm))
+		return {
+			"name": ["in", all_names or [""]],
+		}
 
 	if "Project Coordinator" in roles:
 		return {
 			"project_coordinator": user,
+		}
+
+	if "Project Manager" in roles:
+		return {
+			"project_manager": user,
 		}
 
 	if "Field Officer" in roles:
@@ -102,11 +117,17 @@ def get_primary_role(user, roles):
 	if "System Manager" in roles:
 		return "System Manager"
 
-	if "Project Manager" in roles:
-		return "Project Manager"
+	if "CEO" in roles:
+		return "CEO"
+
+	if "Project Director" in roles:
+		return "Project Director"
 
 	if "Project Coordinator" in roles:
 		return "Project Coordinator"
+
+	if "Project Manager" in roles:
+		return "Project Manager"
 
 	if "Field Officer" in roles:
 		return "Field Officer"
