@@ -12,8 +12,8 @@ This document details the **Role Hierarchy**, **Complete 3-Level Lateral Isolati
 graph TD
     CEO["👑 1. CEO<br/><i>(Executive Authority & Org-Wide Super Access)</i>"]
     PD["🌟 2. Project Director<br/><i>(Strategic Direction & Cross-Portfolio Access)</i>"]
-    PC["📋 3. Project Coordinator<br/><i>(Project Creator & Project Level Owner)</i>"]
-    PM["⚙️ 4. Project Manager<br/><i>(Activity Level Owner & Delivery Lead)</i>"]
+    PC["📋 3. Project Coordinator<br/><i>(Project Overseer & Multi-Project Incharge)</i>"]
+    PM["⚙️ 4. Project Manager<br/><i>(Project Owner & Activity Delivery Lead)</i>"]
     FO["🌱 5. Field Officer<br/><i>(Task Level Owner & Survey Specialist)</i>"]
 
     CEO --> PD --> PC --> PM --> FO
@@ -79,9 +79,9 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **👑 1. CEO** | ✅ **ANY** Project across organization | ✅ **ANY** Activity across organization | ✅ **ANY** Task across organization | ✅ **ANY** Survey |
 | **🌟 2. Project Director** | ✅ **ANY** Project across organization | ✅ **ANY** Activity across organization | ✅ **ANY** Task across organization | ✅ **ANY** Survey |
-| **📋 3. Project Coordinator** | ✅ **ONLY** projects owned by him<br>⛔ *Peer Coordinators blocked* | ✅ **ANY** Activity in his project<br>⛔ *Activities in other projects blocked* | ✅ **ANY** Task in his project<br>⛔ *Tasks in other projects blocked* | ✅ Surveys in his project |
-| **⚙️ 4. Project Manager** | ❌ Read-Only on Projects | ✅ **ONLY** activities assigned to him<br>⛔ *Peer Managers blocked* | ✅ **ANY** Task in his assigned activity<br>⛔ *Tasks in other activities blocked* | ✅ Surveys in his activity |
-| **🌱 5. Field Officer** | ❌ Read-Only on Projects | ❌ Read-Only on Activities | ✅ **ONLY** tasks assigned to him<br>⛔ *Peer Officers blocked* | ✅ **ONLY** surveys filed by him |
+| **📋 3. Project Coordinator** | ✅ **ALL** projects under him/her<br>⛔ *Peer Coordinators blocked* | ✅ **ANY** Activity in projects under him/her<br>⛔ *Activities in other projects blocked* | ✅ **ANY** Task in projects under him/her<br>⛔ *Tasks in other projects blocked* | ✅ Surveys in projects under him/her |
+| **⚙️ 4. Project Manager** | ✅ **ONLY** project assigned to him/her<br>⛔ *Peer Managers blocked* | ✅ **ANY** activity assigned to him/her or under his/her project<br>⛔ *Peer Managers blocked* | ✅ **ANY** Task in his/her activities / project<br>⛔ *Tasks in other activities blocked* | ✅ Surveys in his/her project |
+| **🌱 5. Field Officer** | ❌ Read-Only on Projects | ❌ Read-Only on Activities | ✅ **ONLY** tasks assigned to him/her<br>⛔ *Peer Officers blocked* | ✅ **ONLY** surveys filed by him/her |
 
 ---
 
@@ -143,19 +143,19 @@ sequenceDiagram
 - **Scope**: Cross-portfolio strategic leadership.
 - **Update Capabilities**: Can create, modify, and manage **any** Project, Activity, Task, or Survey across all thematic areas and coordinators.
 
-### 📋 3. Project Coordinator (Project Owner Tier)
-- **Scope**: Project-level ownership.
+### 📋 3. Project Coordinator (Project Overseer Tier)
+- **Scope**: Oversees a portfolio of assigned projects; in-charge of regional execution. Both Coordinator and Manager are maintained at the project level.
 - **Update Capabilities**:
-  - **Project**: Can edit **only** projects assigned to them (`project_coordinator == session.user`). Peer coordinators (`PC2`) are strictly blocked (**Level 1 Isolation**).
-  - **Activity**: Can edit **any** Activity belonging to their owned project (`Activity A1`).
-  - **Task**: Can edit **any** Task belonging to their owned project (`Task A1`).
+  - **Project**: Can edit **all projects under him/her** (`project_coordinator == session.user`). Peer coordinators (`PC2`) are strictly blocked (**Level 1 Isolation**).
+  - **Activity**: Can edit **any** Activity belonging to projects under their supervision.
+  - **Task**: Can edit **any** Task belonging to projects under their supervision.
 
-### ⚙️ 4. Project Manager (Activity Delivery Tier)
-- **Scope**: Activity-level ownership and delivery.
+### ⚙️ 4. Project Manager (Project Owner & Activity Delivery Tier)
+- **Scope**: Project-level ownership of the project assigned to them, and Activity delivery owner.
 - **Update Capabilities**:
-  - **Project**: Read-only access.
-  - **Activity**: Can edit **only** activities assigned to them (`assignee == session.user`). Peer managers (`PM2`) are strictly blocked (**Level 2 Isolation**).
-  - **Task**: Can edit **any** Task belonging to their assigned activity (`Task A1`).
+  - **Project**: Can edit **the project assigned to him/her** (`project_manager == session.user`). Peer managers (`PM2`) are strictly blocked (**Level 1 Isolation**).
+  - **Activity**: Can edit **any activity** assigned to him/her or belonging to their project (`assignee == session.user` or `project_manager == session.user`). Peer managers (`PM2`) are strictly blocked (**Level 2 Isolation**).
+  - **Task**: Can edit **any Task** belonging to their assigned activity or project (`Task A1`).
 
 ### 🌱 5. Field Officer (Field Data & Task Execution Tier)
 - **Scope**: Task-level frontline execution.
