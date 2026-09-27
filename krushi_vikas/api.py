@@ -993,6 +993,96 @@ def export_baseline_survey_excel(name):
     frappe.response['filename'] = f"{doc.name}_{doc.farmer_name.replace(' ', '_')}_Export.csv"
 
 
+def is_project_visible_to_user(doc, user, roles):
+    """
+    Evaluates whether a user can see/read a given project:
+    - CXO level (CEO, Project Director, System Manager, Administrator): Can see ALL projects.
+    - Below CXO level: Can ONLY see projects assigned to them (as Coordinator, Manager, or doc owner)
+      OR projects where a subtask or activity is assigned to them.
+    """
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+        
+    if not doc:
+        return True
+        
+    coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    pm = doc.get("project_manager") or doc.get("custom_project_manager")
+    if coord == user or pm == user or doc.owner == user:
+        return True
+        
+    proj_name = doc.name
+    # Check if any activity under this project is assigned to user
+    if doc.get("activities"):
+        if any(row.get("assignee") == user for row in doc.activities):
+            return True
+            
+    if frappe.db.exists("Activity", {"project": proj_name, "assignee": user}):
+        return True
+        
+    # Check if any task under this project is assigned to user (or employee linked to user)
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    assigned_targets = [user] + emp_ids
+    
+    # Direct task under project
+    if frappe.db.exists("Task", {"project": proj_name, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    if frappe.db.exists("Task", {"project": proj_name, "owner": user}):
+        return True
+        
+    # Task linked via custom_activity
+    act_names = frappe.get_all("Activity", filters={"project": proj_name}, pluck="name")
+    if act_names:
+        if frappe.db.exists("Task", {"custom_activity": ["in", act_names], "custom_activity_owner": ["in", assigned_targets]}):
+            return True
+        if frappe.db.exists("Task", {"custom_activity": ["in", act_names], "owner": user}):
+            return True
+            
+    return False
+
+
+def get_project_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to KV Project list views and searches:
+    - CXO level: No restrictions ("").
+    - Below CXO level: Only projects assigned to them or having a subtask/activity assigned to them.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR t.custom_activity_owner IN ({emp_list_escaped})"
+        
+    return f"""(`tabKV Project`.`project_coordinator` = {user_escaped}
+        OR `tabKV Project`.`project_manager` = {user_escaped}
+        OR `tabKV Project`.`owner` = {user_escaped}
+        OR EXISTS (
+            SELECT 1 FROM `tabActivity` a 
+            WHERE a.project = `tabKV Project`.name AND a.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabKV Project Activity` kpa 
+            WHERE kpa.parent = `tabKV Project`.name AND kpa.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabTask` t
+            WHERE (t.project = `tabKV Project`.name 
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabKV Project`.name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t.owner = {user_escaped})
+        )
+    )"""
+
+
 def has_project_permission(doc=None, ptype="read", user=None):
     """
     Evaluates role-based least privilege permissions for Project & KV Project:
@@ -1027,9 +1117,9 @@ def has_project_permission(doc=None, ptype="read", user=None):
     if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
         return True
         
-    # 2. Read is accessible across the organization
+    # 2. Read: Below CXO level, members only see projects assigned to them or having a subtask assigned to them
     if ptype == "read":
-        return True
+        return is_project_visible_to_user(doc, user, roles)
         
     # 3. Create is allowed for Project Coordinator, Project Manager, and above
     if ptype == "create":

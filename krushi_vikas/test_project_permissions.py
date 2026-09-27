@@ -114,7 +114,37 @@ def run():
     print(f"Setup: Created Task '{t1.name}' (Assigned to FO1 under A1)")
 
     # ----------------------------------------------------
-    # SECTION 1: PROJECT UPDATE RIGHTS
+        # ----------------------------------------------------
+    # SECTION 0: PROJECT READ VISIBILITY (Below CXO isolation)
+    # ----------------------------------------------------
+    print("\n--- [SECTION 0] Project Read Visibility Permissions ---")
+    
+    # 0.1 Assigned PC1 can read P1 -> MUST PASS
+    assert frappe.has_permission("KV Project", "read", p1, user="pc1_test@krushivikas.org"), "PC1 should be able to read P1"
+    print("  [0.1] PASS: Assigned Project Coordinator PC1 can view project P1.")
+
+    # 0.2 Assigned PM1 can read P1 -> MUST PASS
+    assert frappe.has_permission("KV Project", "read", p1, user="pm1_test@krushivikas.org"), "PM1 should be able to read P1"
+    print("  [0.2] PASS: Assigned Project Manager PM1 can view project P1.")
+
+    # 0.3 FO1 (Has subtask assigned under P1) can read P1 -> MUST PASS
+    assert frappe.has_permission("KV Project", "read", p1, user="fo1_test@krushivikas.org"), "FO1 should be able to read P1 because a subtask is assigned"
+    print("  [0.3] PASS: Field Officer FO1 can view project P1 (subtask assigned to FO1).")
+
+    # 0.4 FO2 (No subtask on P1) CANNOT read P1 -> MUST BE BLOCKED
+    assert not frappe.has_permission("KV Project", "read", p1, user="fo2_test@krushivikas.org"), "FO2 should NOT be able to read P1"
+    print("  [0.4] PASS: Field Officer FO2 blocked from viewing P1 (no subtasks assigned).")
+
+    # 0.5 PC2 (Unrelated Coordinator) CANNOT read P1 -> MUST BE BLOCKED
+    assert not frappe.has_permission("KV Project", "read", p1, user="pc2_test@krushivikas.org"), "PC2 should NOT be able to read P1"
+    print("  [0.5] PASS: Coordinator PC2 blocked from viewing P1 (not assigned to P1).")
+
+    # 0.6 Project Director & CEO can read P1 -> MUST PASS
+    assert frappe.has_permission("KV Project", "read", p1, user="dir_test@krushivikas.org"), "Director should be able to read P1"
+    assert frappe.has_permission("KV Project", "read", p1, user="ceo_test@krushivikas.org"), "CEO should be able to read P1"
+    print("  [0.6] PASS: CXO level (CEO & Director) can view any project across organization.")
+
+    # # SECTION 1: PROJECT UPDATE RIGHTS
     # ----------------------------------------------------
     print("\n--- [SECTION 1] Project Update Permissions ---")
     

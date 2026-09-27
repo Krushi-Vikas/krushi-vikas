@@ -1,150 +1,176 @@
 # 🚜 Krushi Vikas - Project Flow User Journey
 
-This document outlines the **End-to-End Project Flow** across all user tiers in the Krushi Vikas system. It specifies **what each user role sees and does on every screen/page** throughout the project lifecycle.
+This document defines the **Project Flow** across all user tiers in the Krushi Vikas platform. It outlines the step-by-step journey of creating, configuring, executing, and monitoring projects, including what each user sees and does on every page.
 
 ---
 
-## 👥 User Roles & Responsibilities in the Project Flow
+## 🔒 1. Visibility & Access Rules (Below CXO Level)
+
+To maintain strict operational focus and data isolation, project visibility is governed by the following rule:
+
+```mermaid
+flowchart TD
+    USER{"User Access Tier"}
+    
+    USER -->|"👑 CXO Tier (CEO / Project Director / Admin)"| ALL["🌐 Universal Visibility<br/><i>Can see ALL projects across the entire organization</i>"]
+    
+    USER -->|"👥 Below CXO Tier (Coordinator / Manager / Officer)"| CHECK{"Is the project or any of its subtasks assigned to you?"}
+    
+    CHECK -->|"YES"| VIEW["👁️ Allowed to View Project<br/><i>• Project assigned directly to user<br/>• OR Activity assigned to user<br/>• OR Subtask assigned to user</i>"]
+    CHECK -->|"NO"| HIDE["⛔ Hidden / Access Denied<br/><i>Project does not appear in lists or search results</i>"]
+```
+
+### Visibility Summary by Role:
+* **👑 CXO Level (CEO, Project Director, System Manager, Administrator)**:
+  * Universal cross-organization visibility. Sees all projects across all coordinators, managers, and regions.
+* **📋 Project Coordinator**:
+  * Sees **only** projects assigned to them under their oversight (`project_coordinator == session.user`) or projects where a subtask is assigned to them. Peer coordinators' unrelated projects are hidden.
+* **⚙️ Project Manager**:
+  * Sees **only** the project assigned to them (`project_manager == session.user`) or projects where an activity/subtask is assigned to them. Peer managers' unrelated projects are hidden.
+* **🌱 Field Officer**:
+  * Sees **only** projects that have an activity or subtask assigned to them (`custom_activity_owner == session.user` / linked Employee ID or `assignee == session.user`). Unrelated projects are completely hidden.
+
+---
+
+## 👥 2. Role Responsibilities in the Project Flow
 
 ```mermaid
 graph TD
-    EXEC["👑 Executive Tier (CEO / Project Director)<br/><i>High-level governance, org-wide strategy & overall approvals</i>"]
-    PC["📋 Project Coordinator (Regional In-Charge)<br/><i>Oversees a cluster of projects, ensures thematic alignment & reviews PMs</i>"]
-    PM["⚙️ Project Manager (Project Owner & Delivery Lead)<br/><i>Direct owner of assigned project, manages budgets, schedules & activities</i>"]
-    FO["🌱 Field Officer (Frontline Delivery Specialist)<br/><i>Executes field tasks, collects farmer surveys & updates grassroots progress</i>"]
+    CXO["👑 1. CXO Level (CEO / Project Director)<br/><i>Strategic governance, funding approvals & global oversight</i>"]
+    PC["📋 2. Project Coordinator<br/><i>Oversees cluster of projects, ensures multi-project alignment</i>"]
+    PM["⚙️ 3. Project Manager<br/><i>Direct Project Owner, manages budget, dates & operational activities</i>"]
+    FO["🌱 4. Field Officer<br/><i>Task Owner & field surveyor, executes ground actions</i>"]
 
-    EXEC --> PC --> PM --> FO
+    CXO --> PC --> PM --> FO
 
-    classDef exec fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff;
+    classDef cxo fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#fff;
     classDef coord fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff;
     classDef mgr fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fff;
     classDef fo fill:#083344,stroke:#06b6d4,stroke-width:2px,color:#fff;
 
-    class EXEC exec;
+    class CXO cxo;
     class PC coord;
     class PM mgr;
     class FO fo;
 ```
 
-* **Project Coordinator**: In charge of regional execution; oversees multiple projects assigned under them.
-* **Project Manager**: Directly owns their assigned project, breaking it down into operational activities and tracking delivery.
-* **Field Officer**: Frontline executor assigned to specific tasks, farmer engagements, and survey data collection.
-* **Executive (CEO / Project Director / Admin)**: Super-access across all projects, portfolios, and reports.
-
 ---
 
-## 🗺️ Project Lifecycle Navigation Map
+## 🗺️ 3. End-to-End Project Flow Lifecycle
 
 ```mermaid
-flowchart LR
-    A["1. Dashboard<br/><i>(/app/krushi-dashboard)</i>"] --> B["2. Project Creation<br/><i>(/app/kv-project/new)</i>"]
-    B --> C["3. Project Management<br/><i>(/app/kv-project/{name})</i>"]
-    C --> D["4. Activity Setup<br/><i>(/app/activity)</i>"]
-    D --> E["5. Task Execution<br/><i>(/app/task)</i>"]
-    E --> F["6. Field Surveys<br/><i>(Baseline & Feedback)</i>"]
-    F --> A
+sequenceDiagram
+    autonumber
+    actor PC as 📋 Project Coordinator
+    actor PM as ⚙️ Project Manager
+    actor FO as 🌱 Field Officer
+    participant Sys as 💻 Krushi Vikas Core
+
+    Note over PC,PM: Step 1: Project Initiation & Role Assignment
+    alt Created by Project Coordinator
+        PC->>Sys: Create Project (Assigns self as Coordinator, assigns PM as Owner)
+    else Created by Project Manager
+        PM->>Sys: Create Project (Assigns self as PM, selects supervising Coordinator)
+    end
+    Sys-->>Sys: Enforce both Coordinator & Manager fields; apply visibility rules
+
+    Note over PM,Sys: Step 2: Project Breakdown into Activities
+    PM->>Sys: Open Project -> Add Activities & Set Activity Budgets/Dates
+    Sys-->>PM: Auto-calculate remaining funds (Budget - Actuals)
+
+    Note over PM,FO: Step 3: Task Delegation to Field Officers
+    PM->>Sys: Create Tasks under Activity -> Assign to Field Officer (FO)
+    Sys-->>FO: Task appears on Field Officer's worklist & project becomes visible to FO
+
+    Note over FO,Sys: Step 4: Ground Execution & Survey Data
+    FO->>Sys: Execute task, update status to Completed, submit Baseline/Feedback surveys
+    Sys-->>PM: Milestone completion & KRE updates reflect on Project
 ```
 
 ---
 
-## 📄 Screen-by-Screen User Journey
+## 📄 4. Screen-by-Screen Project Journey
 
-### Phase 1: Overview & Initiation (Dashboard)
-**Page Route:** `/app/krushi-dashboard`
+### Screen 1: Project Initiation (`Create Project` Action)
+* **Where users start:** Top action bar / Project List / Overview.
+* **Who sees the button:**
+  * **CXO (CEO / Director / Admin)**: Yes.
+  * **Project Coordinator**: Yes.
+  * **Project Manager**: Yes.
+  * **Field Officer**: No (creation button hidden; creation attempts blocked by permissions).
 
-#### What Each User Sees:
-* **👑 Executive (CEO / Director / Admin)**:
-  * Sees organization-wide aggregate metrics: Total Projects, Active Projects, Planned Projects, Completed Projects.
-  * Interactive **Annual Project Plan (Gantt chart)** displaying all projects across all coordinators and managers throughout the selected year.
-  * Portfolio breakdown and quick access to all recent projects.
-  * Active **`+ Create Project`** button in the header.
-* **📋 Project Coordinator**:
-  * Metrics and Gantt charts filtered strictly to **projects under their oversight** (`project_coordinator == session.user`).
-  * Real-time visibility into whether the Project Managers in their cluster are on track.
-  * Active **`+ Create Project`** button.
-* **⚙️ Project Manager**:
-  * Metrics and Gantt charts filtered strictly to **projects assigned to them** (`project_manager == session.user`).
-  * Direct view of their current execution status and timeline milestones.
-  * Active **`+ Create Project`** button.
-* **🌱 Field Officer**:
-  * Filtered view showing only projects where they have assigned activities/tasks.
-  * `+ Create Project` button is hidden.
-
-#### What Users Do on This Page:
-1. Review annual milestones and current project phases using the year selector (`< 2026 >`).
-2. Click on any project card or timeline bar to drill down directly into the project form.
-3. Click the **`+ Create Project`** button to initiate a new project workflow.
-
-> 📸 **[SCREENSHOT PLACEHOLDER 1: Krushi Vikas Main Dashboard]**  
-> *Attach screenshot of `http://localhost:8000/app/krushi-dashboard` showing the header, user role badge, KPI metric cards, Annual Project Plan Gantt chart, and Recent Projects list.*
+> 📸 **[SCREENSHOT PLACEHOLDER 1: Create Project Action Button]**  
+> *Attach screenshot showing the `+ Create Project` button in the top action bar on the Project List / Overview page for an authorized user (Project Coordinator or Manager).*
 
 ---
 
-### Phase 2: Project Creation & Assignment Form
+### Screen 2: Project Creation Form
 **Page Route:** `/app/kv-project/new-kv-project` (or Web Portal `/project_form`)
 
-#### Key Fields Maintained at Project Level:
-* **Project Name**: Unique identifier (e.g., *"Watershed Development & Farmer Livelihoods 2026"*).
-* **Thematic Area (`Theme`)**: Linked to *Project Theme* tree (e.g., *Sustainable Agriculture*, *Water Conservation*).
-* **Project Phase**: Lifecycle stage dropdown (*Planning*, *Proposal*, *Execution*, *Results*, *Feedback*, *Future*).
-* **Status**: Execution status (*Planning*, *In Progress*, *Deployed*, *Completed*, *Cancelled*).
-* **Timeline**: *Start Date* and *End Date*.
-* **Financial Tracking**: *Budget (INR)*, *Actual Amount Spent (INR)*, and auto-computed *Remaining Funds (INR)*.
-* **Project Level Roles (Mandatory)**:
-  * **`Project Coordinator`** (Required): Assigned overseeing coordinator.
-  * **`Project Manager`** (Required): Assigned project owner and delivery lead.
+#### Key Fields Maintained:
+1. **Core Parameters**:
+   * **Project Name**: Unique descriptive title (e.g., *"Dryland Watershed & Micro-Irrigation Initiative 2026"*).
+   * **Thematic Area (`Theme`)**: Linked to Project Theme hierarchy (e.g., *Water Harvesting*, *Organic Farming*).
+   * **Project Phase**: Select dropdown (*Planning*, *Proposal*, *Execution*, *Results*, *Feedback*, *Future*).
+   * **Status**: Execution status (*Planning*, *In Progress*, *Deployed*, *Completed*, *Cancelled*).
+2. **Mandatory Project-Level Roles**:
+   * **`Project Coordinator`** (Required): Overseeing lead responsible for multi-project alignment.
+   * **`Project Manager`** (Required): Assigned project owner and operational delivery lead.
+3. **Timeline & Financials**:
+   * **Start Date** & **End Date**.
+   * **Budget (INR)**: Total sanctioned funds.
 
-#### Role-Specific Capabilities:
-* **Project Coordinator & Manager**: Both can create projects. When creating, they explicitly assign the supervising Coordinator and the executing Project Manager.
-* **Field Officer**: Blocked from creating projects (`PermissionError`).
+#### What Users Do:
+* The creator (Coordinator or Manager) fills in the project parameters, selects the partner in charge (Coordinator/Manager), enters the initial budget, and clicks **Save**.
 
-#### What Users Do on This Page:
-1. Define the project scope, theme, and timelines.
-2. Designate both the **Project Coordinator** and **Project Manager**.
-3. Input the approved budget amount.
-4. Click **Save** to create and establish ownership.
-
-> 📸 **[SCREENSHOT PLACEHOLDER 2: KV Project Creation Form]**  
-> *Attach screenshot of the project creation form displaying mandatory Project Coordinator and Project Manager link fields, timeline dates, and initial budget configuration.*
+> 📸 **[SCREENSHOT PLACEHOLDER 2: Project Creation Form]**  
+> *Attach screenshot of the Project Creation Form highlighting the mandatory Project Coordinator and Project Manager link fields, timeline dates, and initial budget configuration.*
 
 ---
 
-### Phase 3: Project Detail & Workspace View
-**Page Route:** `/app/kv-project/{project_name}` (or Desk Workspace `/app/krushi-vikas`)
+### Screen 3: Project List View (Visibility-Filtered)
+**Page Route:** `/app/kv-project`
 
-#### What Each User Sees:
-* **📋 Project Coordinator**:
-  * Full editable view of projects under their supervision (`project_coordinator == session.user`).
-  * If viewing a peer coordinator's project, the form opens in **Read-Only** mode (Save is restricted).
-  * Direct action buttons in the form header: **`View Activities`**, **`View Tasks`**, and **`Linked Forms`** (*Baseline Survey*, *Field Tracking Form*).
+#### What Each User Sees in the List:
+* **👑 CXO Level**: Complete directory of all projects in the system.
+* **📋 Project Coordinator**: Only projects where they are assigned as Coordinator (`project_coordinator == user`) or where they have a subtask.
+* **⚙️ Project Manager**: Only projects where they are assigned as Manager (`project_manager == user`) or where they have a subtask.
+* **🌱 Field Officer**: Only projects that have activities or subtasks assigned to them. Unrelated projects do not appear in list or search.
+
+> 📸 **[SCREENSHOT PLACEHOLDER 3: Project List View with Filtered Visibility]**  
+> *Attach screenshot of the `/app/kv-project` List View showing only projects assigned to the logged-in user or containing their assigned subtasks.*
+
+---
+
+### Screen 4: Project Detail & Form View
+**Page Route:** `/app/kv-project/{project_name}`
+
+#### What Each User Sees & Does:
 * **⚙️ Project Manager (Project Owner)**:
-  * Full editable view of their assigned project (`project_manager == session.user`).
-  * Monitors actual spending vs. allocated budget with real-time recalculation of `Remaining Funds`.
-  * Reviews the embedded child table of project activities and linked survey submissions.
-  * If viewing a peer manager's project, the form opens in **Read-Only** mode.
+  * Full edit authority over this project.
+  * Inputs **Actual Amount Spent**; the system dynamically calculates **Remaining Funds** (`Budget - Actual Amount Spent`).
+  * Manages the embedded **Activities child table**.
+  * Advances the project phase (*Planning* ➔ *Execution* ➔ *Results*).
+* **📋 Project Coordinator (Supervising In-Charge)**:
+  * Full edit authority over all projects under their supervision.
+  * Validates budget utilization and strategic milestones.
+  * Accesses quick action buttons in header: **`View Activities`**, **`View Tasks`**, and **`Linked Forms`** (*Baseline Survey*, *Field Tracking Form*).
+  * If opening a peer coordinator's project, the document opens in **Read-Only** mode.
 * **🌱 Field Officer**:
   * Opens the project in **Read-Only** mode.
-  * Uses the project details to understand strategic objectives, target villages, and high-level milestones.
-* **👑 Executive Tier**:
-  * Unrestricted edit and delete access across all project forms.
+  * Reviews the background objectives, target beneficiary counts, and project scope.
 
-#### What Users Do on This Page:
-1. Update financial actuals as expenditures are incurred.
-2. Progress the project through phases (*Planning* ➔ *Proposal* ➔ *Execution* ➔ *Results*).
-3. Access linked surveys directly via header shortcut buttons.
-4. Navigate downstream to create or review child activities.
-
-> 📸 **[SCREENSHOT PLACEHOLDER 3: Project Form Detail View]**  
-> *Attach screenshot of an active KV Project showing the financial section (Budget, Actual Spent, Remaining Funds), assigned Coordinator & Manager badges, and action buttons in the top toolbar.*
+> 📸 **[SCREENSHOT PLACEHOLDER 4: Project Form - Financial Tracking & Activities Table]**  
+> *Attach screenshot of an active KV Project form showing the Financial Tracking section (Budget, Actual Spent, Remaining Funds), Coordinator & Manager assignments, and the child activity table.*
 
 ---
 
-### Phase 4: Activity Breakdown & Allocation
-**Page Route:** `/app/activity` (or Project Child Table)
+### Screen 5: Activities Setup under Project
+**Page Route:** `/app/activity` (or Project Activities Child Table)
 
-> *Note: Detailed descriptions of individual activities are omitted here as per request and will be elaborated by the activity lead teammate.*
+> *Note: Detailed descriptions of individual activities will be elaborated by the activity lead teammate.*
 
-#### Activities Mentioned in the Project Flow:
+#### Mention of Core Project Activities:
 1. **Baseline Household Survey & Village Profiling**
 2. **Soil Health Assessment & Soil Testing Camps**
 3. **Continuous Contour Trenching (CCT) & Watershed Bunding**
@@ -155,82 +181,66 @@ flowchart LR
 8. **Post-Harvest Handling & Market Linkage Workshops**
 9. **Activity Outcome Verification & KRE Measurement**
 
-#### What Each User Sees & Does on the Activity Screen:
-* **⚙️ Project Manager (Activity Owner)**:
-  * Primary manager of activities under their project (`assignee == session.user` or `project.project_manager == session.user`).
-  * Sets the *Activity Name*, *Planned Budget*, *Start Date*, and *End Date*.
-  * Notes: Dates set on the Activity are automatically inherited by underlying tasks if task dates are blank.
-  * Creates tasks under the activity using the **`New Task under this Activity`** button.
-  * Peer managers cannot edit activities belonging to other projects.
-* **📋 Project Coordinator (Supervising In-Charge)**:
-  * Holds vertical downward authority to inspect, review, and edit any Activity belonging to projects under their supervision.
-* **🌱 Field Officer**:
-  * Read-only view of the activity definition.
-  * Clicks the **`View Tasks`** button to open the list of assigned field execution items.
+#### What Users Do on This Screen:
+* **Project Manager**: Assigns activity delivery leads (`assignee`), sets planned budgets, and inputs activity start/end dates (which automatically inherit to subtasks). Clicks **`New Task under this Activity`** to delegate work.
+* **Project Coordinator**: Holds downward vertical authority to inspect and edit any activity under their overseen projects.
+* **Field Officer**: Read-only view; clicks **`View Tasks`** to inspect their specific work items.
 
-> 📸 **[SCREENSHOT PLACEHOLDER 4: Activity Form & Task Allocation]**  
-> *Attach screenshot of an Activity form showing the linked KV Project, Assignee (PM), Planned Budget, inherited dates, and the 'New Task under this Activity' button.*
+> 📸 **[SCREENSHOT PLACEHOLDER 5: Activity Breakdown & Allocation]**  
+> *Attach screenshot of an Activity record showing the linked KV Project, Assignee, Planned Budget, timeline dates, and the 'New Task under this Activity' action button.*
 
 ---
 
-### Phase 5: Task Execution & Ground Operations
+### Screen 6: Task Execution & Ground Operations
 **Page Route:** `/app/task` (or Web Portal `/tasks`)
 
-#### What Each User Sees & Does on the Task Screen:
+#### What Each User Sees & Does:
 * **🌱 Field Officer (Task Owner)**:
-  * Frontline owner of tasks assigned to them (`custom_activity_owner == session.user`).
-  * Views specific field instructions, target locations, and checklists.
-  * Updates task execution status from `Open` ➔ `Working` ➔ `Completed`.
-  * Cannot be blocked by peer officers; cannot edit tasks assigned to other officers (**Task Lateral Isolation**).
-  * Enforces dependency gate: Tasks with predecessors must have predecessor tasks marked `Completed` before final closure.
+  * Frontline owner of tasks assigned directly to them (`custom_activity_owner == session.user`).
+  * Follows field instructions, checklists, and dependency conditions.
+  * Updates task lifecycle status from `Open` ➔ `Working` ➔ `Completed`.
+  * Cannot edit tasks assigned to peer officers (**Task Lateral Isolation**).
 * **⚙️ Project Manager**:
-  * Oversees all tasks under their activities.
-  * Reallocates workloads, verifies completed deliverables, and signs off on completed milestones.
+  * Oversees tasks across all activities in their project, verifies outputs, and signs off on milestones.
 * **📋 Project Coordinator**:
-  * Reviews overall task completion rates across their regional portfolio.
+  * Tracks high-level task completion across their overseen projects.
 
-> 📸 **[SCREENSHOT PLACEHOLDER 5: Task Execution Form]**  
-> *Attach screenshot of a Task record displaying the Subject, Assigned Field Officer, Parent Activity, Project link, dependency checklist, and Status dropdown.*
+> 📸 **[SCREENSHOT PLACEHOLDER 6: Task Execution Form]**  
+> *Attach screenshot of a Task record displaying the Subject, Assigned Field Officer, Parent Activity, Project link, and Status dropdown.*
 
 ---
 
-### Phase 6: Field Data Collection & Structural Surveys
+### Screen 7: Survey & Outcome Linking
 **Page Routes:**
-* Baseline Survey: `/app/baseline-survey` (or Web Form `/village_profile`)
-* Feedback Survey: `/app/feedback-survey` (or Web Wizard `/feedback_survey`)
+* Baseline Survey: `/app/baseline-survey` (or `/village_profile`)
+* Feedback Survey: `/app/feedback-survey` (or `/feedback_survey`)
 
-#### 1. Baseline Survey & Village Profiling:
-* **Field Officer Action**: Conducts on-ground household visits. Records farmer name, village demographics, baseline family income, land holding size, water source availability, and crop patterns.
-* **Project Manager / Coordinator Action**: Reviews aggregated baseline data to set benchmark KPIs before project deployment begins.
+#### What Users Do:
+* **Field Officer**: Submits frontline farmer survey data (household income, landholding, adoption rates 0-100%, and farmer feedback).
+* **Sync to Project**: Approved feedback surveys automatically link to the parent project and push actual measurements to Key Result Expectations (KREs).
+* **Project Manager & Coordinator**: View linked survey outcomes directly on the project form to measure real-world impact.
 
-> 📸 **[SCREENSHOT PLACEHOLDER 6: Baseline Survey Form / Village Profile]**  
-> *Attach screenshot of the Baseline Survey form showing farmer identification, village dropdown, landholding inputs, and baseline question grid.*
-
-#### 2. Feedback Survey & Field Observations:
-* **Field Officer Action**: Conducts follow-up evaluations post-activity execution. Records total participants, number of households adopting the technique, adoption percentage (0-100%), community feedback, and facilitator notes.
-* **Outcome Sync**: Submitting approved surveys automatically pushes actual values into the linked Key Result Expectation (KRE) tracking record.
-
-> 📸 **[SCREENSHOT PLACEHOLDER 7: Feedback Survey & Adoption Rating Form]**  
-> *Attach screenshot of the Feedback Survey entry form highlighting adoption rate percentage, participant metrics, overall rating (1-5 stars), and qualitative observation textareas.*
+> 📸 **[SCREENSHOT PLACEHOLDER 7: Linked Survey Submission Form]**  
+> *Attach screenshot of a survey submission form showing farmer details, project link, adoption percentage, and impact metrics.*
 
 ---
 
-## 📊 Summary Matrix: User Actions by Screen
+## 📊 5. Summary Table: User Capabilities Across Project Screens
 
-| Phase / Screen | 👑 CEO / Director / Admin | 📋 Project Coordinator | ⚙️ Project Manager | 🌱 Field Officer |
+| Screen / Page | 👑 CXO Tier | 📋 Project Coordinator | ⚙️ Project Manager | 🌱 Field Officer |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Dashboard (`/app/krushi-dashboard`)** | View all org metrics & Gantt; click `+ Create Project` | View metrics for overseen projects; click `+ Create Project` | View metrics for assigned project; click `+ Create Project` | View assigned project activities; no create button |
-| **2. Project Creation Form** | Create any project; assign Coordinator & Manager | Create project; assign self as Coordinator & select PM | Create project; assign self as PM & select Coordinator | ⛔ Access Denied |
-| **3. Project Detail View** | Edit/Delete any project; reallocate budgets | Edit all projects under their oversight; view peers read-only | Edit assigned project; track budget & remaining funds | 👁️ Read-Only access to project context |
-| **4. Activity Breakdown** | Create, edit & delete any activity across org | Edit any activity in projects under their oversight | Own & edit assigned activities; add new tasks | 👁️ Read-Only; click 'View Tasks' |
-| **5. Task Form** | Edit/reassign any task across all projects | Edit any task in projects under their oversight | Edit & review any task in their assigned activities | Own & edit assigned tasks; update status to Completed |
-| **6. Surveys (Baseline & Feedback)** | View all submissions, trends, and KRE analytics | Review surveys in overseen projects; monitor impact | Review surveys in assigned project; track adoption rate | Create & submit surveys during field visits |
+| **`+ Create Project` Action** | ✅ Enabled | ✅ Enabled | ✅ Enabled | ⛔ Hidden |
+| **Project Creation Form** | Create any project; assign Coordinator & Manager | Create project; assign self as Coordinator & select PM | Create project; assign self as PM & select Coordinator | ⛔ Access Denied |
+| **Project List View** | All organization projects visible | Only overseen projects or projects with subtasks | Only assigned projects or projects with subtasks | Only projects with assigned subtasks/activities |
+| **Project Detail Form** | Full Edit & Delete on all projects | Edit all projects under their oversight (Peer read-only) | Edit assigned project; track budget & remaining funds | 👁️ Read-Only access |
+| **Activities Setup** | Edit/Delete any activity across org | Edit any activity in projects under their oversight | Own & edit assigned activities; delegate tasks | 👁️ Read-Only; click 'View Tasks' |
+| **Task Execution** | Full Edit on any task | Edit any task in projects under their oversight | Edit & review any task in their assigned activities | Own & edit assigned tasks; mark Completed |
+| **Survey Linking** | View all survey analytics across org | Review surveys in overseen projects | Review surveys in assigned project; track adoption | Create & submit surveys during field visits |
 
 ---
 
-## 📌 Instructions for Teammates & Screenshot Captures
-When finalizing this user journey document with actual graphics:
-1. **Resolution**: Capture screenshots at standard desktop resolution (1920x1080 or 1440x900) with clean sample data.
-2. **File Format & Location**: Save the image files as PNG or JPG in the `docs/screenshots/` directory.
-3. **Replacement**: Replace each `📸 [SCREENSHOT PLACEHOLDER #]` tag with standard markdown image syntax:  
-   `![Description](docs/screenshots/filename.png)`
+## 📌 Teammate Instructions for Screenshots
+1. **Directory**: Place all captured images in `docs/screenshots/`.
+2. **Naming Convention**: `screenshot_1_create_project_button.png`, `screenshot_2_project_creation_form.png`, etc.
+3. **Replacement**: Replace each `📸 [SCREENSHOT PLACEHOLDER #]` tag with standard markdown image links:  
+   `![Description](docs/screenshots/screenshot_X.png)`

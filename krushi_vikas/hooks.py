@@ -40,6 +40,10 @@ has_permission = {
 	"Task": "krushi_vikas.api.has_task_permission"
 }
 
+permission_query_conditions = {
+	"KV Project": "krushi_vikas.api.get_project_permission_query_conditions",
+}
+
 
 doctype_js = {
 	"Project": "public/js/project_custom.js"
