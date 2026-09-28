@@ -53,6 +53,7 @@ doctype_js = {
 
 # Website Route Rules
 website_route_rules = [
+	{"from_route": "/projects", "to_route": "krushi_projects"},
 	{"from_route": "/task_list", "to_route": "task_list"},
 	{"from_route": "/tasks", "to_route": "task_list"},
 ]
