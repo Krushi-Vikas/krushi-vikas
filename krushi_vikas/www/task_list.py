@@ -15,6 +15,10 @@ def get_context(context):
         priority=priority_filter
     )
     context.options = get_all_dropdown_options()
+    roles = frappe.get_roles(frappe.session.user)
+    context.can_configure_task_evidence = frappe.session.user == "Administrator" or any(
+        role in roles for role in ("System Manager", "CEO", "Project Director", "Project Coordinator")
+    )
     context.selected_project = project_filter or ""
     context.selected_activity = activity_filter or ""
     context.selected_status = status_filter or ""

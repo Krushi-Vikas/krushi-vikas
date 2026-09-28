@@ -17,7 +17,10 @@ def get_template_questions(template):
 def enforce_dependency_gate(doc, method):
     """Hard dependency gate: Task cannot be completed if predecessors are not completed"""
     if doc.status == "Completed":
-        if doc.get("custom_evidence_image") and doc.get("custom_review_status") != "Approved":
+        evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+        if evidence_required and not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if evidence_required and doc.get("custom_review_status") != "Approved":
             frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
         for d in (doc.depends_on or []):
             if d.task:
@@ -2079,7 +2082,7 @@ def get_activity_detail(activity_id=None):
         "priority", "exp_start_date", "exp_end_date", "description", "_assign"
     ]
     for fieldname in (
-        "custom_assignee", "custom_evidence_image", "custom_review_status",
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
         "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
     ):
         if fieldname in available_task_fields:
@@ -2189,6 +2192,14 @@ def ensure_task_custom_fields():
             "insert_after": "custom_assignee",
         },
         {
+            "name": "Task-custom_require_evidence",
+            "fieldname": "custom_require_evidence",
+            "fieldtype": "Check",
+            "label": "Evidence Image Required",
+            "default": "0",
+            "insert_after": "custom_evidence_image",
+        },
+        {
             "name": "Task-custom_review_status",
             "fieldname": "custom_review_status",
             "fieldtype": "Select",
@@ -2259,14 +2270,19 @@ def save_task(data):
     doc.exp_end_date = data.get("exp_end_date")
     doc.description = data.get("description")
     doc.custom_assignee = data.get("custom_assignee")
+    if "require_evidence" in data:
+        requested_requirement = cint(data.get("require_evidence"))
+        if requested_requirement != cint(doc.get("custom_require_evidence")) and not can_review_task_submission(doc, frappe.session.user):
+            frappe.throw(_("Only the Project Coordinator assigned to this project can change the evidence requirement."), frappe.PermissionError)
+        doc.custom_require_evidence = requested_requirement
     if doc.is_new():
         doc.custom_review_status = "Not Submitted"
-    if (
-        data.get("status") == "Completed"
-        and doc.get("custom_evidence_image")
-        and doc.get("custom_review_status") != "Approved"
-    ):
-        frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if data.get("status") == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -2381,8 +2397,12 @@ def toggle_task_status(name, status):
     if not frappe.db.exists("Task", name):
         frappe.throw(_("Task does not exist."))
     doc = frappe.get_doc("Task", name)
-    if status == "Completed" and doc.get("custom_evidence_image") and doc.get("custom_review_status") != "Approved":
-        frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if status == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     doc.status = status
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -2449,7 +2469,7 @@ def get_global_tasks(project=None, activity=None, status=None, priority=None, as
         "priority", "exp_start_date", "exp_end_date", "description", "_assign", "creation"
     ]
     for fieldname in (
-        "custom_assignee", "custom_evidence_image", "custom_review_status",
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
         "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
     ):
         if fieldname in available_task_fields:

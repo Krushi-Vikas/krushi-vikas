@@ -153,6 +153,7 @@
                                 <td>{{ t.custom_assignee or 'Administrator' }}</td>
                                 <td>
                                     {% if t.custom_evidence_image %}<a class="btn-secondary btn-sm" href="{{ t.custom_evidence_image }}" target="_blank" rel="noopener"><i class="fa-regular fa-image"></i> Open image</a>{% endif %}
+                                    {% if t.custom_require_evidence %}<div style="font-size:0.72rem; color:#7c3aed; font-weight:600;">Image required</div>{% endif %}
                                     <div style="font-size:0.75rem; margin-top:4px;">{{ t.custom_review_status or 'Not Submitted' }}</div>
                                     {% if t.custom_review_comment %}<div style="font-size:0.72rem; color:#b91c1c;">{{ t.custom_review_comment }}</div>{% endif %}
                                     {% if t.can_submit_submission and t.custom_evidence_image and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
@@ -267,6 +268,12 @@
                         <input type="file" id="gt_evidence_image" class="form-control" accept="image/*">
                         <small style="color:#64748b;">The uploaded photo will be submitted to the Project Coordinator for review.</small>
                     </div>
+                    {% if can_configure_task_evidence %}
+                    <label style="display:flex; align-items:flex-start; gap:9px; margin-top:12px; padding:12px; border:1px solid #c4b5fd; border-radius:8px; background:#f5f3ff; color:#4c1d95;">
+                        <input type="checkbox" id="gt_require_evidence" style="margin-top:3px;">
+                        <span><strong>Require an image attachment</strong><br><small>The task cannot be completed until its image is submitted and approved.</small></span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <div class="modal-footer">
@@ -463,6 +470,9 @@
                 description: document.getElementById('gt_desc').value,
                 csrf_token: csrf
             };
+            if (document.getElementById('gt_require_evidence')) {
+                payload.require_evidence = document.getElementById('gt_require_evidence').checked;
+            }
 
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.save_task', {

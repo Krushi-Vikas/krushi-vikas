@@ -182,6 +182,7 @@
                                     {% if t.custom_evidence_image %}
                                     <a class="btn-secondary btn-sm" href="{{ t.custom_evidence_image }}" target="_blank" rel="noopener"><i class="fa-regular fa-image"></i> Open image</a>
                                     {% endif %}
+                                    {% if t.custom_require_evidence %}<div style="font-size:0.72rem; color:#7c3aed; font-weight:600;">Image required</div>{% endif %}
                                     <div style="font-size:0.75rem; margin-top:4px;">{{ t.custom_review_status or 'Not Submitted' }}</div>
                                     {% if t.custom_review_comment %}<div style="font-size:0.72rem; color:#b91c1c;">{{ t.custom_review_comment }}</div>{% endif %}
                                     {% if t.can_submit_submission and t.custom_evidence_image and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
@@ -194,7 +195,7 @@
                                 </td>
                                 <td>{{ t.exp_end_date or '31-03-2026' }}</td>
                                 <td style="text-align: right;">
-                                    <button class="btn-secondary btn-sm" onclick="editTask('{{ t.name }}', '{{ t.subject | escape }}', '{{ t.priority or 'Medium' }}', '{{ t.status or 'Open' }}', '{{ t.exp_start_date or '' }}', '{{ t.exp_end_date or '' }}', '{{ t.custom_assignee or '' }}', '{{ t.description or '' }}', '{{ t.custom_evidence_image or '' }}')"><i class="fa-regular fa-pen-to-square"></i></button>
+                                    <button class="btn-secondary btn-sm" onclick="editTask('{{ t.name }}', '{{ t.subject | escape }}', '{{ t.priority or 'Medium' }}', '{{ t.status or 'Open' }}', '{{ t.exp_start_date or '' }}', '{{ t.exp_end_date or '' }}', '{{ t.custom_assignee or '' }}', '{{ t.description or '' }}', '{{ t.custom_evidence_image or '' }}', {{ 1 if t.custom_require_evidence else 0 }})"><i class="fa-regular fa-pen-to-square"></i></button>
                                     <button class="btn-danger-outline btn-sm" onclick="deleteTask('{{ t.name }}', '{{ t.subject | escape }}')"><i class="fa-regular fa-trash-can"></i></button>
                                 </td>
                             </tr>
@@ -288,8 +289,14 @@
                         <label class="form-label">Evidence Image</label>
                         <input type="file" id="task_evidence_image" class="form-control" accept="image/*">
                         <div id="task_existing_image" style="font-size:0.8rem; margin-top:6px;"></div>
-                        <small style="color:#64748b;">Upload a photo showing task completion. The image is sent to the Project Coordinator for review.</small>
+                        <small style="color:#64748b;">Upload a photo showing task completion. Submitted images can be opened and reviewed by the Project Coordinator.</small>
                     </div>
+                    {% if can_configure_task_evidence %}
+                    <label style="display:flex; align-items:flex-start; gap:9px; margin-top:12px; padding:12px; border:1px solid #c4b5fd; border-radius:8px; background:#f5f3ff; color:#4c1d95;">
+                        <input type="checkbox" id="task_require_evidence" style="margin-top:3px;">
+                        <span><strong>Require an image attachment</strong><br><small>The task cannot be completed until its image is submitted and approved.</small></span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <div class="modal-footer">
@@ -328,10 +335,11 @@
             document.getElementById('task_description').value = '';
             document.getElementById('task_evidence_image').value = '';
             document.getElementById('task_existing_image').innerHTML = '';
+            if (document.getElementById('task_require_evidence')) document.getElementById('task_require_evidence').checked = false;
             document.getElementById('taskModal').style.display = 'flex';
         }
 
-        function editTask(name, subject, priority, status, start, end, assignee, desc, evidenceImage) {
+        function editTask(name, subject, priority, status, start, end, assignee, desc, evidenceImage, requireEvidence) {
             document.getElementById('taskModalTitle').innerHTML = '<i class="fa-regular fa-pen-to-square" style="color: #2563eb;"></i> Edit Task';
             document.getElementById('task_name').value = name;
             document.getElementById('task_subject').value = subject;
@@ -343,6 +351,7 @@
             document.getElementById('task_description').value = desc || '';
             document.getElementById('task_evidence_image').value = '';
             document.getElementById('task_existing_image').innerHTML = evidenceImage ? `<a href="${evidenceImage}" target="_blank" rel="noopener">Open currently attached image</a>` : 'No evidence image attached yet.';
+            if (document.getElementById('task_require_evidence')) document.getElementById('task_require_evidence').checked = Boolean(requireEvidence);
             document.getElementById('taskModal').style.display = 'flex';
         }
 
@@ -479,6 +488,9 @@
                 description: document.getElementById('task_description').value,
                 csrf_token: csrf
             };
+            if (document.getElementById('task_require_evidence')) {
+                payload.require_evidence = document.getElementById('task_require_evidence').checked;
+            }
 
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.save_task', {
