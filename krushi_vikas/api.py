@@ -1405,7 +1405,7 @@ def has_task_permission(doc=None, ptype="read", user=None):
         if not doc:
             return True
         emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
-        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
         if fo_assigned == user or fo_assigned in emp_ids or doc.owner == user or user in (doc.get("_assign") or ""):
             return True
             
@@ -1434,13 +1434,15 @@ def has_task_permission(doc=None, ptype="read", user=None):
         if "Field Officer" in roles:
             if doc.owner == user:
                 return True
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
             if fo_assigned == user:
                 return True
             if fo_assigned and frappe.db.exists("Employee", fo_assigned):
                 emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
                 if emp_user == user:
                     return True
+            if user in (doc.get("_assign") or ""):
+                return True
             return False
             
         return False
@@ -1469,15 +1471,17 @@ def get_task_permission_query_conditions(user=None):
         
     emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
     user_escaped = frappe.db.escape(user)
-    
-    emp_filter_sql = ""
-    if emp_ids:
-        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
-        emp_filter_sql = f"OR `tabTask`.`custom_activity_owner` IN ({emp_list_escaped})"
-        
-    conditions = [
-        f"(`tabTask`.`custom_activity_owner` = {user_escaped} {emp_filter_sql} OR `tabTask`.`owner` = {user_escaped} OR `tabTask`.`_assign` LIKE '%{user}%')"
-    ]
+
+    task_meta = frappe.get_meta("Task")
+    assignment_conditions = [f"`tabTask`.`owner` = {user_escaped}", f"`tabTask`.`_assign` LIKE '%{user}%' "]
+    for fieldname in ("custom_activity_owner", "custom_assigned_to", "custom_assignee"):
+        if task_meta.has_field(fieldname):
+            assignment_conditions.append(f"`tabTask`.`{fieldname}` = {user_escaped}")
+            if fieldname == "custom_activity_owner" and emp_ids:
+                emp_list = ", ".join(frappe.db.escape(employee) for employee in emp_ids)
+                assignment_conditions.append(f"`tabTask`.`{fieldname}` IN ({emp_list})")
+
+    conditions = ["(" + " OR ".join(assignment_conditions) + ")"]
     
     if "Project Manager" in roles:
         conditions.append(f"""EXISTS (
@@ -1581,15 +1585,21 @@ def enforce_task_least_privilege(doc, method=None):
             if doc.owner == user:
                 is_assigned = True
             else:
-                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
                 if fo_assigned == user:
                     is_assigned = True
                 elif fo_assigned and frappe.db.exists("Employee", fo_assigned):
                     emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
                     if emp_user == user:
                         is_assigned = True
+                if not is_assigned and doc.get("_assign"):
+                    try:
+                        import json
+                        is_assigned = user in json.loads(doc.get("_assign"))
+                    except (TypeError, ValueError):
+                        pass
             if not is_assigned:
-                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or "Another Officer"
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee") or "Another Officer"
                 frappe.throw(
                     frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
                     frappe.PermissionError
