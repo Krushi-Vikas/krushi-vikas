@@ -1294,7 +1294,21 @@ def can_review_task_submission(task_doc, user=None):
 def can_submit_task_evidence(task_doc, user=None):
     """Return whether the user created or is assigned the task."""
     user = user or frappe.session.user
-    return bool(user and user != "Guest" and user in (task_doc.get("owner"), task_doc.get("custom_assignee")))
+    if not user or user == "Guest":
+        return False
+    if user in (
+        task_doc.get("owner"), task_doc.get("custom_assignee"),
+        task_doc.get("custom_activity_owner"), task_doc.get("custom_assigned_to"),
+    ):
+        return True
+    if task_doc.get("_assign"):
+        try:
+            import json
+            if user in json.loads(task_doc.get("_assign")):
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
 
 
 def get_project_manager_for_activity(activity_doc):
@@ -2307,7 +2321,7 @@ def submit_task_for_review(name):
         frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
 
     doc = frappe.get_doc("Task", name)
-    if user not in (doc.owner, doc.get("custom_assignee")):
+    if not can_submit_task_evidence(doc, user):
         frappe.throw(_("Only the task creator or assignee can submit evidence for review."), frappe.PermissionError)
     if not doc.get("custom_evidence_image"):
         frappe.throw(_("Attach an image before submitting this task for review."), frappe.ValidationError)

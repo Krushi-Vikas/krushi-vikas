@@ -185,7 +185,10 @@
                                     {% if t.custom_require_evidence %}<div style="font-size:0.72rem; color:#7c3aed; font-weight:600;">Image required</div>{% endif %}
                                     <div style="font-size:0.75rem; margin-top:4px;">{{ t.custom_review_status or 'Not Submitted' }}</div>
                                     {% if t.custom_review_comment %}<div style="font-size:0.72rem; color:#b91c1c;">{{ t.custom_review_comment }}</div>{% endif %}
-                                    {% if t.can_submit_submission and t.custom_evidence_image and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
+                                    {% if t.can_submit_submission and t.custom_require_evidence and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
+                                    <button class="btn-primary btn-sm" type="button" onclick="chooseTaskEvidence('{{ t.name }}')"><i class="fa-solid fa-upload"></i> {% if t.custom_review_status == 'Rejected' %}Replace image{% else %}Upload image{% endif %}</button>
+                                    {% endif %}
+                                    {% if t.can_submit_submission and t.custom_evidence_image and not t.custom_require_evidence and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
                                     <button class="btn-secondary btn-sm" type="button" onclick="submitTaskEvidence('{{ t.name }}')"><i class="fa-solid fa-paper-plane"></i> Submit</button>
                                     {% endif %}
                                     {% if t.can_review_submission and t.custom_review_status == 'Pending Review' %}
@@ -373,6 +376,33 @@
                 throw new Error(result._server_messages || result.exc || 'Image upload failed.');
             }
             return result.message;
+        }
+
+        function chooseTaskEvidence(name) {
+            const picker = document.createElement('input');
+            picker.type = 'file';
+            picker.accept = 'image/*';
+            picker.onchange = async () => {
+                const file = picker.files && picker.files[0];
+                if (!file) return;
+                const csrf = getCsrfToken();
+                try {
+                    await uploadTaskEvidence(name, file, csrf);
+                    const response = await fetch('/api/method/krushi_vikas.api.submit_task_for_review', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}) },
+                        body: JSON.stringify({ name, csrf_token: csrf })
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.message || !result.message.success) {
+                        throw new Error(result._server_messages || result.exc || 'The image could not be submitted for review.');
+                    }
+                    window.location.reload();
+                } catch (error) {
+                    alert('Evidence upload failed: ' + error.message);
+                }
+            };
+            picker.click();
         }
 
         async function submitTaskEvidence(name) {
