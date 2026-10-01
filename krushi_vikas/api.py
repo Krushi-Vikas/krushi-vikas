@@ -17,6 +17,11 @@ def get_template_questions(template):
 def enforce_dependency_gate(doc, method):
     """Hard dependency gate: Task cannot be completed if predecessors are not completed"""
     if doc.status == "Completed":
+        evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+        if evidence_required and not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if evidence_required and doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
         for d in (doc.depends_on or []):
             if d.task:
                 pred = frappe.get_doc("Task", d.task)
@@ -1267,6 +1272,45 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     return pm, coord
 
 
+def can_review_task_submission(task_doc, user=None):
+    """Return whether the user can review evidence for this task's project."""
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return False
+
+    roles = frappe.get_roles(user)
+    if user in ("Administrator", "System Administrator") or any(
+        role in roles for role in ("Administrator", "System Manager", "CEO", "Project Director")
+    ):
+        return True
+
+    if "Project Coordinator" not in roles:
+        return False
+
+    _, coordinator = get_activity_manager_and_coordinator_for_task(task_doc)
+    return coordinator == user
+
+
+def can_submit_task_evidence(task_doc, user=None):
+    """Return whether the user created or is assigned the task."""
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return False
+    if user in (
+        task_doc.get("owner"), task_doc.get("custom_assignee"),
+        task_doc.get("custom_activity_owner"), task_doc.get("custom_assigned_to"),
+    ):
+        return True
+    if task_doc.get("_assign"):
+        try:
+            import json
+            if user in json.loads(task_doc.get("_assign")):
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
 def get_project_manager_for_activity(activity_doc):
     """Retrieves the assigned Project Manager for a given Activity's Project"""
     if not activity_doc or not activity_doc.project:
@@ -1361,7 +1405,7 @@ def has_task_permission(doc=None, ptype="read", user=None):
         if not doc:
             return True
         emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
-        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
         if fo_assigned == user or fo_assigned in emp_ids or doc.owner == user or user in (doc.get("_assign") or ""):
             return True
             
@@ -1390,13 +1434,15 @@ def has_task_permission(doc=None, ptype="read", user=None):
         if "Field Officer" in roles:
             if doc.owner == user:
                 return True
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
             if fo_assigned == user:
                 return True
             if fo_assigned and frappe.db.exists("Employee", fo_assigned):
                 emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
                 if emp_user == user:
                     return True
+            if user in (doc.get("_assign") or ""):
+                return True
             return False
             
         return False
@@ -1425,15 +1471,17 @@ def get_task_permission_query_conditions(user=None):
         
     emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
     user_escaped = frappe.db.escape(user)
-    
-    emp_filter_sql = ""
-    if emp_ids:
-        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
-        emp_filter_sql = f"OR `tabTask`.`custom_activity_owner` IN ({emp_list_escaped})"
-        
-    conditions = [
-        f"(`tabTask`.`custom_activity_owner` = {user_escaped} {emp_filter_sql} OR `tabTask`.`owner` = {user_escaped} OR `tabTask`.`_assign` LIKE '%{user}%')"
-    ]
+
+    task_meta = frappe.get_meta("Task")
+    assignment_conditions = [f"`tabTask`.`owner` = {user_escaped}", f"`tabTask`.`_assign` LIKE '%{user}%' "]
+    for fieldname in ("custom_activity_owner", "custom_assigned_to", "custom_assignee"):
+        if task_meta.has_field(fieldname):
+            assignment_conditions.append(f"`tabTask`.`{fieldname}` = {user_escaped}")
+            if fieldname == "custom_activity_owner" and emp_ids:
+                emp_list = ", ".join(frappe.db.escape(employee) for employee in emp_ids)
+                assignment_conditions.append(f"`tabTask`.`{fieldname}` IN ({emp_list})")
+
+    conditions = ["(" + " OR ".join(assignment_conditions) + ")"]
     
     if "Project Manager" in roles:
         conditions.append(f"""EXISTS (
@@ -1537,15 +1585,21 @@ def enforce_task_least_privilege(doc, method=None):
             if doc.owner == user:
                 is_assigned = True
             else:
-                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to")
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
                 if fo_assigned == user:
                     is_assigned = True
                 elif fo_assigned and frappe.db.exists("Employee", fo_assigned):
                     emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
                     if emp_user == user:
                         is_assigned = True
+                if not is_assigned and doc.get("_assign"):
+                    try:
+                        import json
+                        is_assigned = user in json.loads(doc.get("_assign"))
+                    except (TypeError, ValueError):
+                        pass
             if not is_assigned:
-                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or "Another Officer"
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee") or "Another Officer"
                 frappe.throw(
                     frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
                     frappe.PermissionError
@@ -2046,18 +2100,28 @@ def get_activity_detail(activity_id=None):
         project_title = frappe.db.get_value("KV Project", p_name, "project_name") or p_name
         
     # Fetch tasks for this activity
+    available_task_fields = {field.fieldname for field in frappe.get_meta("Task").fields}
+    task_fields = [
+        "name", "subject", "owner", "project", "custom_activity", "status",
+        "priority", "exp_start_date", "exp_end_date", "description", "_assign"
+    ]
+    for fieldname in (
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
+        "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
+    ):
+        if fieldname in available_task_fields:
+            task_fields.append(fieldname)
     tasks = frappe.get_all(
         "Task",
         filters={"custom_activity": activity_id},
-        fields=[
-            "name", "subject", "project", "custom_activity", "status",
-            "priority", "exp_start_date", "exp_end_date", "description",
-            "_assign"
-        ],
+        fields=task_fields,
         order_by="creation asc"
     )
     for td in tasks:
-        td["custom_assignee"] = "Administrator"
+        td["custom_assignee"] = td.get("custom_assignee") or "Administrator"
+        td["custom_review_status"] = td.get("custom_review_status") or "Not Submitted"
+        td["can_review_submission"] = can_review_task_submission(td)
+        td["can_submit_submission"] = can_submit_task_evidence(td)
     
     return {
         "activity": {
@@ -2141,13 +2205,80 @@ def delete_activity_record(name):
     return {"success": True, "message": f"Activity {name} and child tasks deleted successfully."}
 
 
+def ensure_task_custom_fields():
+    """Create the Task evidence and review fields if they are not installed yet."""
+    custom_fields = [
+        {
+            "name": "Task-custom_evidence_image",
+            "fieldname": "custom_evidence_image",
+            "fieldtype": "Attach Image",
+            "label": "Task Evidence Image",
+            "insert_after": "custom_assignee",
+        },
+        {
+            "name": "Task-custom_require_evidence",
+            "fieldname": "custom_require_evidence",
+            "fieldtype": "Check",
+            "label": "Evidence Image Required",
+            "default": "0",
+            "insert_after": "custom_evidence_image",
+        },
+        {
+            "name": "Task-custom_review_status",
+            "fieldname": "custom_review_status",
+            "fieldtype": "Select",
+            "label": "Evidence Review Status",
+            "options": "Not Submitted\nPending Review\nApproved\nRejected",
+            "default": "Not Submitted",
+            "read_only": 1,
+            "insert_after": "custom_evidence_image",
+        },
+        {
+            "name": "Task-custom_review_comment",
+            "fieldname": "custom_review_comment",
+            "fieldtype": "Small Text",
+            "label": "Review Comment",
+            "read_only": 1,
+            "insert_after": "custom_review_status",
+        },
+        {
+            "name": "Task-custom_reviewed_by",
+            "fieldname": "custom_reviewed_by",
+            "fieldtype": "Link",
+            "label": "Reviewed By",
+            "options": "User",
+            "read_only": 1,
+            "insert_after": "custom_review_comment",
+        },
+        {
+            "name": "Task-custom_reviewed_on",
+            "fieldname": "custom_reviewed_on",
+            "fieldtype": "Datetime",
+            "label": "Reviewed On",
+            "read_only": 1,
+            "insert_after": "custom_reviewed_by",
+        },
+    ]
+    for field in custom_fields:
+        if not frappe.db.exists("Custom Field", field["name"]):
+            frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "Task",
+                "module": "Krushi Vikas",
+                **field,
+            }).insert(ignore_permissions=True)
+    frappe.clear_cache(doctype="Task")
+
+
 @frappe.whitelist(allow_guest=True)
 def save_task(data):
     """Create or Update a Task record."""
     if isinstance(data, str):
         import json
         data = json.loads(data)
-        
+
+    ensure_task_custom_fields()
+
     name = data.get("name")
     if name and frappe.db.exists("Task", name):
         doc = frappe.get_doc("Task", name)
@@ -2163,6 +2294,19 @@ def save_task(data):
     doc.exp_end_date = data.get("exp_end_date")
     doc.description = data.get("description")
     doc.custom_assignee = data.get("custom_assignee")
+    if "require_evidence" in data:
+        requested_requirement = cint(data.get("require_evidence"))
+        if requested_requirement != cint(doc.get("custom_require_evidence")) and not can_review_task_submission(doc, frappe.session.user):
+            frappe.throw(_("Only the Project Coordinator assigned to this project can change the evidence requirement."), frappe.PermissionError)
+        doc.custom_require_evidence = requested_requirement
+    if doc.is_new():
+        doc.custom_review_status = "Not Submitted"
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if data.get("status") == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -2174,6 +2318,90 @@ def save_task(data):
         "status": doc.status,
         "project": doc.project,
         "custom_activity": doc.custom_activity
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_task_for_review(name):
+    """Submit attached task image evidence for review by the assigned coordinator."""
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Please sign in before submitting task evidence."), frappe.PermissionError)
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
+
+    doc = frappe.get_doc("Task", name)
+    if not can_submit_task_evidence(doc, user):
+        frappe.throw(_("Only the task creator or assignee can submit evidence for review."), frappe.PermissionError)
+    if not doc.get("custom_evidence_image"):
+        frappe.throw(_("Attach an image before submitting this task for review."), frappe.ValidationError)
+    if doc.get("custom_review_status") == "Approved":
+        frappe.throw(_("This task evidence is already approved."), frappe.ValidationError)
+
+    attached_file = frappe.db.get_value(
+        "File",
+        {
+            "file_url": doc.custom_evidence_image,
+            "attached_to_doctype": "Task",
+            "attached_to_name": name,
+        },
+        ["name", "file_name", "file_type"],
+        as_dict=True,
+    )
+    if not attached_file or (
+        attached_file.file_type and not str(attached_file.file_type).lower().startswith("image")
+    ):
+        frappe.throw(_("The evidence must be an image attached to this task."), frappe.ValidationError)
+
+    doc.custom_review_status = "Pending Review"
+    doc.custom_review_comment = ""
+    doc.custom_reviewed_by = ""
+    doc.custom_reviewed_on = None
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "name": doc.name, "review_status": doc.custom_review_status}
+
+
+@frappe.whitelist(methods=["POST"])
+def review_task_submission(name, decision, comment=None):
+    """Approve or reject task image evidence; only the assigned coordinator can review."""
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Please sign in before reviewing task evidence."), frappe.PermissionError)
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
+
+    decision = (decision or "").strip().lower()
+    if decision not in ("approve", "reject"):
+        frappe.throw(_("Choose either approve or reject."), frappe.ValidationError)
+    comment = (comment or "").strip()
+    if decision == "reject" and not comment:
+        frappe.throw(_("Add a comment explaining why the evidence was rejected."), frappe.ValidationError)
+
+    doc = frappe.get_doc("Task", name)
+    if not can_review_task_submission(doc, user):
+        frappe.throw(_("Only the assigned Project Coordinator can review this task evidence."), frappe.PermissionError)
+    if doc.get("custom_review_status") != "Pending Review":
+        frappe.throw(_("This task is not waiting for evidence review."), frappe.ValidationError)
+
+    doc.custom_review_status = "Approved" if decision == "approve" else "Rejected"
+    doc.custom_review_comment = comment
+    doc.custom_reviewed_by = user
+    doc.custom_reviewed_on = frappe.utils.now_datetime()
+    doc.status = "Completed" if decision == "approve" else "Working"
+    doc.save(ignore_permissions=True)
+    doc.add_comment("Comment", text=_("Evidence {0} by {1}.{2}").format(
+        "approved" if decision == "approve" else "rejected",
+        user,
+        f" Comment: {comment}" if comment else "",
+    ))
+    frappe.db.commit()
+    return {
+        "success": True,
+        "name": doc.name,
+        "status": doc.status,
+        "review_status": doc.custom_review_status,
+        "comment": doc.custom_review_comment,
     }
 
 
@@ -2193,6 +2421,12 @@ def toggle_task_status(name, status):
     if not frappe.db.exists("Task", name):
         frappe.throw(_("Task does not exist."))
     doc = frappe.get_doc("Task", name)
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if status == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     doc.status = status
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -2244,6 +2478,7 @@ def get_global_activities(project=None, status=None, assignee=None, search=None)
 @frappe.whitelist(allow_guest=True)
 def get_global_tasks(project=None, activity=None, status=None, priority=None, assignee=None, search=None):
     """Returns global list of all tasks with Project → Activity → Task hierarchy tags."""
+    available_task_fields = {field.fieldname for field in frappe.get_meta("Task").fields}
     filters = {}
     if project:
         filters["project"] = project
@@ -2253,23 +2488,32 @@ def get_global_tasks(project=None, activity=None, status=None, priority=None, as
         filters["status"] = status
     if priority:
         filters["priority"] = priority
+    task_fields = [
+        "name", "subject", "owner", "project", "custom_activity", "status",
+        "priority", "exp_start_date", "exp_end_date", "description", "_assign", "creation"
+    ]
+    for fieldname in (
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
+        "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
+    ):
+        if fieldname in available_task_fields:
+            task_fields.append(fieldname)
     tasks = frappe.get_all(
         "Task",
         filters=filters,
-        fields=[
-            "name", "subject", "project", "custom_activity", "status",
-            "priority", "exp_start_date", "exp_end_date", "description",
-            "_assign", "creation"
-        ],
+        fields=task_fields,
         order_by="modified desc"
     )
     for t in tasks:
-        t["custom_assignee"] = "Administrator"
+        t["custom_assignee"] = t.get("custom_assignee") or "Administrator"
+        t["custom_review_status"] = t.get("custom_review_status") or "Not Submitted"
+        t["can_review_submission"] = can_review_task_submission(t)
+        t["can_submit_submission"] = can_submit_task_evidence(t)
         if t.get("_assign"):
             try:
                 import json
                 users = json.loads(t["_assign"])
-                if users:
+                if users and t.get("custom_assignee") == "Administrator":
                     t["custom_assignee"] = users[0]
             except Exception:
                 pass
