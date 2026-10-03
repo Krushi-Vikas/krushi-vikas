@@ -127,3 +127,41 @@ frappe.ui.form.on('KV Project Activity', {
         frappe.model.set_value(cdt, cdn, 'sub_theme', '');
     }
 });
+
+(function () {
+    const requests = new WeakMap();
+
+    frappe.ui.form.on('Project Village Detail', {
+        async village_profile(frm, cdt, cdn) {
+            const row = locals[cdt][cdn];
+            const villageProfile = row.village_profile;
+            const request = {};
+            requests.set(row, request);
+            const isCurrent = () => locals[cdt]?.[cdn] === row
+                && requests.get(row) === request && row.village_profile === villageProfile;
+
+            await frappe.model.set_value(cdt, cdn, {
+                village_name: '', district: '', total_households: 0,
+                submitted_baseline_surveys: 0, baseline_coverage_percent: 0
+            });
+            if (!villageProfile || !isCurrent()) return;
+
+            try {
+                const response = await frappe.call({
+                    method: 'krushi_vikas.krushi_vikas.doctype.kv_project.kv_project.get_village_baseline_coverage',
+                    args: { village_profile: villageProfile }
+                });
+                if (isCurrent() && response.message) {
+                    await frappe.model.set_value(cdt, cdn, response.message);
+                }
+            } catch (error) {
+                if (isCurrent()) {
+                    frappe.show_alert({
+                        message: __('Baseline coverage could not be refreshed. It will be recalculated on Save.'),
+                        indicator: 'orange'
+                    });
+                }
+            }
+        }
+    });
+})();

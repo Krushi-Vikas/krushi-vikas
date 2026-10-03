@@ -21,6 +21,58 @@ from krushi_vikas.api import (
 PREFIX = "ZZ Journey Test"
 
 
+def run_baseline_coverage_checks():
+	from unittest.mock import Mock, patch
+	from krushi_vikas.krushi_vikas.doctype.kv_project import kv_project
+
+	profile = Mock(village_name="Coverage Test", district="Test", total_households=5, docstatus=1)
+	profile.name = "VP-COVERAGE-TEST"
+	with patch.object(frappe, "get_doc", return_value=profile), \
+		patch.object(frappe, "has_permission", return_value=True) as permission, \
+		patch.object(frappe.db, "count", return_value=1) as count:
+		coverage = kv_project.get_village_baseline_coverage(profile.name)
+		assert coverage["submitted_baseline_surveys"] == 1
+		assert coverage["baseline_coverage_percent"] == 20
+		count.assert_called_once_with(
+			"Baseline Survey", {"village_profile": profile.name, "docstatus": 1}
+		)
+
+		row = frappe._dict(village_profile=profile.name)
+		project = frappe._dict(project_villages=[row])
+		kv_project.KVProject.refresh_baseline_coverage(project)
+		assert all(row[field] == value for field, value in coverage.items())
+
+		profile.total_households = 0
+		assert kv_project.get_village_baseline_coverage(profile.name)["baseline_coverage_percent"] == 0
+		profile.total_households = 5
+		count.return_value = 0
+		assert kv_project.get_village_baseline_coverage(profile.name)["submitted_baseline_surveys"] == 0
+
+		permission.return_value = False
+		kv_project.get_village_baseline_coverage(profile.name)
+		profile.check_permission.assert_called_once_with("read")
+		profile.check_permission.side_effect = frappe.PermissionError
+		count.reset_mock()
+		try:
+			kv_project.get_village_baseline_coverage(profile.name)
+		except frappe.PermissionError:
+			pass
+		else:
+			raise AssertionError("Unauthorized coverage request was accepted")
+		count.assert_not_called()
+
+		permission.return_value = True
+		profile.docstatus = 0
+		try:
+			kv_project.get_village_baseline_coverage(profile.name)
+		except frappe.ValidationError:
+			pass
+		else:
+			raise AssertionError("Draft Village Profile was accepted")
+		count.assert_not_called()
+	print("PASS: baseline coverage calculation, Save consistency, and permissions")
+
+
 def clear_approvals(project):
 	"""Walk a project through however many approval steps it needs."""
 	from krushi_vikas.approvals import approve
