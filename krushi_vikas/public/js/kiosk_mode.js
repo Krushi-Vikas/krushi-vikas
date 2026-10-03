@@ -56,16 +56,38 @@
 	}
 
 	function enforce() {
-		if (!isRestricted()) return;
 		const route = frappe.get_route();
+		// If clicking logo or navigating leads to bare /app, redirect to krushi-dashboard
+		if (!route || !route.length || (route.length === 1 && (!route[0] || route[0] === "app" || route[0] === "home"))) {
+			frappe.set_route("krushi-dashboard");
+			return;
+		}
+		if (!isRestricted()) return;
 		if (!isAllowed(route)) {
 			frappe.set_route("krushi-dashboard");
 		}
 	}
 
+	function setupLogoRedirect() {
+		// Intercept clicks on the top-left project / brand logo in Desk navbar
+		$(document).on("click", ".navbar-brand, .navbar-home, a.navbar-brand, a.navbar-home, .app-logo, [data-action='home']", function (e) {
+			if ($(this).closest(".dropdown-menu").length) return;
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			frappe.set_route("krushi-dashboard");
+			return false;
+		});
+
+		// Ensure href attributes point to /app/krushi-dashboard instead of bare /app
+		$(".navbar-brand, .navbar-home, a.navbar-brand, a.navbar-home").attr("href", "/app/krushi-dashboard");
+	}
+
 	$(document).on("app_ready", function () {
-		if (!isRestricted()) return;
-		frappe.router.on("change", enforce);
+		setupLogoRedirect();
+		frappe.router.on("change", function () {
+			$(".navbar-brand, .navbar-home, a.navbar-brand, a.navbar-home").attr("href", "/app/krushi-dashboard");
+			enforce();
+		});
 		enforce();
 	});
 })();

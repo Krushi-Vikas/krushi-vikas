@@ -1348,11 +1348,18 @@ def can_review_task_submission(task_doc, user=None):
     ):
         return True
 
-    if "Project Coordinator" not in roles:
-        return False
+    pm, coordinator = get_activity_manager_and_coordinator_for_task(task_doc)
+    if "Project Coordinator" in roles:
+        if not coordinator or coordinator == user:
+            return True
 
-    _, coordinator = get_activity_manager_and_coordinator_for_task(task_doc)
-    return coordinator == user
+    if "Project Manager" in roles:
+        if pm and pm == user:
+            return True
+        if not pm and not coordinator:
+            return True
+
+    return False
 
 
 def can_submit_task_evidence(task_doc, user=None):
@@ -1482,8 +1489,12 @@ def has_task_permission(doc=None, ptype="read", user=None):
         
     if ptype == "create":
         # Field officers execute tasks; they do not raise them.
-        return "Field Officer" not in roles or any(
-            r in roles for r in ["Project Coordinator", "Project Manager"]
+        if "Field Officer" in roles and not any(
+            r in roles for r in ["Project Coordinator", "Project Manager", "CEO", "Project Director", "Administrator", "System Manager"]
+        ):
+            return False
+        return any(
+            r in roles for r in ["Project Coordinator", "Project Manager", "CEO", "Project Director", "Administrator", "System Manager"]
         )
         
     if ptype == "write":
@@ -1493,11 +1504,11 @@ def has_task_permission(doc=None, ptype="read", user=None):
         pm, coord = get_activity_manager_and_coordinator_for_task(doc)
         
         # 1. Project Coordinator can edit tasks in his project
-        if "Project Coordinator" in roles and coord == user:
+        if "Project Coordinator" in roles and (coord == user or not coord):
             return True
             
-        # 2. Project Manager can edit tasks in his activity
-        if "Project Manager" in roles and pm == user:
+        # 2. Project Manager can edit tasks in his activity or project
+        if "Project Manager" in roles and (pm == user or not pm):
             return True
             
         # 3. Field Officer can edit ONLY his assigned task
@@ -1518,7 +1529,18 @@ def has_task_permission(doc=None, ptype="read", user=None):
         return False
         
     if ptype == "delete":
-        return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+        if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+            return True
+        if not doc:
+            return any(r in roles for r in ["Project Coordinator", "Project Manager"])
+        pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+        if "Project Coordinator" in roles and (coord == user or not coord):
+            return True
+        if "Project Manager" in roles and (pm == user or not pm):
+            return True
+        if doc.owner == user and any(r in roles for r in ["Project Coordinator", "Project Manager"]):
+            return True
+        return False
         
     return False
 
@@ -1744,6 +1766,13 @@ def enforce_task_least_privilege(doc, method=None):
                 fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee") or "Another Officer"
                 frappe.throw(
                     frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
+                    frappe.PermissionError
+                )
+
+        if not doc.is_new() and doc.has_value_changed("custom_require_evidence"):
+            if not can_review_task_submission(doc, user):
+                frappe.throw(
+                    frappe._("Permission Denied: Only the Project Coordinator can change the evidence requirement."),
                     frappe.PermissionError
                 )
 
@@ -1978,14 +2007,15 @@ def submit_kv_project(data):
             continue
         doc.append("activities", {
             "activity_name": act.get("activity_name"),
-            "goal": act.get("goal"),
+            "theme": act.get("theme") or data.get("theme"),
+            "sub_theme": act.get("sub_theme"),
             "assignee": act.get("assignee"),
             "start_date": act.get("start_date") or doc.start_date,
             "end_date": act.get("end_date") or doc.end_date,
             "status": act.get("status") or "Planned",
-            "description": act.get("description"),
-            "input_output": act.get("input_output"),
-            "impact": act.get("impact")
+            "approved_budget": flt(act.get("approved_budget") or 0),
+            "target": flt(act.get("target") or 0),
+            "achievement": flt(act.get("achievement") or 0)
         })
         
     for fb in data.get("feedback_surveys") or []:
@@ -2397,18 +2427,35 @@ def ensure_task_custom_fields():
     """Create the Task evidence and review fields if they are not installed yet."""
     custom_fields = [
         {
-            "name": "Task-custom_evidence_image",
-            "fieldname": "custom_evidence_image",
-            "fieldtype": "Attach Image",
-            "label": "Task Evidence Image",
-            "insert_after": "custom_assignee",
+            "name": "Task-custom_section_evidence",
+            "fieldname": "custom_section_evidence",
+            "fieldtype": "Section Break",
+            "label": "Task Evidence & Review",
+            "insert_after": "custom_strategy",
         },
         {
             "name": "Task-custom_require_evidence",
             "fieldname": "custom_require_evidence",
             "fieldtype": "Check",
-            "label": "Evidence Image Required",
+            "label": "Evidence Image Required for Completion",
             "default": "0",
+            "allow_in_quick_entry": 1,
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "insert_after": "custom_section_evidence",
+        },
+        {
+            "name": "Task-custom_evidence_image",
+            "fieldname": "custom_evidence_image",
+            "fieldtype": "Attach Image",
+            "label": "Task Evidence Image / Attachment",
+            "allow_in_quick_entry": 1,
+            "insert_after": "custom_require_evidence",
+        },
+        {
+            "name": "Task-custom_col_evidence",
+            "fieldname": "custom_col_evidence",
+            "fieldtype": "Column Break",
             "insert_after": "custom_evidence_image",
         },
         {
@@ -2419,13 +2466,15 @@ def ensure_task_custom_fields():
             "options": "Not Submitted\nPending Review\nApproved\nRejected",
             "default": "Not Submitted",
             "read_only": 1,
-            "insert_after": "custom_evidence_image",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "insert_after": "custom_col_evidence",
         },
         {
             "name": "Task-custom_review_comment",
             "fieldname": "custom_review_comment",
             "fieldtype": "Small Text",
-            "label": "Review Comment",
+            "label": "Review Comment / Instructions",
             "read_only": 1,
             "insert_after": "custom_review_status",
         },
@@ -2446,6 +2495,15 @@ def ensure_task_custom_fields():
             "read_only": 1,
             "insert_after": "custom_reviewed_by",
         },
+        {
+            "name": "Task-custom_assignee",
+            "fieldname": "custom_assignee",
+            "fieldtype": "Link",
+            "label": "Assigned Field Officer",
+            "options": "User",
+            "allow_in_quick_entry": 1,
+            "insert_after": "custom_activity_owner",
+        },
     ]
     for field in custom_fields:
         if not frappe.db.exists("Custom Field", field["name"]):
@@ -2455,6 +2513,10 @@ def ensure_task_custom_fields():
                 "module": "Krushi Vikas",
                 **field,
             }).insert(ignore_permissions=True)
+        else:
+            cf = frappe.get_doc("Custom Field", field["name"])
+            cf.update(field)
+            cf.save(ignore_permissions=True)
     frappe.clear_cache(doctype="Task")
 
 
@@ -2511,7 +2573,7 @@ def save_task(data):
 
 @frappe.whitelist(methods=["POST"])
 def submit_task_for_review(name):
-    """Submit attached task image evidence for review by the assigned coordinator."""
+    """Submit task (with optional or mandatory attached evidence) for review by the assigned coordinator."""
     user = frappe.session.user
     if not user or user == "Guest":
         frappe.throw(_("Please sign in before submitting task evidence."), frappe.PermissionError)
@@ -2520,39 +2582,46 @@ def submit_task_for_review(name):
 
     doc = frappe.get_doc("Task", name)
     if not can_submit_task_evidence(doc, user):
-        frappe.throw(_("Only the task creator or assignee can submit evidence for review."), frappe.PermissionError)
-    if not doc.get("custom_evidence_image"):
+        frappe.throw(_("Only the task creator or assignee can submit this task for review."), frappe.PermissionError)
+
+    require_evidence = cint(doc.get("custom_require_evidence"))
+    if require_evidence and not doc.get("custom_evidence_image"):
         frappe.throw(_("Attach an image before submitting this task for review."), frappe.ValidationError)
     if doc.get("custom_review_status") == "Approved":
-        frappe.throw(_("This task evidence is already approved."), frappe.ValidationError)
+        frappe.throw(_("This task is already approved."), frappe.ValidationError)
 
-    attached_file = frappe.db.get_value(
-        "File",
-        {
-            "file_url": doc.custom_evidence_image,
-            "attached_to_doctype": "Task",
-            "attached_to_name": name,
-        },
-        ["name", "file_name", "file_type"],
-        as_dict=True,
-    )
-    if not attached_file or (
-        attached_file.file_type and not str(attached_file.file_type).lower().startswith("image")
-    ):
-        frappe.throw(_("The evidence must be an image attached to this task."), frappe.ValidationError)
+    if doc.get("custom_evidence_image"):
+        file_url = (doc.custom_evidence_image or "").strip()
+        is_image = any(file_url.lower().endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"))
+        if not is_image:
+            attached_file = frappe.db.get_value(
+                "File",
+                {"file_url": file_url},
+                ["name", "file_name", "file_type"],
+                as_dict=True,
+            )
+            if attached_file and attached_file.file_type and str(attached_file.file_type).lower().startswith("image"):
+                is_image = True
+        if not is_image:
+            frappe.throw(_("The attached evidence must be an image."), frappe.ValidationError)
 
     doc.custom_review_status = "Pending Review"
+    doc.status = "Pending Review"
     doc.custom_review_comment = ""
     doc.custom_reviewed_by = ""
     doc.custom_reviewed_on = None
     doc.save(ignore_permissions=True)
+    msg = _("Task submitted for review by {0}.").format(user) if not doc.custom_evidence_image else _("Task evidence submitted for review by {0}.").format(user)
+    doc.add_comment("Comment", text=msg)
     frappe.db.commit()
-    return {"success": True, "name": doc.name, "review_status": doc.custom_review_status}
+    return {"success": True, "name": doc.name, "review_status": doc.custom_review_status, "status": doc.status}
 
 
 @frappe.whitelist(methods=["POST"])
 def review_task_submission(name, decision, comment=None):
-    """Approve or reject task image evidence; only the assigned coordinator can review."""
+    """Approve or reject task submission; only the assigned coordinator or manager can review.
+    If approved, status changes to Completed. If rejected, moves back to Field Officer queue with status Needs Work.
+    """
     user = frappe.session.user
     if not user or user == "Guest":
         frappe.throw(_("Please sign in before reviewing task evidence."), frappe.PermissionError)
@@ -2564,21 +2633,21 @@ def review_task_submission(name, decision, comment=None):
         frappe.throw(_("Choose either approve or reject."), frappe.ValidationError)
     comment = (comment or "").strip()
     if decision == "reject" and not comment:
-        frappe.throw(_("Add a comment explaining why the evidence was rejected."), frappe.ValidationError)
+        frappe.throw(_("Add a comment explaining why the task was rejected."), frappe.ValidationError)
 
     doc = frappe.get_doc("Task", name)
     if not can_review_task_submission(doc, user):
-        frappe.throw(_("Only the assigned Project Coordinator can review this task evidence."), frappe.PermissionError)
+        frappe.throw(_("Only the assigned Project Coordinator or Manager can review this task."), frappe.PermissionError)
     if doc.get("custom_review_status") != "Pending Review":
-        frappe.throw(_("This task is not waiting for evidence review."), frappe.ValidationError)
+        frappe.throw(_("This task is not waiting for review."), frappe.ValidationError)
 
     doc.custom_review_status = "Approved" if decision == "approve" else "Rejected"
     doc.custom_review_comment = comment
     doc.custom_reviewed_by = user
     doc.custom_reviewed_on = frappe.utils.now_datetime()
-    doc.status = "Completed" if decision == "approve" else "Working"
+    doc.status = "Completed" if decision == "approve" else "Needs Work"
     doc.save(ignore_permissions=True)
-    doc.add_comment("Comment", text=_("Evidence {0} by {1}.{2}").format(
+    doc.add_comment("Comment", text=_("Task {0} by {1}.{2}").format(
         "approved" if decision == "approve" else "rejected",
         user,
         f" Comment: {comment}" if comment else "",
@@ -2590,6 +2659,36 @@ def review_task_submission(name, decision, comment=None):
         "status": doc.status,
         "review_status": doc.custom_review_status,
         "comment": doc.custom_review_comment,
+    }
+
+
+@frappe.whitelist()
+def get_task_review_permissions(task_name):
+    """Returns permission flags and review state for a task in the standard Desk form."""
+    if not task_name or not frappe.db.exists("Task", task_name):
+        return {"can_review": False, "can_submit": False, "can_require": False}
+    doc = frappe.get_doc("Task", task_name)
+    user = frappe.session.user
+    roles = frappe.get_roles(user)
+    is_exec = user in ("Administrator", "System Administrator") or any(
+        r in roles for r in ("Administrator", "System Manager", "CEO", "Project Director")
+    )
+    is_coord_or_pm = any(
+        r in roles for r in ("Project Coordinator", "Project Manager")
+    )
+    can_rev = can_review_task_submission(doc, user)
+    can_sub = can_submit_task_evidence(doc, user)
+    can_req = is_exec or is_coord_or_pm or can_rev
+    return {
+        "can_review": can_rev,
+        "can_submit": can_sub,
+        "can_require": can_req,
+        "review_status": doc.get("custom_review_status") or "Not Submitted",
+        "has_evidence": bool(doc.get("custom_evidence_image")),
+        "require_evidence": cint(doc.get("custom_require_evidence")),
+        "evidence_image": doc.get("custom_evidence_image"),
+        "review_comment": doc.get("custom_review_comment"),
+        "status": doc.status,
     }
 
 
