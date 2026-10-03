@@ -60,6 +60,11 @@ has_permission = {
 	"Village Profile": "krushi_vikas.api.has_survey_permission"
 }
 
+permission_query_conditions = {
+	"KV Project": "krushi_vikas.api.get_project_permission_query_conditions",
+	"Project": "krushi_vikas.api.get_erp_project_permission_query_conditions",
+	"Task": "krushi_vikas.api.get_task_permission_query_conditions",
+}
 doctype_js = {
 	"Project": "public/js/project_custom.js"
 }
@@ -112,6 +117,7 @@ scheduler_events = {
 
 # Website Route Rules
 website_route_rules = [
+	{"from_route": "/projects", "to_route": "krushi_projects"},
 	{"from_route": "/task_list", "to_route": "task_list"},
 	{"from_route": "/tasks", "to_route": "task_list"},
 ]

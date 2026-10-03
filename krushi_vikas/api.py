@@ -17,6 +17,11 @@ def get_template_questions(template):
 def enforce_dependency_gate(doc, method):
     """Hard dependency gate: Task cannot be completed if predecessors are not completed"""
     if doc.status == "Completed":
+        evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+        if evidence_required and not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if evidence_required and doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
         for d in (doc.depends_on or []):
             if d.task:
                 pred = frappe.get_doc("Task", d.task)
@@ -1051,24 +1056,164 @@ def export_baseline_survey_excel(name):
     frappe.response['filename'] = f"{doc.name}_{doc.farmer_name.replace(' ', '_')}_Export.csv"
 
 
+def is_project_visible_to_user(doc, user, roles):
+    """
+    Evaluates whether a user can see/read a given project:
+    - CXO level (CEO, Project Director, System Manager, Administrator): Can see ALL projects.
+    - Below CXO level: Can ONLY see projects assigned to them (as Coordinator or Manager)
+      OR projects where a subtask or activity is assigned to them.
+    """
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+        
+    if not doc:
+        return True
+        
+    coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    pm = doc.get("project_manager") or doc.get("custom_project_manager")
+    if coord == user or pm == user:
+        return True
+        
+    proj_name = doc.name
+    proj_title = doc.get("project_name")
+    # Check if any activity under this project is assigned to user
+    if doc.get("activities"):
+        if any(row.get("assignee") == user for row in doc.activities):
+            return True
+            
+    if frappe.db.exists("Activity", {"project": proj_name, "assignee": user}):
+        return True
+    if proj_title and frappe.db.exists("Activity", {"project": proj_title, "assignee": user}):
+        return True
+        
+    # Check if any task under this project is assigned to user (or employee linked to user)
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    assigned_targets = [user] + emp_ids
+    
+    # Direct task under project
+    if frappe.db.exists("Task", {"project": proj_name, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    if proj_title and frappe.db.exists("Task", {"project": proj_title, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    erp_p = frappe.db.get_value("Project", {"project_name": proj_title or proj_name}, "name")
+    if erp_p and frappe.db.exists("Task", {"project": erp_p, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    if frappe.db.exists("Task", {"project": ["in", [proj_name, proj_title, erp_p]], "_assign": ["like", f"%{user}%"]}):
+        return True
+        
+    # Task linked via custom_activity
+    act_names = frappe.get_all("Activity", filters={"project": ["in", [proj_name, proj_title]]}, pluck="name")
+    if act_names:
+        if frappe.db.exists("Task", {"custom_activity": ["in", act_names], "custom_activity_owner": ["in", assigned_targets]}):
+            return True
+        tasks_with_assign = frappe.db.sql("""SELECT name FROM `tabTask` WHERE custom_activity IN %s AND _assign LIKE %s""", (tuple(act_names), f"%{user}%"), as_dict=True)
+        if tasks_with_assign:
+            return True
+            
+    return False
+
+
+def get_project_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to KV Project list views and searches:
+    - CXO level: No restrictions ("").
+    - Below CXO level: Only projects assigned to them or having a subtask/activity assigned to them.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR t.custom_activity_owner IN ({emp_list_escaped})"
+        
+    return f"""(`tabKV Project`.`project_coordinator` = {user_escaped}
+        OR `tabKV Project`.`project_manager` = {user_escaped}
+        OR EXISTS (
+            SELECT 1 FROM `tabActivity` a 
+            WHERE (a.project = `tabKV Project`.name OR a.project = `tabKV Project`.project_name) 
+              AND a.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabKV Project Activity` kpa 
+            WHERE kpa.parent = `tabKV Project`.name AND kpa.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabTask` t
+            WHERE (t.project = `tabKV Project`.name 
+                   OR t.project IN (SELECT p_erp.name FROM `tabProject` p_erp WHERE p_erp.project_name = `tabKV Project`.project_name)
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabKV Project`.name OR a2.project = `tabKV Project`.project_name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t._assign LIKE '%{user}%')
+        )
+    )"""
+
+
+def get_erp_project_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to ERPNext Project list views and searches:
+    - CXO level: No restrictions ("").
+    - Below CXO level: Only projects assigned to them or having a subtask/activity assigned to them.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR t.custom_activity_owner IN ({emp_list_escaped})"
+        
+    return f"""(`tabProject`.`custom_project_coordinator` = {user_escaped}
+        OR `tabProject`.`custom_project_manager` = {user_escaped}
+        OR EXISTS (
+            SELECT 1 FROM `tabActivity` a 
+            WHERE (a.project = `tabProject`.name OR a.project = `tabProject`.project_name) 
+              AND a.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabTask` t
+            WHERE (t.project = `tabProject`.name 
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabProject`.name OR a2.project = `tabProject`.project_name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t._assign LIKE '%{user}%')
+        )
+    )"""
+
+
 def has_project_permission(doc=None, ptype="read", user=None):
     """
     Evaluates role-based least privilege permissions for Project & KV Project:
     Hierarchy:
       1. CEO
       2. Project Director
-      3. Project Coordinator
-      4. Project Manager
+      3. Project Coordinator (Oversees assigned projects)
+      4. Project Manager (Owns assigned project)
       5. Field Officer
     
     Rules:
       - Read: Allowed for all roles.
-      - Create: Allowed ONLY for Project Coordinator, Project Director, CEO, System Manager, Administrator.
+      - Create: Allowed for Project Coordinator, Project Manager, Project Director, CEO, System Manager, Administrator.
       - Write/Edit:
         * CEO, Project Director, System Manager, Administrator: Allowed for any project.
-        * Project Coordinator: Allowed ONLY if assigned to this project (or doc owner).
-        * Another Project Coordinator: DENIED.
-        * Project Manager, Field Officer: DENIED.
+        * Project Coordinator: Allowed for all projects under him/her (assigned_coord == user or doc.owner == user).
+        * Project Manager: Allowed for the project assigned to him/her (assigned_pm == user or doc.owner == user).
+        * Peer Coordinator: DENIED on projects not under them.
+        * Peer Manager: DENIED on projects not assigned to them.
+        * Field Officer: DENIED.
       - Delete: Only CEO, Project Director, System Manager, Administrator.
     """
     if not user:
@@ -1083,9 +1228,9 @@ def has_project_permission(doc=None, ptype="read", user=None):
     if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
         return True
         
-    # 2. Read is accessible across the organization
+    # 2. Read: Below CXO level, members only see projects assigned to them or having a subtask assigned to them
     if ptype == "read":
-        return True
+        return is_project_visible_to_user(doc, user, roles)
         
     # 3. Create is allowed for Project Manager and above. A manager's
     #    project is not self-approving — krushi_vikas.approvals routes it to
@@ -1103,14 +1248,18 @@ def has_project_permission(doc=None, ptype="read", user=None):
         if doc.owner == user:
             return True
 
+        assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+        assigned_pm = doc.get("project_manager") or doc.get("custom_project_manager")
+        
+        # Project Coordinator can edit all projects under him/her
         if "Project Coordinator" in roles:
-            assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
-            return assigned_coord == user
-
+            if assigned_coord == user or doc.owner == user:
+                return True
+                
+        # Project Manager can edit the project assigned to him/her
         if "Project Manager" in roles:
-            # Scoped to the project they are named on — not every project.
-            return doc.get("project_manager") == user
-
+            if assigned_pm == user or doc.owner == user:
+                return True
         return False
         
     if ptype == "delete":
@@ -1137,7 +1286,7 @@ def get_project_coordinator_for_activity(activity_doc):
 
 
 def get_activity_manager_and_coordinator_for_task(task_doc):
-    """Retrieves the assigned Project Manager (Activity Owner) and Project Coordinator for a given Task"""
+    """Retrieves the assigned Project Manager (Activity Owner / Project Owner) and Project Coordinator for a given Task"""
     if not task_doc:
         return None, None
         
@@ -1145,15 +1294,19 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     if not activity_name:
         proj_name = task_doc.get("project")
         coord = None
+        pm = None
         if proj_name:
             if frappe.db.exists("KV Project", proj_name):
                 coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+                pm = frappe.db.get_value("KV Project", proj_name, "project_manager")
             elif frappe.db.exists("Project", proj_name):
                 if frappe.db.has_column("Project", "custom_project_coordinator"):
                     coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
                 if not coord:
                     coord = frappe.db.get_value("Project", proj_name, "owner")
-        return None, coord
+                if frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+        return pm, coord
         
     activity = frappe.db.get_values("Activity", activity_name, ["assignee", "project", "owner"], as_dict=True)
     if not activity:
@@ -1167,21 +1320,83 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     if proj_name:
         if frappe.db.exists("KV Project", proj_name):
             coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+            proj_pm = frappe.db.get_value("KV Project", proj_name, "project_manager")
+            if proj_pm and not pm:
+                pm = proj_pm
         elif frappe.db.exists("Project", proj_name):
             if frappe.db.has_column("Project", "custom_project_coordinator"):
                 coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
             if not coord:
                 coord = frappe.db.get_value("Project", proj_name, "owner")
+            if frappe.db.has_column("Project", "custom_project_manager"):
+                proj_pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+                if proj_pm and not pm:
+                    pm = proj_pm
                 
     return pm, coord
+
+
+def can_review_task_submission(task_doc, user=None):
+    """Return whether the user can review evidence for this task's project."""
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return False
+
+    roles = frappe.get_roles(user)
+    if user in ("Administrator", "System Administrator") or any(
+        role in roles for role in ("Administrator", "System Manager", "CEO", "Project Director")
+    ):
+        return True
+
+    if "Project Coordinator" not in roles:
+        return False
+
+    _, coordinator = get_activity_manager_and_coordinator_for_task(task_doc)
+    return coordinator == user
+
+
+def can_submit_task_evidence(task_doc, user=None):
+    """Return whether the user created or is assigned the task."""
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return False
+    if user in (
+        task_doc.get("owner"), task_doc.get("custom_assignee"),
+        task_doc.get("custom_activity_owner"), task_doc.get("custom_assigned_to"),
+    ):
+        return True
+    if task_doc.get("_assign"):
+        try:
+            import json
+            if user in json.loads(task_doc.get("_assign")):
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
+def get_project_manager_for_activity(activity_doc):
+    """Retrieves the assigned Project Manager for a given Activity's Project"""
+    if not activity_doc or not activity_doc.project:
+        return None
+        
+    proj_name = activity_doc.project
+    if frappe.db.exists("KV Project", proj_name):
+        return frappe.db.get_value("KV Project", proj_name, "project_manager")
+    if frappe.db.exists("Project", proj_name):
+        if frappe.db.has_column("Project", "custom_project_manager"):
+            pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+            if pm:
+                return pm
+    return None
 
 
 def has_activity_permission(doc=None, ptype="read", user=None):
     """
     Evaluates role-based permissions for Activity:
     - CEO & Project Director: Can edit ANY activity in the organization.
-    - Project Coordinator: Can edit ANY activity in projects owned/assigned to him.
-    - Project Manager: Can edit ONLY activities assigned/owned by him.
+    - Project Coordinator: Can edit ANY activity in projects overseen/assigned to him.
+    - Project Manager: Owns and can edit activities assigned to him OR under his assigned project.
     - Field Officer: Read-only access.
     """
     if not user:
@@ -1206,18 +1421,26 @@ def has_activity_permission(doc=None, ptype="read", user=None):
         # Project Coordinator can edit if the Activity belongs to their Project
         if "Project Coordinator" in roles:
             coord = get_project_coordinator_for_activity(doc)
-            return coord == user or doc.owner == user
+            if coord == user or doc.owner == user:
+                return True
             
-        # Project Manager can edit ONLY their assigned activity
+        # Project Manager owns and can edit activities assigned to him or under his project
         if "Project Manager" in roles:
-            return doc.assignee == user or doc.owner == user
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                return True
             
         return False
         
     if ptype == "delete":
         if "Project Coordinator" in roles and doc:
             coord = get_project_coordinator_for_activity(doc)
-            return coord == user or doc.owner == user
+            if coord == user or doc.owner == user:
+                return True
+        if "Project Manager" in roles and doc:
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                return True
         return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
         
     return False
@@ -1243,7 +1466,19 @@ def has_task_permission(doc=None, ptype="read", user=None):
         return True
         
     if ptype == "read":
-        return True
+        if not doc:
+            return True
+        emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
+        if fo_assigned == user or fo_assigned in emp_ids or doc.owner == user or user in (doc.get("_assign") or ""):
+            return True
+            
+        pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+        if "Project Manager" in roles and pm == user:
+            return True
+        if "Project Coordinator" in roles and coord == user:
+            return True
+        return False
         
     if ptype == "create":
         # Field officers execute tasks; they do not raise them.
@@ -1267,8 +1502,18 @@ def has_task_permission(doc=None, ptype="read", user=None):
             
         # 3. Field Officer can edit ONLY his assigned task
         if "Field Officer" in roles:
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
-            return fo_assigned == user or doc.owner == user
+            if doc.owner == user:
+                return True
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
+            if fo_assigned == user:
+                return True
+            if fo_assigned and frappe.db.exists("Employee", fo_assigned):
+                emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
+                if emp_user == user:
+                    return True
+            if user in (doc.get("_assign") or ""):
+                return True
+            return False
             
         return False
         
@@ -1350,6 +1595,68 @@ def has_feedback_survey_permission(doc=None, ptype="read", user=None):
     return False
 
 
+def get_task_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to Task list views and searches:
+    - CXO level: No restrictions ("").
+    - Field Officer: Can ONLY see tasks assigned to them (by employee ID, user email, or _assign).
+    - Project Manager: Tasks under their activities or projects, plus assigned tasks.
+    - Project Coordinator: Tasks under their coordinated projects, plus assigned tasks.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+
+    task_meta = frappe.get_meta("Task")
+    assignment_conditions = [f"`tabTask`.`owner` = {user_escaped}", f"`tabTask`.`_assign` LIKE '%{user}%' "]
+    for fieldname in ("custom_activity_owner", "custom_assigned_to", "custom_assignee"):
+        if task_meta.has_field(fieldname):
+            assignment_conditions.append(f"`tabTask`.`{fieldname}` = {user_escaped}")
+            if fieldname == "custom_activity_owner" and emp_ids:
+                emp_list = ", ".join(frappe.db.escape(employee) for employee in emp_ids)
+                assignment_conditions.append(f"`tabTask`.`{fieldname}` IN ({emp_list})")
+
+    conditions = ["(" + " OR ".join(assignment_conditions) + ")"]
+    
+    if "Project Manager" in roles:
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabActivity` act 
+            WHERE act.name = `tabTask`.`custom_activity` AND act.assignee = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabProject` p 
+            WHERE p.name = `tabTask`.`project` AND p.custom_project_manager = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabKV Project` kvp 
+            WHERE kvp.name = `tabTask`.`project` AND kvp.project_manager = {user_escaped}
+        )""")
+        
+    if "Project Coordinator" in roles:
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabProject` p2 
+            WHERE p2.name = `tabTask`.`project` AND p2.custom_project_coordinator = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabKV Project` kvp2 
+            WHERE kvp2.name = `tabTask`.`project` AND kvp2.project_coordinator = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabActivity` act2 
+            JOIN `tabKV Project` kvp3 ON kvp3.name = act2.project OR kvp3.project_name = act2.project
+            WHERE act2.name = `tabTask`.`custom_activity` AND kvp3.project_coordinator = {user_escaped}
+        )""")
+        
+    return f"({' OR '.join(conditions)})"
+
+
 def enforce_activity_least_privilege(doc, method=None):
     """Validates Activity creation & edit rules strictly against hierarchy and ownership"""
     user = frappe.session.user
@@ -1368,24 +1675,26 @@ def enforce_activity_least_privilege(doc, method=None):
             )
             
     if not doc.is_new():
+        allowed = False
         if "Project Coordinator" in roles:
             coord = get_project_coordinator_for_activity(doc)
-            if coord != user and doc.owner != user:
+            if coord == user or doc.owner == user:
+                allowed = True
+        if not allowed and "Project Manager" in roles:
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                allowed = True
+        if not allowed:
+            if "Field Officer" in roles:
                 frappe.throw(
-                    frappe._(f"Permission Denied: This Activity belongs to Project Coordinator '{coord}'. You can only edit activities in projects assigned to you."),
+                    frappe._("Permission Denied: Field Officers cannot edit Activity records."),
                     frappe.PermissionError
                 )
-        elif "Project Manager" in roles:
-            if doc.assignee != user and doc.owner != user:
+            else:
                 frappe.throw(
-                    frappe._(f"Permission Denied: Activity '{doc.get('activity_name') or doc.name}' is assigned to Project Manager '{doc.assignee}'. Another Project Manager cannot edit this activity."),
+                    frappe._(f"Permission Denied: You do not have permission to edit Activity '{doc.get('activity_name') or doc.name}'."),
                     frappe.PermissionError
                 )
-        else:
-            frappe.throw(
-                frappe._("Permission Denied: Field Officers cannot edit Activity records."),
-                frappe.PermissionError
-            )
 
 
 def enforce_task_least_privilege(doc, method=None):
@@ -1414,8 +1723,25 @@ def enforce_task_least_privilege(doc, method=None):
                     frappe.PermissionError
                 )
         elif "Field Officer" in roles:
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
-            if fo_assigned != user and doc.owner != user:
+            is_assigned = False
+            if doc.owner == user:
+                is_assigned = True
+            else:
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
+                if fo_assigned == user:
+                    is_assigned = True
+                elif fo_assigned and frappe.db.exists("Employee", fo_assigned):
+                    emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
+                    if emp_user == user:
+                        is_assigned = True
+                if not is_assigned and doc.get("_assign"):
+                    try:
+                        import json
+                        is_assigned = user in json.loads(doc.get("_assign"))
+                    except (TypeError, ValueError):
+                        pass
+            if not is_assigned:
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee") or "Another Officer"
                 frappe.throw(
                     frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
                     frappe.PermissionError
@@ -1431,11 +1757,17 @@ def enforce_project_least_privilege(doc, method=None):
     roles = frappe.get_roles(user)
     is_senior_executive = any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
     
-    # 1. Project must always be assigned to a Project Coordinator
+    # 1. Project must always maintain both Project Coordinator and Project Manager
     assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    assigned_pm = doc.get("project_manager") or doc.get("custom_project_manager")
     if not assigned_coord:
         frappe.throw(
             frappe._("A Project must always be assigned to a Project Coordinator. Please assign a valid Project Coordinator."),
+            frappe.ValidationError
+        )
+    if not assigned_pm:
+        frappe.throw(
+            frappe._("A Project must always be assigned to a Project Manager. Please assign a valid Project Manager."),
             frappe.ValidationError
         )
         
@@ -1447,7 +1779,7 @@ def enforce_project_least_privilege(doc, method=None):
         )
         if not allowed_to_create:
             frappe.throw(
-                frappe._("Permission Denied: Projects can only be raised by a Project Manager, Project Coordinator, Project Director, or CEO."),
+                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Manager, Project Director, or CEO."),
                 frappe.PermissionError
             )
             
@@ -1458,17 +1790,32 @@ def enforce_project_least_privilege(doc, method=None):
         if doc.owner == user:
             return
 
+        allowed = False
+        # Project Coordinator can edit all projects under him/her
         if "Project Coordinator" in roles:
-            if assigned_coord != user and doc.owner != user:
+            if assigned_coord == user or doc.owner == user:
+                allowed = True
+        # Project Manager can edit the project assigned to him/her
+        if not allowed and "Project Manager" in roles:
+            if assigned_pm == user or doc.owner == user:
+                allowed = True
+                
+        if not allowed:
+            if "Project Coordinator" in roles:
                 frappe.throw(
-                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is under Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
                     frappe.PermissionError
                 )
-        else:
-            frappe.throw(
-                frappe._("Permission Denied: Project Managers and Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Coordinator, Project Director, or CEO."),
-                frappe.PermissionError
-            )
+            elif "Project Manager" in roles:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Manager '{assigned_pm}'. Another Project Manager cannot edit this project."),
+                    frappe.PermissionError
+                )
+            else:
+                frappe.throw(
+                    frappe._("Permission Denied: Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Manager, supervising Project Coordinator, Project Director, or CEO."),
+                    frappe.PermissionError
+                )
 
 
 def enforce_feedback_survey_least_privilege(doc, method=None):
@@ -1947,18 +2294,28 @@ def get_activity_detail(activity_id=None):
         project_title = frappe.db.get_value("KV Project", p_name, "project_name") or p_name
         
     # Fetch tasks for this activity
+    available_task_fields = {field.fieldname for field in frappe.get_meta("Task").fields}
+    task_fields = [
+        "name", "subject", "owner", "project", "custom_activity", "status",
+        "priority", "exp_start_date", "exp_end_date", "description", "_assign"
+    ]
+    for fieldname in (
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
+        "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
+    ):
+        if fieldname in available_task_fields:
+            task_fields.append(fieldname)
     tasks = frappe.get_all(
         "Task",
         filters={"custom_activity": activity_id},
-        fields=[
-            "name", "subject", "project", "custom_activity", "status",
-            "priority", "exp_start_date", "exp_end_date", "description",
-            "_assign"
-        ],
+        fields=task_fields,
         order_by="creation asc"
     )
     for td in tasks:
-        td["custom_assignee"] = "Administrator"
+        td["custom_assignee"] = td.get("custom_assignee") or "Administrator"
+        td["custom_review_status"] = td.get("custom_review_status") or "Not Submitted"
+        td["can_review_submission"] = can_review_task_submission(td)
+        td["can_submit_submission"] = can_submit_task_evidence(td)
     
     return {
         "activity": {
@@ -2036,13 +2393,80 @@ def delete_activity_record(name):
     return {"success": True, "message": f"Activity {name} and child tasks deleted successfully."}
 
 
+def ensure_task_custom_fields():
+    """Create the Task evidence and review fields if they are not installed yet."""
+    custom_fields = [
+        {
+            "name": "Task-custom_evidence_image",
+            "fieldname": "custom_evidence_image",
+            "fieldtype": "Attach Image",
+            "label": "Task Evidence Image",
+            "insert_after": "custom_assignee",
+        },
+        {
+            "name": "Task-custom_require_evidence",
+            "fieldname": "custom_require_evidence",
+            "fieldtype": "Check",
+            "label": "Evidence Image Required",
+            "default": "0",
+            "insert_after": "custom_evidence_image",
+        },
+        {
+            "name": "Task-custom_review_status",
+            "fieldname": "custom_review_status",
+            "fieldtype": "Select",
+            "label": "Evidence Review Status",
+            "options": "Not Submitted\nPending Review\nApproved\nRejected",
+            "default": "Not Submitted",
+            "read_only": 1,
+            "insert_after": "custom_evidence_image",
+        },
+        {
+            "name": "Task-custom_review_comment",
+            "fieldname": "custom_review_comment",
+            "fieldtype": "Small Text",
+            "label": "Review Comment",
+            "read_only": 1,
+            "insert_after": "custom_review_status",
+        },
+        {
+            "name": "Task-custom_reviewed_by",
+            "fieldname": "custom_reviewed_by",
+            "fieldtype": "Link",
+            "label": "Reviewed By",
+            "options": "User",
+            "read_only": 1,
+            "insert_after": "custom_review_comment",
+        },
+        {
+            "name": "Task-custom_reviewed_on",
+            "fieldname": "custom_reviewed_on",
+            "fieldtype": "Datetime",
+            "label": "Reviewed On",
+            "read_only": 1,
+            "insert_after": "custom_reviewed_by",
+        },
+    ]
+    for field in custom_fields:
+        if not frappe.db.exists("Custom Field", field["name"]):
+            frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "Task",
+                "module": "Krushi Vikas",
+                **field,
+            }).insert(ignore_permissions=True)
+    frappe.clear_cache(doctype="Task")
+
+
 @frappe.whitelist(allow_guest=True)
 def save_task(data):
     """Create or Update a Task record."""
     if isinstance(data, str):
         import json
         data = json.loads(data)
-        
+
+    ensure_task_custom_fields()
+
     name = data.get("name")
     if name and frappe.db.exists("Task", name):
         doc = frappe.get_doc("Task", name)
@@ -2058,6 +2482,19 @@ def save_task(data):
     doc.exp_end_date = data.get("exp_end_date")
     doc.description = data.get("description")
     doc.custom_assignee = data.get("custom_assignee")
+    if "require_evidence" in data:
+        requested_requirement = cint(data.get("require_evidence"))
+        if requested_requirement != cint(doc.get("custom_require_evidence")) and not can_review_task_submission(doc, frappe.session.user):
+            frappe.throw(_("Only the Project Coordinator assigned to this project can change the evidence requirement."), frappe.PermissionError)
+        doc.custom_require_evidence = requested_requirement
+    if doc.is_new():
+        doc.custom_review_status = "Not Submitted"
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if data.get("status") == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -2069,6 +2506,90 @@ def save_task(data):
         "status": doc.status,
         "project": doc.project,
         "custom_activity": doc.custom_activity
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_task_for_review(name):
+    """Submit attached task image evidence for review by the assigned coordinator."""
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Please sign in before submitting task evidence."), frappe.PermissionError)
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
+
+    doc = frappe.get_doc("Task", name)
+    if not can_submit_task_evidence(doc, user):
+        frappe.throw(_("Only the task creator or assignee can submit evidence for review."), frappe.PermissionError)
+    if not doc.get("custom_evidence_image"):
+        frappe.throw(_("Attach an image before submitting this task for review."), frappe.ValidationError)
+    if doc.get("custom_review_status") == "Approved":
+        frappe.throw(_("This task evidence is already approved."), frappe.ValidationError)
+
+    attached_file = frappe.db.get_value(
+        "File",
+        {
+            "file_url": doc.custom_evidence_image,
+            "attached_to_doctype": "Task",
+            "attached_to_name": name,
+        },
+        ["name", "file_name", "file_type"],
+        as_dict=True,
+    )
+    if not attached_file or (
+        attached_file.file_type and not str(attached_file.file_type).lower().startswith("image")
+    ):
+        frappe.throw(_("The evidence must be an image attached to this task."), frappe.ValidationError)
+
+    doc.custom_review_status = "Pending Review"
+    doc.custom_review_comment = ""
+    doc.custom_reviewed_by = ""
+    doc.custom_reviewed_on = None
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "name": doc.name, "review_status": doc.custom_review_status}
+
+
+@frappe.whitelist(methods=["POST"])
+def review_task_submission(name, decision, comment=None):
+    """Approve or reject task image evidence; only the assigned coordinator can review."""
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Please sign in before reviewing task evidence."), frappe.PermissionError)
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
+
+    decision = (decision or "").strip().lower()
+    if decision not in ("approve", "reject"):
+        frappe.throw(_("Choose either approve or reject."), frappe.ValidationError)
+    comment = (comment or "").strip()
+    if decision == "reject" and not comment:
+        frappe.throw(_("Add a comment explaining why the evidence was rejected."), frappe.ValidationError)
+
+    doc = frappe.get_doc("Task", name)
+    if not can_review_task_submission(doc, user):
+        frappe.throw(_("Only the assigned Project Coordinator can review this task evidence."), frappe.PermissionError)
+    if doc.get("custom_review_status") != "Pending Review":
+        frappe.throw(_("This task is not waiting for evidence review."), frappe.ValidationError)
+
+    doc.custom_review_status = "Approved" if decision == "approve" else "Rejected"
+    doc.custom_review_comment = comment
+    doc.custom_reviewed_by = user
+    doc.custom_reviewed_on = frappe.utils.now_datetime()
+    doc.status = "Completed" if decision == "approve" else "Working"
+    doc.save(ignore_permissions=True)
+    doc.add_comment("Comment", text=_("Evidence {0} by {1}.{2}").format(
+        "approved" if decision == "approve" else "rejected",
+        user,
+        f" Comment: {comment}" if comment else "",
+    ))
+    frappe.db.commit()
+    return {
+        "success": True,
+        "name": doc.name,
+        "status": doc.status,
+        "review_status": doc.custom_review_status,
+        "comment": doc.custom_review_comment,
     }
 
 
@@ -2088,6 +2609,12 @@ def toggle_task_status(name, status):
     if not frappe.db.exists("Task", name):
         frappe.throw(_("Task does not exist."))
     doc = frappe.get_doc("Task", name)
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if status == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     doc.status = status
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -2139,6 +2666,7 @@ def get_global_activities(project=None, status=None, assignee=None, search=None)
 @frappe.whitelist(allow_guest=True)
 def get_global_tasks(project=None, activity=None, status=None, priority=None, assignee=None, search=None):
     """Returns global list of all tasks with Project → Activity → Task hierarchy tags."""
+    available_task_fields = {field.fieldname for field in frappe.get_meta("Task").fields}
     filters = {}
     if project:
         filters["project"] = project
@@ -2148,23 +2676,32 @@ def get_global_tasks(project=None, activity=None, status=None, priority=None, as
         filters["status"] = status
     if priority:
         filters["priority"] = priority
+    task_fields = [
+        "name", "subject", "owner", "project", "custom_activity", "status",
+        "priority", "exp_start_date", "exp_end_date", "description", "_assign", "creation"
+    ]
+    for fieldname in (
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
+        "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
+    ):
+        if fieldname in available_task_fields:
+            task_fields.append(fieldname)
     tasks = frappe.get_all(
         "Task",
         filters=filters,
-        fields=[
-            "name", "subject", "project", "custom_activity", "status",
-            "priority", "exp_start_date", "exp_end_date", "description",
-            "_assign", "creation"
-        ],
+        fields=task_fields,
         order_by="modified desc"
     )
     for t in tasks:
-        t["custom_assignee"] = "Administrator"
+        t["custom_assignee"] = t.get("custom_assignee") or "Administrator"
+        t["custom_review_status"] = t.get("custom_review_status") or "Not Submitted"
+        t["can_review_submission"] = can_review_task_submission(t)
+        t["can_submit_submission"] = can_submit_task_evidence(t)
         if t.get("_assign"):
             try:
                 import json
                 users = json.loads(t["_assign"])
-                if users:
+                if users and t.get("custom_assignee") == "Administrator":
                     t["custom_assignee"] = users[0]
             except Exception:
                 pass

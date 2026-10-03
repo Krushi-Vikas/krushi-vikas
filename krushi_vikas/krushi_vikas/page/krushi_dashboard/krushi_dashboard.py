@@ -353,38 +353,52 @@ def projects_from_activities(user):
 
 def projects_from_tasks(user):
 	"""KV Projects reachable through tasks assigned to this user."""
+	tasks = get_assigned_tasks(user, fields=["project", "custom_activity"])
 	activity_names = {
 		task.custom_activity
-		for task in get_assigned_tasks(user, fields=["custom_activity"])
+		for task in tasks
 		if task.custom_activity
 	}
 
-	if not activity_names:
-		return set()
+	names = set()
+	for t in tasks:
+		if t.project:
+			names.add(t.project)
+			kv_name = frappe.db.get_value("KV Project", {"project_name": t.project}, "name")
+			if kv_name:
+				names.add(kv_name)
 
-	names = set(
-		frappe.get_all(
+	if activity_names:
+		act_projs = frappe.get_all(
 			"Activity",
 			filters={"name": ["in", list(activity_names)]},
 			pluck="project",
-		)
-		or []
-	)
+		) or []
+		for p in act_projs:
+			if p:
+				names.add(p)
+				kv_name = frappe.db.get_value("KV Project", {"project_name": p}, "name")
+				if kv_name:
+					names.add(kv_name)
 
-	names.discard(None)
-	names.discard("")
-	return names
+	return {p for p in names if p and frappe.db.exists("KV Project", p)}
 
 
 def get_assigned_tasks(user, fields, limit=None):
-	"""Tasks this user is personally on — via the Krushi Vikas owner field or
+	"""Tasks this user is personally on — via the Krushi Vikas fields or
 	Frappe's own ToDo assignment."""
+	emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+	task_targets = [user] + emp_ids
+
+	or_filters = [
+		["custom_activity_owner", "in", task_targets],
+		["custom_assigned_to", "=", user],
+		["owner", "=", user],
+		["_assign", "like", f"%{user}%"],
+	]
 	return frappe.get_all(
 		"Task",
-		or_filters=[
-			["custom_activity_owner", "=", user],
-			["_assign", "like", f"%{user}%"],
-		],
+		or_filters=or_filters,
 		fields=fields,
 		limit_page_length=limit or 0,
 	)

@@ -15,4 +15,8 @@ def get_context(context):
         context.tasks = []
         
     context.options = get_all_dropdown_options()
+    roles = frappe.get_roles(frappe.session.user)
+    context.can_configure_task_evidence = frappe.session.user == "Administrator" or any(
+        role in roles for role in ("System Manager", "CEO", "Project Director", "Project Coordinator")
+    )
     return context
