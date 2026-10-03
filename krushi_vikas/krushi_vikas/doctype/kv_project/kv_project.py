@@ -2,6 +2,30 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import flt
 
+def _village_baseline_coverage(profile):
+    households = profile.total_households or 0
+    submitted = frappe.db.count(
+        "Baseline Survey", {"village_profile": profile.name, "docstatus": 1}
+    )
+    return {
+        "village_name": profile.village_name,
+        "district": profile.district,
+        "total_households": households,
+        "submitted_baseline_surveys": submitted,
+        "baseline_coverage_percent": submitted / households * 100 if households else 0,
+    }
+
+
+@frappe.whitelist()
+def get_village_baseline_coverage(village_profile):
+    profile = frappe.get_doc("Village Profile", village_profile)
+    if not frappe.has_permission("KV Project", ptype="create"):
+        profile.check_permission("read")
+    if profile.docstatus != 1:
+        frappe.throw(frappe._("Select a submitted Village Profile."))
+    return _village_baseline_coverage(profile)
+
+
 def recompute_themes_covered_db(project_name):
     """Same rollup as KVProject.recompute_themes_covered(), for callers that
     write the Activities grid straight to the database (Activity.on_update's
@@ -74,16 +98,7 @@ class KVProject(Document):
             seen_profiles.add(row.village_profile)
 
             profile = frappe.get_doc("Village Profile", row.village_profile)
-            row.village_name = profile.village_name
-            row.district = profile.district
-            row.total_households = profile.total_households or 0
-            row.submitted_baseline_surveys = frappe.db.count(
-                "Baseline Survey", {"village_profile": profile.name, "docstatus": 1}
-            )
-            row.baseline_coverage_percent = (
-                (row.submitted_baseline_surveys / row.total_households) * 100
-                if row.total_households else 0
-            )
+            row.update(_village_baseline_coverage(profile))
 
             if not row.submitted_baseline_surveys:
                 warnings.append("{0} has no submitted household baseline surveys.".format(profile.village_name))
