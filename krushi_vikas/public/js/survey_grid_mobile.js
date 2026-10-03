@@ -1,6 +1,27 @@
 (function () {
 	const SCOPED_ROUTE_ROOTS = ["baseline-survey", "village-profile"];
+	const SCOPED_DOCTYPES = ["Baseline Survey", "Village Profile"];
 	const BODY_CLASS = "kv-mobile-grid-reorder";
+	const registeredRowTypes = new Set();
+
+	function showRowToolbar(frm) {
+		if (!SCOPED_DOCTYPES.includes(frm.doctype)) return;
+		$(frm.wrapper)
+			.find(".grid-row-open .grid-header-toolbar button.hidden-xs, .grid-row-open .grid-footer-toolbar.hidden-xs")
+			.removeClass("hidden-xs");
+	}
+
+	function registerRowToolbars(frm) {
+		frm.meta.fields.forEach((field) => {
+			if (field.fieldtype !== "Table" || !field.options || registeredRowTypes.has(field.options)) return;
+			registeredRowTypes.add(field.options);
+			frappe.ui.form.on(field.options, { form_render: showRowToolbar });
+		});
+	}
+
+	SCOPED_DOCTYPES.forEach((doctype) => {
+		frappe.ui.form.on(doctype, { refresh: registerRowToolbars });
+	});
 
 	function isScopedRoute(route) {
 		if (!route || !route.length) return false;
