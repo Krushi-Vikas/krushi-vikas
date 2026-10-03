@@ -47,7 +47,8 @@ doc_events = {
 }
 
 app_include_css = [
-	"/assets/krushi_vikas/css/krushi_dashboard.css"
+	"/assets/krushi_vikas/css/krushi_dashboard.css",
+	"/assets/krushi_vikas/css/survey_grid_mobile.css"
 ]
 # Permission Hooks for Role-based Least Privilege
 has_permission = {
@@ -77,7 +78,10 @@ doctype_list_js = {
 # Vikas if they land on anything outside it (ERPNext modules, Settings,
 # the app switcher) — see the file for why this is a route guard and not
 # a hidden sidebar link.
-app_include_js = ["/assets/krushi_vikas/js/kiosk_mode.js?v=2"]
+app_include_js = [
+	"/assets/krushi_vikas/js/kiosk_mode.js?v=2",
+	"/assets/krushi_vikas/js/survey_grid_mobile.js"
+]
 
 # The login page is a website page (not Desk), so it reads web_include_*
 # rather than app_include_*. Scoped entirely under .for-login in the file
