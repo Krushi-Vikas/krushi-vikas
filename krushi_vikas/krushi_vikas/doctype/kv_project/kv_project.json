@@ -7,7 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "project_name",
-  "theme",
+  "themes_covered",
   "project_phase",
   "status",
   "column_break_1",
@@ -22,7 +22,24 @@
   "actual_amount_spent",
   "column_break_3",
   "remaining_funds",
+  "section_approval",
+  "approval_status",
+  "pending_approver",
+  "column_break_approval",
+  "project_director",
+  "pending_approver_role",
+  "raised_by",
+  "approval_step",
+  "approval_log",
+  "section_journey",
+  "proposal",
+  "rra_report",
+  "column_break_journey",
+  "concept_note",
+  "journey_stage",
+  "workflow_state",
   "structural_forms_section",
+    "project_villages",
   "linked_baseline_survey",
   "column_break_4",
   "linked_field_tracking_form",
@@ -43,12 +60,12 @@
    "reqd": 1
   },
   {
-   "fieldname": "theme",
-   "fieldtype": "Link",
+   "fieldname": "themes_covered",
+   "fieldtype": "Small Text",
    "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Theme",
-   "options": "Project Theme"
+   "label": "Themes Covered",
+   "read_only": 1,
+   "description": "Auto-computed from the Theme/Sub-Theme set on each Activity below — a project usually spans several."
   },
   {
    "default": "Execution",
@@ -145,13 +162,137 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_approval",
+   "fieldtype": "Section Break",
+   "label": "Approval"
+  },
+  {
+   "default": "Draft",
+   "description": "Set by the approval chain \u2014 routed on who raised the project.",
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "options": "Draft\nPending Approval\nApproved\nRejected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pending_approver",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Waiting On",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_approval",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional. When set, a Director-level approval on this project goes to them specifically rather than to any Project Director.",
+   "fieldname": "project_director",
+   "fieldtype": "Link",
+   "insert_after": "project_manager",
+   "label": "Project Director",
+   "options": "User"
+  },
+  {
+   "fieldname": "pending_approver_role",
+   "fieldtype": "Data",
+   "label": "Waiting On Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "raised_by",
+   "fieldtype": "Link",
+   "label": "Raised By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_step",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Approval Step",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_log",
+   "fieldtype": "Table",
+   "label": "Approval History",
+   "options": "KV Approval Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_journey",
+   "fieldtype": "Section Break",
+   "label": "Programme Origin"
+  },
+  {
+   "description": "Set when the project is created from an approved proposal. Blank for ad-hoc projects.",
+   "fieldname": "proposal",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Approved Proposal",
+   "options": "Project Proposal",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "proposal.rra_report",
+   "fieldname": "rra_report",
+   "fieldtype": "Link",
+   "label": "RRA Report",
+   "options": "RRA Report",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_journey",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "proposal.concept_note",
+   "fieldname": "concept_note",
+   "fieldtype": "Link",
+   "label": "Concept Note",
+   "options": "Concept Note",
+   "read_only": 1
+  },
+  {
+   "description": "Derived from the project's own state \u2014 do not edit by hand.",
+   "fieldname": "journey_stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Journey Stage",
+   "options": "\nProject Created\nAwaiting Approval\nTask Assignment\nExecution\nReverse Reporting\nClosed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
    "fieldname": "structural_forms_section",
    "fieldtype": "Section Break",
    "label": "Linked Structural Forms"
   },
   {
+    "fieldname": "project_villages",
+    "fieldtype": "Table",
+    "label": "Project Villages and Baseline Coverage",
+    "options": "Project Village Detail"
+  },
+  {
    "fieldname": "linked_baseline_survey",
    "fieldtype": "Link",
+    "hidden": 1,
    "label": "Linked Baseline Form",
    "options": "Baseline Survey"
   },
@@ -189,7 +330,7 @@
   }
  ],
  "links": [],
- "modified": "2026-08-22 00:00:00.000000",
+ "modified": "2026-09-11 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "KV Project",

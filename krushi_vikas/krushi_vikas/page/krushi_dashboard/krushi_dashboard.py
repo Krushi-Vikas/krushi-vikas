@@ -1,33 +1,442 @@
 import frappe
 from datetime import date
 
+# Roles that may see the entire portfolio.
+#
+# Project Director used to sit here. It does not any more: a director now
+# sees only what is assigned to them, like a coordinator or a manager.
+ORG_WIDE_ROLES = ("Administrator", "System Manager", "CEO")
+
+# Roles allowed to see the Annual Plan panel at all. Its contents are still
+# scoped — this only controls whether the panel is rendered.
+PLAN_ROLES = ("Administrator", "System Manager", "CEO", "Project Director")
+
+# A field officer works from their task list and nothing else: no portfolio
+# figures, no plan, no project board.
+TASK_ONLY_ROLES = ("Field Officer",)
+
+# Most senior role first — the first match becomes the user's primary role.
+ROLE_PRIORITY = (
+	"Administrator",
+	"System Manager",
+	"CEO",
+	"Project Director",
+	"Project Coordinator",
+	"Project Manager",
+	"Field Officer",
+)
+
+OPEN_TASK_STATUSES = ("Open", "Working", "Pending Review", "Overdue")
+CLOSED_TASK_STATUSES = ("Completed", "Cancelled")
+
+
+# Roles an Administrator may preview. Ordered most senior first.
+PREVIEWABLE_ROLES = (
+	"CEO",
+	"Project Director",
+	"Project Coordinator",
+	"Project Manager",
+	"Field Officer",
+)
 
 @frappe.whitelist()
-def get_dashboard_data(year=None):
+def get_dashboard_data(year=None, preview_user=None):
+	"""Role-scoped dashboard payload.
+
+	Every user gets the same shape, but the rows are limited to what that
+	person is actually responsible for. Scoping happens here, server side —
+	the client never sends a user or a filter.
+
+	`preview_user` renders the dashboard as somebody else. It is read-only
+	and restricted to administrators; the session is never switched.
+	"""
 	year = int(year or date.today().year)
 
-	user = frappe.session.user
-	roles = frappe.get_roles(user)
+	viewer = frappe.session.user
+	preview = None
 
-	role_label = get_primary_role(user, roles)
-	project_filters = get_project_filters(user, roles)
+	if preview_user and preview_user != viewer:
+		require_preview_admin()
+		if not frappe.db.exists("User", preview_user):
+			frappe.throw(frappe._("Unknown user: {0}").format(preview_user))
+		preview = {"viewer": viewer, "previewing": preview_user}
+
+	user = preview_user if preview else viewer
+	roles = frappe.get_roles(user)
+	scope = build_scope(user, roles)
 
 	year_start = f"{year}-01-01"
 	year_end = f"{year}-12-31"
 
+	projects = get_scoped_projects(scope, year_start, year_end)
+	project_names = [project.name for project in projects]
+
+	my_activities = get_my_activities(user)
+	my_tasks = get_my_tasks(user)
+
+	stats = get_project_stats(projects, project_names, my_activities, my_tasks)
+
+	recent_projects = sorted(
+		projects,
+		key=lambda project: as_date(project.start_date) or date.min,
+		reverse=True,
+	)[:5]
+
+	return {
+		"user": user,
+		"full_name": frappe.db.get_value("User", user, "full_name") or user,
+		"roles": roles,
+		"role_label": scope["role_label"],
+		"is_org_wide": scope["org_wide"],
+		"scope_label": scope["scope_label"],
+		"task_only": scope.get("task_only", False),
+		"can_see_plan": scope.get("can_see_plan", False),
+		"can_create_project": can_create_project(user),
+		"year": year,
+		"stats": stats,
+		"projects": projects,
+		"recent_projects": recent_projects,
+		"my_activities": my_activities,
+		"my_tasks": my_tasks,
+		"preview": preview,
+		"approvals": get_approvals_for(user),
+		"recent_approvals": get_recent_approvals_for(user),
+		"overdue_tasks": get_overdue_tasks_for(user),
+		"notifications": get_notifications_for(user),
+		"can_preview": can_preview(),
+	}
+
+
+# ─────────────────────────────────────────────
+# Administrator role preview
+# ─────────────────────────────────────────────
+
+def get_approvals_for(user):
+	"""Documents waiting on this person. Every role can have a queue."""
+	from krushi_vikas.approvals import get_pending_approvals
+
+	return get_pending_approvals(user)
+
+
+def get_recent_approvals_for(user):
+	"""Decisions this person already made — otherwise a cleared approval
+	simply disappears with no record of having acted on it."""
+	from krushi_vikas.approvals import get_recent_approvals
+
+	return get_recent_approvals(user)
+
+
+def get_overdue_tasks_for(user):
+	from krushi_vikas.notifications import get_overdue_tasks
+
+	return get_overdue_tasks(user)
+
+
+def get_notifications_for(user):
+	from krushi_vikas.notifications import get_notifications
+
+	return get_notifications(user)
+
+
+def can_create_project(user):
+	"""Asked of the previewed user, not the session, so a preview shows the
+	buttons that person would actually have."""
+	from krushi_vikas.api import has_project_permission
+
+	return bool(has_project_permission(None, "create", user))
+
+
+def can_preview(user=None):
+	"""Only administrators may render the dashboard as somebody else."""
+	user = user or frappe.session.user
+
+	if user == "Administrator":
+		return True
+
+	return "System Manager" in frappe.get_roles(user)
+
+
+def require_preview_admin():
+	if not can_preview():
+		frappe.throw(
+			frappe._("Only administrators can preview another role."),
+			frappe.PermissionError,
+		)
+
+
+@frappe.whitelist()
+def get_preview_options(role=None):
+	"""Roles an administrator can preview, and the people holding them.
+
+	Scoping is per person, not per role — a Project Coordinator with no
+	projects sees an empty dashboard — so the role picker narrows the user
+	list rather than standing in for a user.
+	"""
+	require_preview_admin()
+
+	roles = []
+
+	for role_name in PREVIEWABLE_ROLES:
+		roles.append(
+			{
+				"role": role_name,
+				"user_count": frappe.db.count(
+					"Has Role", {"role": role_name, "parenttype": "User"}
+				),
+				"is_org_wide": role_name in ORG_WIDE_ROLES,
+			}
+		)
+
+	users = get_users_for_role(role)
+
+	return {"roles": roles, "users": users, "selected_role": role}
+
+
+def get_users_for_role(role=None):
+	role_filter = [role] if role else list(PREVIEWABLE_ROLES)
+
+	user_ids = frappe.get_all(
+		"Has Role",
+		filters={"role": ["in", role_filter], "parenttype": "User"},
+		pluck="parent",
+	)
+
+	if not user_ids:
+		return []
+
+	users = frappe.get_all(
+		"User",
+		filters={"name": ["in", list(set(user_ids))], "enabled": 1},
+		fields=["name", "full_name"],
+		order_by="full_name asc",
+	)
+
+	for user in users:
+		user_roles = frappe.get_roles(user.name)
+		user["role_label"] = get_primary_role(user.name, set(user_roles))
+
+	return users
+
+
+def build_scope(user, roles=None):
+	"""Work out exactly which projects this user is allowed to see.
+
+	Returns a dict with:
+	  org_wide     — True when no project filtering applies
+	  project_names— explicit set of KV Project names (only when not org_wide)
+	  role_label   — primary role, for display
+	  scope_label  — human sentence explaining the filter
+	"""
+	roles = set(roles if roles is not None else frappe.get_roles(user))
+	role_label = get_primary_role(user, roles)
+
+	if user == "Administrator" or roles.intersection(ORG_WIDE_ROLES):
+		return {
+			"org_wide": True,
+			"project_names": None,
+			"role_label": role_label,
+			"scope_label": "Showing all projects across the organisation.",
+			"task_only": False,
+			"can_see_plan": True,
+		}
+
+	# A field officer holding no other role never reaches project level.
+	task_only = bool(roles.intersection(TASK_ONLY_ROLES)) and not roles.intersection(
+		("Project Director", "Project Coordinator", "Project Manager")
+	)
+
+	project_names = set()
+
+	if task_only:
+		return {
+			"org_wide": False,
+			"project_names": set(),
+			"role_label": role_label,
+			"scope_label": "Showing the tasks assigned to you.",
+			"task_only": True,
+			"can_see_plan": False,
+		}
+
+	if "Project Director" in roles:
+		# Directors have no dedicated field on KV Project, so "assigned to
+		# them" means Frappe's own assignment, or a project they created.
+		project_names.update(assigned_via_todo(user))
+		project_names.update(
+			frappe.get_all("KV Project", filters={"owner": user}, pluck="name")
+		)
+
+	if "Project Coordinator" in roles:
+		# A coordinator owns the projects assigned to them, plus anything
+		# they created themselves.
+		project_names.update(assigned_via_todo(user))
+		project_names.update(
+			frappe.get_all(
+				"KV Project",
+				or_filters=[
+					["project_coordinator", "=", user],
+					["owner", "=", user],
+				],
+				pluck="name",
+			)
+		)
+
+	if "Project Manager" in roles:
+		# A manager is named on the project, or owns activities inside it.
+		project_names.update(assigned_via_todo(user))
+		project_names.update(
+			frappe.get_all("KV Project", filters={"project_manager": user}, pluck="name")
+		)
+		project_names.update(projects_from_activities(user))
+
+	if "Field Officer" in roles:
+		# A field officer only reaches a project through the work assigned
+		# to them: an activity, a planned activity row, or a task.
+		project_names.update(projects_from_activities(user))
+		project_names.update(projects_from_tasks(user))
+
+	scope_label = (
+		"Showing only the projects assigned to you."
+		if project_names
+		else "No projects are assigned to you yet."
+	)
+
+	return {
+		"org_wide": False,
+		"project_names": project_names,
+		"role_label": role_label,
+		"scope_label": scope_label,
+		"task_only": False,
+		"can_see_plan": bool(roles.intersection(PLAN_ROLES)),
+	}
+
+
+def assigned_via_todo(user):
+	"""Projects handed to this user through Frappe's own assignment."""
+	names = set(
+		frappe.get_all(
+			"ToDo",
+			filters={
+				"allocated_to": user,
+				"reference_type": "KV Project",
+				"status": ["!=", "Cancelled"],
+			},
+			pluck="reference_name",
+		)
+		or []
+	)
+
+	names.discard(None)
+	names.discard("")
+	return names
+
+
+def projects_from_activities(user):
+	"""KV Projects reachable through activities assigned to this user."""
+	names = set(
+		frappe.get_all("Activity", filters={"assignee": user}, pluck="project") or []
+	)
+
+	# The planning rows inside KV Project.activities carry their own assignee.
+	names.update(
+		frappe.get_all(
+			"KV Project Activity",
+			filters={"assignee": user, "parenttype": "KV Project"},
+			pluck="parent",
+		)
+		or []
+	)
+
+	names.discard(None)
+	names.discard("")
+	return names
+
+
+def projects_from_tasks(user):
+	"""KV Projects reachable through tasks assigned to this user."""
+	tasks = get_assigned_tasks(user, fields=["project", "custom_activity"])
+	activity_names = {
+		task.custom_activity
+		for task in tasks
+		if task.custom_activity
+	}
+
+	names = set()
+	for t in tasks:
+		if t.project:
+			names.add(t.project)
+			kv_name = frappe.db.get_value("KV Project", {"project_name": t.project}, "name")
+			if kv_name:
+				names.add(kv_name)
+
+	if activity_names:
+		act_projs = frappe.get_all(
+			"Activity",
+			filters={"name": ["in", list(activity_names)]},
+			pluck="project",
+		) or []
+		for p in act_projs:
+			if p:
+				names.add(p)
+				kv_name = frappe.db.get_value("KV Project", {"project_name": p}, "name")
+				if kv_name:
+					names.add(kv_name)
+
+	return {p for p in names if p and frappe.db.exists("KV Project", p)}
+
+
+def get_assigned_tasks(user, fields, limit=None):
+	"""Tasks this user is personally on — via the Krushi Vikas fields or
+	Frappe's own ToDo assignment."""
+	emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+	task_targets = [user] + emp_ids
+
+	or_filters = [
+		["custom_activity_owner", "in", task_targets],
+		["custom_assigned_to", "=", user],
+		["owner", "=", user],
+		["_assign", "like", f"%{user}%"],
+	]
+	return frappe.get_all(
+		"Task",
+		or_filters=or_filters,
+		fields=fields,
+		limit_page_length=limit or 0,
+	)
+
+
+def get_primary_role(user, roles):
+	if user == "Administrator":
+		return "Administrator"
+
+	for role in ROLE_PRIORITY:
+		if role in roles:
+			return role
+
+	return "User"
+
+
+# ─────────────────────────────────────────────
+# Scoped queries
+# ─────────────────────────────────────────────
+
+def get_scoped_projects(scope, year_start, year_end):
 	filters = {
-		**project_filters,
 		"start_date": ["<=", year_end],
 		"end_date": [">=", year_start],
 	}
 
-	projects = frappe.get_all(
+	if not scope["org_wide"]:
+		if not scope["project_names"]:
+			return []
+		filters["name"] = ["in", list(scope["project_names"])]
+
+	return frappe.get_all(
 		"KV Project",
 		filters=filters,
 		fields=[
 			"name",
 			"project_name",
-			"theme",
+			"themes_covered",
 			"project_phase",
 			"status",
 			"project_manager",
@@ -41,141 +450,117 @@ def get_dashboard_data(year=None):
 		order_by="start_date asc",
 	)
 
-	project_names = [project.name for project in projects]
 
-	stats = get_project_stats(projects, project_names)
-
-	recent_projects = sorted(
-		projects,
-		key=lambda project: project.start_date or date.min,
-		reverse=True,
-	)[:5]
-
-	return {
-		"user": user,
-		"roles": roles,
-		"role_label": role_label,
-		"year": year,
-		"stats": stats,
-		"projects": projects,
-		"recent_projects": recent_projects,
-	}
-
-
-def get_project_filters(user, roles):
-	if (
-		user == "Administrator"
-		or "System Manager" in roles
-		or "Administrator" in roles
-		or "CEO" in roles
-		or "Project Director" in roles
-	):
-		return {}
-
-	projects = set()
-
-	if "Project Coordinator" in roles:
-		projects.update(frappe.get_all("KV Project", filters={"project_coordinator": user}, pluck="name"))
-	if "Project Manager" in roles:
-		projects.update(frappe.get_all("KV Project", filters={"project_manager": user}, pluck="name"))
-
-	# Activities assigned to user in KV Project Activity child table
-	act_projects = frappe.get_all(
-		"KV Project Activity",
-		filters={"assignee": user, "parenttype": "KV Project"},
-		pluck="parent"
+def get_my_activities(user):
+	"""Activities this user personally owns — shown to every role, including
+	org-wide ones, so the "My Work" panel is always about the person."""
+	activities = frappe.get_all(
+		"Activity",
+		filters={"assignee": user},
+		fields=[
+			"name",
+			"activity_name",
+			"project",
+			"status",
+			"start_date",
+			"end_date",
+			"approved_budget",
+			"total_expenditure",
+		],
+		order_by="end_date asc",
+		limit_page_length=25,
 	)
-	projects.update(act_projects)
 
-	# Standalone Activity assigned to user
-	standalone_acts = frappe.get_all("Activity", filters={"assignee": user}, fields=["project"])
-	for a in standalone_acts:
-		if a.project:
-			projects.add(a.project)
-			kv_name = frappe.db.get_value("KV Project", {"project_name": a.project}, "name")
-			if kv_name:
-				projects.add(kv_name)
+	today = date.today()
 
-	# Tasks assigned to user (either direct user email or linked employee)
-	emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
-	task_targets = [user] + emp_ids
+	for activity in activities:
+		activity["is_overdue"] = is_overdue(
+			activity.end_date, activity.status, ("Completed", "Cancelled"), today
+		)
 
-	tasks = frappe.get_all(
-		"Task",
-		filters={"custom_activity_owner": ["in", task_targets]},
-		fields=["project", "custom_activity"]
+	return activities
+
+
+def get_my_tasks(user):
+	tasks = get_assigned_tasks(
+		user,
+		fields=[
+			"name",
+			"subject",
+			"status",
+			"priority",
+			"project",
+			"custom_activity",
+			"exp_start_date",
+			"exp_end_date",
+		],
+		limit=50,
 	)
-	for t in tasks:
-		if t.project:
-			projects.add(t.project)
-			kv_name = frappe.db.get_value("KV Project", {"project_name": t.project}, "name")
-			if kv_name:
-				projects.add(kv_name)
-			erp_name = frappe.db.get_value("Project", t.project, "project_name")
-			if erp_name:
-				kv_name_erp = frappe.db.get_value("KV Project", {"project_name": erp_name}, "name")
-				if kv_name_erp:
-					projects.add(kv_name_erp)
-		if t.custom_activity:
-			p_name = frappe.db.get_value("Activity", t.custom_activity, "project")
-			if p_name:
-				projects.add(p_name)
-				kv_name = frappe.db.get_value("KV Project", {"project_name": p_name}, "name")
-				if kv_name:
-					projects.add(kv_name)
 
-	# Tasks assigned via Frappe _assign
-	assigned_tasks = frappe.db.sql(
-		"""SELECT project, custom_activity FROM `tabTask` WHERE _assign LIKE %s""",
-		(f"%{user}%",),
-		as_dict=True
+	activity_names = [task.custom_activity for task in tasks if task.custom_activity]
+	activity_labels = {}
+
+	if activity_names:
+		activity_labels = {
+			row.name: row.activity_name
+			for row in frappe.get_all(
+				"Activity",
+				filters={"name": ["in", list(set(activity_names))]},
+				fields=["name", "activity_name"],
+			)
+		}
+
+	today = date.today()
+
+	for task in tasks:
+		task["activity_label"] = activity_labels.get(
+			task.custom_activity, task.custom_activity or ""
+		)
+		task["is_overdue"] = is_overdue(
+			task.exp_end_date, task.status, CLOSED_TASK_STATUSES, today
+		)
+
+	# Open work first, then by due date — nulls last.
+	tasks.sort(
+		key=lambda task: (
+			task.status in CLOSED_TASK_STATUSES,
+			as_date(task.exp_end_date) or date.max,
+		)
 	)
-	for t in assigned_tasks:
-		if t.project:
-			projects.add(t.project)
-			kv_name = frappe.db.get_value("KV Project", {"project_name": t.project}, "name")
-			if kv_name:
-				projects.add(kv_name)
-		if t.custom_activity:
-			p_name = frappe.db.get_value("Activity", t.custom_activity, "project")
-			if p_name:
-				projects.add(p_name)
-				kv_name = frappe.db.get_value("KV Project", {"project_name": p_name}, "name")
-				if kv_name:
-					projects.add(kv_name)
 
-	valid_projects = [p for p in projects if p and frappe.db.exists("KV Project", p)]
-	return {
-		"name": ["in", valid_projects or [""]],
-	}
+	return tasks
 
 
-def get_primary_role(user, roles):
-	if user == "Administrator" or "Administrator" in roles:
-		return "Administrator"
+def as_date(value):
+	"""Normalise a Frappe date value to datetime.date.
 
-	if "System Manager" in roles:
-		return "System Manager"
+	Doctypes are inconsistent: Activity.end_date comes back as a date while
+	ERPNext's Task.exp_end_date is a datetime. Comparing the two raises
+	TypeError, so everything is flattened before it is compared or sorted.
+	"""
+	if not value:
+		return None
 
-	if "CEO" in roles:
-		return "CEO"
+	if isinstance(value, str):
+		return frappe.utils.getdate(value)
 
-	if "Project Director" in roles:
-		return "Project Director"
-
-	if "Project Coordinator" in roles:
-		return "Project Coordinator"
-
-	if "Project Manager" in roles:
-		return "Project Manager"
-
-	if "Field Officer" in roles:
-		return "Field Officer"
-
-	return "User"
+	return value.date() if hasattr(value, "hour") else value
 
 
-def get_project_stats(projects, project_names):
+def is_overdue(due_date, status, closed_statuses, today):
+	due_date = as_date(due_date)
+
+	if not due_date or status in closed_statuses:
+		return False
+
+	return due_date < today
+
+
+# ─────────────────────────────────────────────
+# Stats
+# ─────────────────────────────────────────────
+
+def get_project_stats(projects, project_names, my_activities, my_tasks):
 	status_counts = {
 		"Planning": 0,
 		"In Progress": 0,
@@ -189,9 +574,11 @@ def get_project_stats(projects, project_names):
 			status_counts[project.status] += 1
 
 	activity_count = 0
+	planned_activity_count = 0
 
 	if project_names:
-		activity_count = frappe.db.count(
+		activity_count = frappe.db.count("Activity", {"project": ["in", project_names]})
+		planned_activity_count = frappe.db.count(
 			"KV Project Activity",
 			{
 				"parent": ["in", project_names],
@@ -199,15 +586,23 @@ def get_project_stats(projects, project_names):
 			},
 		)
 
+	open_tasks = [task for task in my_tasks if task.status not in CLOSED_TASK_STATUSES]
+
 	return {
 		"total_projects": len(projects),
 		"active_projects": (
-			status_counts["In Progress"]
-			+ status_counts["Deployed"]
+			status_counts["In Progress"] + status_counts["Deployed"]
 		),
 		"planning_projects": status_counts["Planning"],
 		"completed_projects": status_counts["Completed"],
 		"cancelled_projects": status_counts["Cancelled"],
 		"activities": activity_count,
-		"pending_tasks": 0,
+		"planned_activities": planned_activity_count,
+		"my_activities": len(my_activities),
+		"my_open_activities": len(
+			[a for a in my_activities if a.status not in ("Completed", "Cancelled")]
+		),
+		"my_tasks": len(my_tasks),
+		"pending_tasks": len(open_tasks),
+		"overdue_tasks": len([task for task in my_tasks if task.is_overdue]),
 	}

@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "water_supply_type",
+  "number_of_sources",
+  "beneficiary_families",
+  "other_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "water_supply_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Water Supply",
+   "options": "Hand Pump\nWell\nPrivate Tap\nPublic Tap\nBorewell\nTanker\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "number_of_sources",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "No. of Sources"
+  },
+  {
+   "default": "0",
+   "fieldname": "beneficiary_families",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Beneficial Families"
+  },
+  {
+   "fieldname": "other_details",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Other"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Village Water Source",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

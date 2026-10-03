@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback Survey — User Journey &amp; Design Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1E1A;
+    --paper:#EFEDE4;
+    --paper-raised:#F7F5EE;
+    --rule:#CFCABA;
+    --rule-soft:#DEDACC;
+    --muted:#6B6A5F;
+    --draft:#6B6A5F;
+    --pending:#9C7A2E;
+    --pending-bg:#F1E5C6;
+    --approved:#3F6B4E;
+    --approved-bg:#DDE8DD;
+    --reviewed:#2C5282;
+    --reviewed-bg:#EBF8FF;
+    --rejected:#9C3E33;
+    --rejected-bg:#F0DAD4;
+    --serif:'Fraunces', serif;
+    --sans:'IBM Plex Sans', sans-serif;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns:220px minmax(0,760px);
+    gap:56px;
+    max-width:1080px;
+    margin:0 auto;
+    padding:64px 32px 120px;
+    justify-content:center;
+  }
+  nav.toc{
+    position:sticky;
+    top:48px;
+    align-self:start;
+    font-size:13px;
+  }
+  nav.toc .toc-label{
+    font-family:var(--mono);
+    color:var(--muted);
+    letter-spacing:.02em;
+    margin-bottom:14px;
+  }
+  nav.toc a{
+    display:block;
+    color:var(--ink);
+    text-decoration:none;
+    padding:6px 0 6px 14px;
+    border-left:2px solid var(--rule);
+    opacity:.72;
+  }
+  nav.toc a:hover{opacity:1; border-left-color:var(--pending);}
+
+  header.masthead{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:28px;
+    margin-bottom:8px;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--muted);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(34px,4.4vw,46px);
+    line-height:1.08;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  .dek{
+    font-size:17px;
+    color:#403F37;
+    max-width:56ch;
+    margin:0;
+  }
+
+  section{margin-top:64px;}
+  section:first-of-type{margin-top:48px;}
+
+  h2{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:26px;
+    margin:0 0 6px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  h2 .num{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--pending);
+    font-weight:500;
+  }
+  h3{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 8px;
+  }
+  .section-intro{
+    color:#403F37;
+    max-width:62ch;
+    margin:0 0 28px;
+  }
+  p{margin:0 0 14px;}
+
+  /* stage map table */
+  .table-scroll{overflow-x:auto; margin:0 -4px; padding:0 4px;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    min-width:760px;
+  }
+  table.stage-map{min-width:920px;}
+  th, td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--rule-soft);
+    vertical-align:top;
+  }
+  thead th{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:11.5px;
+    text-transform:none;
+    color:var(--muted);
+    border-bottom:1px solid var(--ink);
+    background:var(--paper);
+    position:sticky;
+    top:0;
+  }
+  tbody tr:hover{background:var(--paper-raised);}
+  tbody tr.highlight-stage{background:var(--paper-raised); font-weight:500;}
+  td.stage-name{font-weight:600; white-space:nowrap;}
+  td.dim{color:var(--muted);}
+  td.escalation{color:var(--rejected); font-size:13px;}
+
+  /* callout grid: domain model + feature deep dive */
+  .callout-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  .callout{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    border-radius:2px;
+    padding:20px 22px;
+  }
+  .callout h3{font-size:15px;}
+  .callout ul{margin:0; padding-left:18px;}
+  .callout li{margin-bottom:12px; font-size:14.5px;}
+  .callout li:last-child{margin-bottom:0;}
+  .callout code, td code, li code{
+    font-family:var(--mono);
+    font-size:12.5px;
+    background:#E2DECD;
+    padding:1px 5px;
+    border-radius:2px;
+  }
+
+  /* flow stepper */
+  .flow{
+    display:flex;
+    align-items:center;
+    gap:0;
+    margin:8px 0 4px;
+    flex-wrap:wrap;
+  }
+  .flow-state{
+    font-family:var(--mono);
+    font-size:13.5px;
+    padding:10px 18px;
+    border:1.5px solid var(--ink);
+    border-radius:3px;
+    background:var(--paper-raised);
+    white-space:nowrap;
+  }
+  .flow-state.draft{border-color:var(--draft); color:var(--draft);}
+  .flow-state.submitted{border-color:var(--pending); color:var(--pending); background:var(--pending-bg);}
+  .flow-state.reviewed{border-color:var(--reviewed); color:var(--reviewed); background:var(--reviewed-bg);}
+  .flow-state.approved{border-color:var(--approved); color:var(--approved); background:var(--approved-bg);}
+  .flow-arrow{
+    color:var(--muted);
+    padding:0 12px;
+    font-size:15px;
+  }
+
+  /* roles */
+  .roles{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  .role-card{
+    border-top:2px solid var(--ink);
+    padding-top:14px;
+  }
+  .role-card .role-name{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--pending);
+    margin-bottom:6px;
+  }
+  .role-card p{font-size:14px; margin:0;}
+
+  /* walkthrough timeline */
+  .timeline{
+    border-left:2px solid var(--rule);
+    margin-left:8px;
+    padding-left:0;
+  }
+  .step{
+    position:relative;
+    padding:0 0 34px 32px;
+  }
+  .step:last-child{padding-bottom:0;}
+  .step::before{
+    content:attr(data-n);
+    position:absolute;
+    left:-15px;
+    top:0;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--mono);
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .step-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:4px;
+  }
+  .step-title{font-weight:600; font-size:16px;}
+  .step-who{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .step p{font-size:14.5px; color:#33322C; margin:6px 0 6px;}
+  .step-where{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--pending);
+  }
+
+  /* field reference table */
+  td.fieldname{font-family:var(--mono); font-size:12.5px; white-space:nowrap;}
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:10px;
+  }
+  .badge.mandatory{background:var(--rejected-bg); color:var(--rejected);}
+  .badge.optional{background:var(--rule-soft); color:var(--muted);}
+  .badge.layout{background:#E2DECD; color:var(--muted); font-style:italic;}
+
+  /* observations */
+  .obs-list{list-style:none; margin:0; padding:0;}
+  .obs-list li{
+    padding:14px 0;
+    border-bottom:1px solid var(--rule-soft);
+    font-size:14.5px;
+    display:grid;
+    grid-template-columns:20px 1fr;
+    gap:10px;
+  }
+  .obs-list li:first-child{padding-top:0;}
+  .obs-list li::before{
+    content:"—";
+    color:var(--pending);
+  }
+
+  footer{
+    margin-top:72px;
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+  }
+
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr; padding:36px 20px 80px;}
+    nav.toc{display:none;}
+    .callout-grid{grid-template-columns:1fr;}
+    .roles{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="toc-label">On this page</div>
+    <a href="#stage-map">Platform stage map</a>
+    <a href="#domain-model">Domain model gaps</a>
+    <a href="#flow">Feedback Survey flow</a>
+    <a href="#roles">Roles involved</a>
+    <a href="#walkthrough">Step-by-step</a>
+    <a href="#fields">Field reference</a>
+    <a href="#observations">Observations</a>
+  </nav>
+
+  <main>
+    <header class="masthead">
+      <p class="kicker">Feedback survey — user journey &amp; design reference</p>
+      <h1>How a Feedback Survey moves through the system</h1>
+      <p class="dek">Stage 10 of the platform journey (Reverse Reporting), walked end to end — how field evidence is gathered, who owns each step, lateral isolation between officers, what the form looks like, and how ground feedback feeds leadership dashboards.</p>
+    </header>
+
+    <section id="stage-map">
+      <h2><span class="num">01</span>Platform stage map</h2>
+      <p class="section-intro">Feedback Survey sits at Stage 10 (Reverse Reporting). It closes the operational loop by funnelling ground observations, adoption percentages, and community voices directly back to leadership.</p>
+      <div class="table-scroll">
+        <table class="stage-map">
+          <thead>
+            <tr>
+              <th>Stage</th><th>CEO</th><th>Director</th><th>PM</th><th>PC</th><th>Field officer</th><th>If blocked / stalled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="stage-name">1. Concept Note</td>
+              <td class="dim">—</td><td>Concept Note — Approve</td><td>Concept Note — Draft</td><td class="dim">—</td><td class="dim">—</td>
+              <td class="escalation">Workflow email to Director</td>
+            </tr>
+            <tr>
+              <td class="stage-name">2. RRA survey</td>
+              <td class="dim">—</td><td class="dim">—</td><td>Survey Template — select</td><td class="dim">—</td><td>Survey Response Web Form (RRA)</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">3. Project setup</td>
+              <td class="dim">—</td><td class="dim">—</td><td>Project, Project Theme, Task</td><td class="dim">—</td><td class="dim">—</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">4. Goals and KREs</td>
+              <td class="dim">—</td><td>Objective weightage signoff</td><td>Project Goal, Objective, KRE</td><td class="dim">—</td><td class="dim">—</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">5. Baseline survey</td>
+              <td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td>Survey Response (Baseline) + media</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">6. Execution</td>
+              <td>Auto Email Report (KRE variance)</td><td>Activity Outcome — Director Signoff</td><td>Activity Outcome — Approve; PM dashboard</td><td>Activity Outcome — PC Review</td><td>Activity Outcome — Draft; Task lock banner</td>
+              <td class="escalation">SLA job climbs Reports-To chain</td>
+            </tr>
+            <tr>
+              <td class="stage-name">7. Endline survey</td>
+              <td class="dim">—</td><td>Baseline-vs-endline report</td><td>Baseline-vs-endline report</td><td class="dim">—</td><td>Survey Response (Endline)</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">8. Feedback archive</td>
+              <td class="dim">—</td><td>Archive Review</td><td>Improvement Suggestion — list</td><td>Lessons Learned Action Plan</td><td>Improvement Suggestion — raise</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">9. Project Closure &amp; Impact Audit</td>
+              <td>Final Sign-off &amp; Donor Report</td><td>Outcome &amp; KRE Variance Signoff</td><td>Project Closure Report &amp; Handover</td><td>Asset &amp; Village Handover</td><td class="dim">—</td>
+              <td class="escalation">Escalation to Director / CEO</td>
+            </tr>
+            <tr class="highlight-stage">
+              <td class="stage-name">10. Reverse Reporting</td>
+              <td>Executive Impact Analytics &amp; Reverse Reporting Board</td><td>Qualitative Evidence &amp; Aggregated Adoption Sign-off</td><td>Review &amp; KV Project Linkage Verification</td><td>Project-Level Reverse Monitoring</td><td>Feedback Survey — Draft &amp; Submit (Lateral FO Isolation)</td>
+              <td class="escalation">WhatsApp alert + Notification Log to PM &amp; Coordinator on submit</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="domain-model">
+      <h2><span class="num">02</span>What isn't native to Frappe</h2>
+      <p class="section-intro">Two clusters of custom build: the security isolation between field staff, and the reverse-reporting telemetry feeding project health.</p>
+      <div class="callout-grid">
+        <div class="callout">
+          <h3>Core to the security &amp; permission model</h3>
+          <ul>
+            <li><strong>Lateral Field Officer isolation</strong> — standard Frappe role permissions grant all users with the "Field Officer" role edit access to all records. We enforce strict lateral isolation in <code>has_feedback_survey_permission</code> and <code>enforce_feedback_survey_least_privilege</code>: Field Officers can edit only their own surveys; peers are blocked.</li>
+            <li><strong>Hierarchical downward oversight</strong> — Project Managers and Coordinators only have write access to surveys attached to projects assigned to them, while Director and CEO hold org-wide authority.</li>
+            <li><strong>Submittable record locking</strong> — once submitted (<code>docstatus: 1</code>), ground observations cannot be silently altered; changes require a formal Frappe amendment (<code>amended_from</code>).</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h3>From the field operations engine</h3>
+          <ul>
+            <li><strong>Dual quantitative &amp; qualitative capture</strong> — captures numeric adoption percentages, participant counts, and household numbers alongside narrative "Significant Change" stories and direct community quotes.</li>
+            <li><strong>Multi-step mobile wizard</strong> — clean web wizard at <code>/feedback_survey</code> allowing low-friction survey entry on mobile devices with offline-friendly validation.</li>
+            <li><strong>Auto-aggregation on KV Project</strong> — linked surveys automatically roll up into the <code>feedback_surveys</code> child table on <code>KV Project</code>, recomputing the project's overall rating and journey stage.</li>
+            <li><strong>Real-time WhatsApp event dispatch</strong> — instant WhatsApp notification sent via Meta Cloud API to the Project Manager and Coordinator when a survey is submitted from the field.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <h2><span class="num">03</span>The Feedback Survey flow, at a glance</h2>
+      <p class="section-intro">Four sequential states. Field Officers create and submit; Project Managers and Coordinators review against project outcomes; leadership uses aggregated ratings for steering.</p>
+      <div class="flow">
+        <div class="flow-state draft">Draft</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-state submitted">Submitted</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-state reviewed">Reviewed</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-state approved">Approved</div>
+      </div>
+    </section>
+
+    <section id="roles">
+      <h2><span class="num">04</span>Roles involved</h2>
+      <div class="roles">
+        <div class="role-card">
+          <div class="role-name">Field Officer (Collector)</div>
+          <p>Conducts field visits, interviews farmers and SHG members, inputs quantitative adoption metrics, records community voices, and submits the survey.</p>
+        </div>
+        <div class="role-card">
+          <div class="role-name">Project Manager / Coordinator</div>
+          <p>Receives WhatsApp and in-app alerts on submission, validates facilitator observations against activity goals, and marks records as Reviewed.</p>
+        </div>
+        <div class="role-card">
+          <div class="role-name">Director / CEO / System</div>
+          <p>System locks peer access and routes notifications. Leadership inspects qualitative quotes, ratings, and adoption trends on executive dashboards.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="walkthrough">
+      <h2><span class="num">05</span>Step-by-step walkthrough</h2>
+      <div class="timeline">
+        <div class="step" data-n="1">
+          <div class="step-head">
+            <span class="step-title">Field Officer conducts village intervention</span>
+            <span class="step-who">who: field officer</span>
+          </div>
+          <p>The Field Officer visits the village, gathers farmer beneficiaries, tracks seed/kit adoption, and listens to community feedback regarding the intervention.</p>
+          <div class="step-where">Field location / village site</div>
+        </div>
+        <div class="step" data-n="2">
+          <div class="step-head">
+            <span class="step-title">Officer logs quantitative inputs &amp; qualitative stories</span>
+            <span class="step-who">who: field officer</span>
+          </div>
+          <p>Using the mobile form wizard at <code>/feedback_survey</code> or Frappe Desk, the officer enters participant counts, household numbers, adoption percentages, the most significant change story, and community quotes.</p>
+          <div class="step-where">Web Wizard (/feedback_survey) or Desk form</div>
+        </div>
+        <div class="step" data-n="3">
+          <div class="step-head">
+            <span class="step-title">Confirmation &amp; submission (Lateral isolation lock)</span>
+            <span class="step-who">who: field officer</span>
+          </div>
+          <p>The officer checks accuracy confirmation and clicks Submit. The document status moves to Submitted. System hooks lock the record against any peer Field Officer editing.</p>
+          <div class="step-where">Submit action button (docstatus moves to 1)</div>
+        </div>
+        <div class="step" data-n="4">
+          <div class="step-head">
+            <span class="step-title">System dispatches real-time WhatsApp alert</span>
+            <span class="step-who">who: system</span>
+          </div>
+          <p>The moment the survey submits, an automatic alert is dispatched via Meta WhatsApp Cloud API to the assigned Project Manager and Coordinator, including village name, survey ID, and officer name.</p>
+          <div class="step-where">WhatsApp notification + Notification Log + ToDo</div>
+        </div>
+        <div class="step" data-n="5">
+          <div class="step-head">
+            <span class="step-title">Manager reviews &amp; verifies linkage</span>
+            <span class="step-who">who: project manager / coordinator</span>
+          </div>
+          <p>The Project Manager opens the linked record from their notification link, inspects challenges and facilitator observations, and updates status to Reviewed.</p>
+          <div class="step-where">Feedback Survey Desk form / KV Project child table</div>
+        </div>
+        <div class="step" data-n="6">
+          <div class="step-head">
+            <span class="step-title">Reverse reporting analytics rollup</span>
+            <span class="step-who">who: executive leadership</span>
+          </div>
+          <p>Adoption percentages and qualitative ratings aggregate automatically into KV Project KPIs and the Krushi Dashboard for reverse reporting and stakeholder reviews.</p>
+          <div class="step-where">Krushi Dashboard / Reports page</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="fields">
+      <h2><span class="num">06</span>Field reference — Feedback Survey DocType</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Field</th><th>Fieldname</th><th>Type</th><th>Linked DocType</th><th>Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="dim">Respondent &amp; Activity Details</td><td class="fieldname">section_respondent</td><td>Section Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Starts respondent details section</td>
+            </tr>
+            <tr>
+              <td>Village / Location</td><td class="fieldname">village</td><td>Data</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>In list view; target village</td>
+            </tr>
+            <tr>
+              <td>Date of Visit</td><td class="fieldname">date_of_visit</td><td>Date</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>Defaults to today; in list view</td>
+            </tr>
+            <tr>
+              <td>Field Officer / Facilitator</td><td class="fieldname">field_officer</td><td>Link</td><td>User</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>Assigned officer; used for lateral isolation checking</td>
+            </tr>
+            <tr>
+              <td>Activity / Intervention</td><td class="fieldname">activity</td><td>Data</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>The intervention being evaluated</td>
+            </tr>
+            <tr>
+              <td class="dim">Column break</td><td class="fieldname">column_break_1</td><td>Column Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Splits respondent section into two columns</td>
+            </tr>
+            <tr>
+              <td>Respondent Type</td><td class="fieldname">respondent_type</td><td>Select</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>Farmer, Community Member, SHG Leader, Beneficiary, etc.</td>
+            </tr>
+            <tr>
+              <td>Other (please specify)</td><td class="fieldname">respondent_type_other</td><td>Data</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Conditional on respondent_type == 'Other'</td>
+            </tr>
+            <tr>
+              <td>Project</td><td class="fieldname">project</td><td>Link</td><td>KV Project</td>
+              <td><span class="badge optional">optional</span></td><td>Links feedback to parent KV Project; enables manager scoping</td>
+            </tr>
+            <tr>
+              <td>Linked Beneficiary (Optional)</td><td class="fieldname">beneficiary</td><td>Link</td><td>Beneficiary</td>
+              <td><span class="badge optional">optional</span></td><td>Optional linkage to beneficiary registry</td>
+            </tr>
+            <tr>
+              <td class="dim">Quantitative Inputs</td><td class="fieldname">section_quantitative</td><td>Section Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Section for numeric impact metrics</td>
+            </tr>
+            <tr>
+              <td>Total Participants / Beneficiaries Reached</td><td class="fieldname">total_participants</td><td>Int</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>In list view; counts attendees</td>
+            </tr>
+            <tr>
+              <td>Number of Households Involved</td><td class="fieldname">households_involved</td><td>Int</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Directly impacted households</td>
+            </tr>
+            <tr>
+              <td>Number of Sessions / Meetings Conducted</td><td class="fieldname">sessions_conducted</td><td>Int</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Count of training/extension sessions</td>
+            </tr>
+            <tr>
+              <td class="dim">Column break</td><td class="fieldname">column_break_2</td><td>Column Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Two-column layout for quantitative section</td>
+            </tr>
+            <tr>
+              <td>Adoption / Usage (%)</td><td class="fieldname">adoption_percentage</td><td>Percent</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>In list view; primary quantitative adoption metric</td>
+            </tr>
+            <tr>
+              <td>Outputs Achieved / Products Distributed</td><td class="fieldname">outputs_achieved</td><td>Small Text</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>E.g. seed kits, drip units, compost pits</td>
+            </tr>
+            <tr>
+              <td class="dim">Qualitative Feedback</td><td class="fieldname">section_qualitative</td><td>Section Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Section for observational and impact narratives</td>
+            </tr>
+            <tr>
+              <td>Most Significant Change / Success Story</td><td class="fieldname">significant_change</td><td>Small Text</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>Human impact narrative; essential for reverse reporting</td>
+            </tr>
+            <tr>
+              <td>Community Voice / Quote</td><td class="fieldname">community_voice</td><td>Small Text</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Direct quote from farmer or SHG leader</td>
+            </tr>
+            <tr>
+              <td class="dim">Column break</td><td class="fieldname">column_break_3</td><td>Column Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Two-column layout for qualitative section</td>
+            </tr>
+            <tr>
+              <td>Barriers / Challenges Observed</td><td class="fieldname">barriers_challenges</td><td>Small Text</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Obstacles, weather delays, or adoption friction</td>
+            </tr>
+            <tr>
+              <td>Facilitator Observations</td><td class="fieldname">facilitator_observations</td><td>Small Text</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Officer's professional assessment of field receptivity</td>
+            </tr>
+            <tr>
+              <td>Overall Qualitative Rating (1-5)</td><td class="fieldname">overall_rating</td><td>Select</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>1 to 5 star rating; feeds dashboard average satisfaction KPI</td>
+            </tr>
+            <tr>
+              <td class="dim">Review &amp; Confirmation</td><td class="fieldname">section_review</td><td>Section Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Final sign-off and status review</td>
+            </tr>
+            <tr>
+              <td>Confirmation of Accuracy</td><td class="fieldname">confirmation_accuracy</td><td>Check</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>Field Officer verification checkbox before submission</td>
+            </tr>
+            <tr>
+              <td>Status</td><td class="fieldname">submission_status</td><td>Select</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Draft / Submitted / Reviewed / Approved; defaults to "Draft"</td>
+            </tr>
+            <tr>
+              <td>Amended From</td><td class="fieldname">amended_from</td><td>Link</td><td>Feedback Survey</td>
+              <td><span class="badge optional">optional</span></td><td>Read-only, no_copy, print_hide; Frappe submittable doc link</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="observations">
+      <h2><span class="num">07</span>Observations worth flagging</h2>
+      <ul class="obs-list">
+        <li><strong>Strict Lateral Isolation Active</strong> — Unlike default Frappe permissions where all Field Officers can edit each other's work, <code>krushi_vikas.api.enforce_feedback_survey_least_privilege</code> strictly blocks peer Field Officers from modifying surveys they did not conduct.</li>
+        <li><strong>Submittable Document Security</strong> — <code>is_submittable: 1</code> is enabled. Once submitted, ground data is sealed into the system audit trail; any modification must be made via standard amendment.</li>
+        <li><strong>Direct KV Project Rollup</strong> — When a Feedback Survey is linked to a <code>KV Project</code>, the project automatically displays it in its <code>feedback_surveys</code> child table, recalculating project-level reverse reporting milestones.</li>
+        <li><strong>Instant WhatsApp Event Dispatch</strong> — On submission, the system triggers real-time WhatsApp alerts and in-app Notification Logs to the assigned Project Manager and Project Coordinator.</li>
+        <li><strong>Dual-Channel Access</strong> — Field teams can enter data directly in Frappe Desk or use the mobile-optimized Web Wizard at <code>/feedback_survey</code> without exposing backend administrative views.</li>
+      </ul>
+    </section>
+
+    <footer>Feedback Survey — user journey &amp; design reference</footer>
+  </main>
+</div>
+</body>
+</html>

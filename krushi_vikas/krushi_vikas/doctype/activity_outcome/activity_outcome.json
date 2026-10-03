@@ -32,13 +32,14 @@
    "reqd": 1
   },
   {
+   "description": "The Krushi Vikas project this belongs to. Repointed from the ERPNext Project doctype, which this app does not populate.",
    "fetch_from": "task.project",
    "fieldname": "project",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Project",
-   "options": "Project",
+   "options": "KV Project",
    "read_only": 1
   },
   {
@@ -136,7 +137,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-16 00:00:00.000000",
+ "modified": "2026-09-10 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Krushi Vikas",
  "name": "Activity Outcome",

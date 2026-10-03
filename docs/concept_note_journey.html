@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Note — User Journey &amp; Design Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1E1A;
+    --paper:#EFEDE4;
+    --paper-raised:#F7F5EE;
+    --rule:#CFCABA;
+    --rule-soft:#DEDACC;
+    --muted:#6B6A5F;
+    --draft:#6B6A5F;
+    --pending:#9C7A2E;
+    --pending-bg:#F1E5C6;
+    --approved:#3F6B4E;
+    --approved-bg:#DDE8DD;
+    --rejected:#9C3E33;
+    --rejected-bg:#F0DAD4;
+    --serif:'Fraunces', serif;
+    --sans:'IBM Plex Sans', sans-serif;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.6;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns:220px minmax(0,760px);
+    gap:56px;
+    max-width:1080px;
+    margin:0 auto;
+    padding:64px 32px 120px;
+    justify-content:center;
+  }
+  nav.toc{
+    position:sticky;
+    top:48px;
+    align-self:start;
+    font-size:13px;
+  }
+  nav.toc .toc-label{
+    font-family:var(--mono);
+    color:var(--muted);
+    letter-spacing:.02em;
+    margin-bottom:14px;
+  }
+  nav.toc a{
+    display:block;
+    color:var(--ink);
+    text-decoration:none;
+    padding:6px 0 6px 14px;
+    border-left:2px solid var(--rule);
+    opacity:.72;
+  }
+  nav.toc a:hover{opacity:1; border-left-color:var(--pending);}
+
+  header.masthead{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:28px;
+    margin-bottom:8px;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--muted);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(34px,4.4vw,46px);
+    line-height:1.08;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  .dek{
+    font-size:17px;
+    color:#403F37;
+    max-width:56ch;
+    margin:0;
+  }
+
+  section{margin-top:64px;}
+  section:first-of-type{margin-top:48px;}
+
+  h2{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:26px;
+    margin:0 0 6px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  h2 .num{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--pending);
+    font-weight:500;
+  }
+  h3{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 8px;
+  }
+  .section-intro{
+    color:#403F37;
+    max-width:62ch;
+    margin:0 0 28px;
+  }
+  p{margin:0 0 14px;}
+
+  /* stage map table */
+  .table-scroll{overflow-x:auto; margin:0 -4px; padding:0 4px;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    min-width:760px;
+  }
+  table.stage-map{min-width:920px;}
+  th, td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--rule-soft);
+    vertical-align:top;
+  }
+  thead th{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:11.5px;
+    text-transform:none;
+    color:var(--muted);
+    border-bottom:1px solid var(--ink);
+    background:var(--paper);
+    position:sticky;
+    top:0;
+  }
+  tbody tr:hover{background:var(--paper-raised);}
+  td.stage-name{font-weight:600; white-space:nowrap;}
+  td.dim{color:var(--muted);}
+  td.escalation{color:var(--rejected); font-size:13px;}
+
+  /* callout grid: domain model + feature deep dive */
+  .callout-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  .callout{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    border-radius:2px;
+    padding:20px 22px;
+  }
+  .callout h3{font-size:15px;}
+  .callout ul{margin:0; padding-left:18px;}
+  .callout li{margin-bottom:12px; font-size:14.5px;}
+  .callout li:last-child{margin-bottom:0;}
+  .callout code, td code, li code{
+    font-family:var(--mono);
+    font-size:12.5px;
+    background:#E2DECD;
+    padding:1px 5px;
+    border-radius:2px;
+  }
+
+  /* flow stepper */
+  .flow{
+    display:flex;
+    align-items:center;
+    gap:0;
+    margin:8px 0 4px;
+    flex-wrap:wrap;
+  }
+  .flow-state{
+    font-family:var(--mono);
+    font-size:13.5px;
+    padding:10px 18px;
+    border:1.5px solid var(--ink);
+    border-radius:3px;
+    background:var(--paper-raised);
+    white-space:nowrap;
+  }
+  .flow-state.approved{border-color:var(--approved); color:var(--approved); background:var(--approved-bg);}
+  .flow-state.rejected{border-color:var(--rejected); color:var(--rejected); background:var(--rejected-bg);}
+  .flow-state.pending{border-color:var(--pending); color:var(--pending); background:var(--pending-bg);}
+  .flow-arrow{
+    color:var(--muted);
+    padding:0 12px;
+    font-size:15px;
+  }
+  .flow-branch{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  /* roles */
+  .roles{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  .role-card{
+    border-top:2px solid var(--ink);
+    padding-top:14px;
+  }
+  .role-card .role-name{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--pending);
+    margin-bottom:6px;
+  }
+  .role-card p{font-size:14px; margin:0;}
+
+  /* walkthrough timeline */
+  .timeline{
+    border-left:2px solid var(--rule);
+    margin-left:8px;
+    padding-left:0;
+  }
+  .step{
+    position:relative;
+    padding:0 0 34px 32px;
+  }
+  .step:last-child{padding-bottom:0;}
+  .step::before{
+    content:attr(data-n);
+    position:absolute;
+    left:-15px;
+    top:0;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--mono);
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .step-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:4px;
+  }
+  .step-title{font-weight:600; font-size:16px;}
+  .step-who{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .step p{font-size:14.5px; color:#33322C; margin:6px 0 6px;}
+  .step-where{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--pending);
+  }
+
+  /* field reference table */
+  td.fieldname{font-family:var(--mono); font-size:12.5px; white-space:nowrap;}
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:10px;
+  }
+  .badge.mandatory{background:var(--rejected-bg); color:var(--rejected);}
+  .badge.optional{background:var(--rule-soft); color:var(--muted);}
+  .badge.layout{background:#E2DECD; color:var(--muted); font-style:italic;}
+
+  /* observations */
+  .obs-list{list-style:none; margin:0; padding:0;}
+  .obs-list li{
+    padding:14px 0;
+    border-bottom:1px solid var(--rule-soft);
+    font-size:14.5px;
+    display:grid;
+    grid-template-columns:20px 1fr;
+    gap:10px;
+  }
+  .obs-list li:first-child{padding-top:0;}
+  .obs-list li::before{
+    content:"—";
+    color:var(--pending);
+  }
+
+  footer{
+    margin-top:72px;
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+  }
+
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr; padding:36px 20px 80px;}
+    nav.toc{display:none;}
+    .callout-grid{grid-template-columns:1fr;}
+    .roles{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="toc-label">On this page</div>
+    <a href="#stage-map">Platform stage map</a>
+    <a href="#domain-model">Domain model gaps</a>
+    <a href="#flow">Concept Note flow</a>
+    <a href="#roles">Roles involved</a>
+    <a href="#walkthrough">Step-by-step</a>
+    <a href="#fields">Field reference</a>
+    <a href="#observations">Observations</a>
+  </nav>
+
+  <main>
+    <header class="masthead">
+      <p class="kicker">Concept note — user journey &amp; design reference</p>
+      <h1>How a Concept Note moves through the system</h1>
+      <p class="dek">Stage 1 of the platform journey, walked end to end — who owns each step, what the form looks like, and where the custom build work sits on top of Frappe.</p>
+    </header>
+
+    <section id="stage-map">
+      <h2><span class="num">01</span>Platform stage map</h2>
+      <p class="section-intro">Concept Note is the first of eight stages. The table below shows who acts at each stage, and what happens if a stage stalls.</p>
+      <div class="table-scroll">
+        <table class="stage-map">
+          <thead>
+            <tr>
+              <th>Stage</th><th>CEO</th><th>Director</th><th>PM</th><th>PC</th><th>Field officer</th><th>If blocked / stalled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="stage-name">1. Concept Note</td>
+              <td class="dim">—</td><td>Concept Note — Approve</td><td>Concept Note — Draft</td><td class="dim">—</td><td class="dim">—</td>
+              <td class="escalation">Workflow email to Director (no SLA ladder)</td>
+            </tr>
+            <tr>
+              <td class="stage-name">2. RRA survey</td>
+              <td class="dim">—</td><td class="dim">—</td><td>Survey Template — select</td><td class="dim">—</td><td>Survey Response Web Form (RRA)</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">3. Project setup</td>
+              <td class="dim">—</td><td class="dim">—</td><td>Project, Project Theme, Task</td><td class="dim">—</td><td class="dim">—</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">4. Goals and KREs</td>
+              <td class="dim">—</td><td>Objective weightage signoff</td><td>Project Goal, Objective, KRE</td><td class="dim">—</td><td class="dim">—</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">5. Baseline survey</td>
+              <td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td>Survey Response (Baseline) + media</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">6. Execution</td>
+              <td>Auto Email Report (KRE variance)</td><td>Activity Outcome — Director Signoff</td><td>Activity Outcome — Approve; PM dashboard</td><td>Activity Outcome — PC Review</td><td>Activity Outcome — Draft; Task lock banner</td>
+              <td class="escalation">SLA job climbs Reports-To: PC → PM → Director → CEO on repeat breach</td>
+            </tr>
+            <tr>
+              <td class="stage-name">7. Endline survey</td>
+              <td class="dim">—</td><td>Baseline-vs-endline report</td><td>Baseline-vs-endline report</td><td class="dim">—</td><td>Survey Response (Endline)</td>
+              <td class="dim">—</td>
+            </tr>
+            <tr>
+              <td class="stage-name">8. Feedback archive</td>
+              <td class="dim">—</td><td class="dim">—</td><td>Improvement Suggestion — list</td><td class="dim">—</td><td>Improvement Suggestion — raise</td>
+              <td class="dim">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="domain-model">
+      <h2><span class="num">02</span>What isn't native to Frappe</h2>
+      <p class="section-intro">Two clusters of custom build: the mechanics underneath every stage, and the specific objects the feature list calls for.</p>
+      <div class="callout-grid">
+        <div class="callout">
+          <h3>Core to the domain model</h3>
+          <ul>
+            <li><strong>KRE / OKR tracking</strong> — no native object with baseline / current / target / stretch and planned-vs-actual math. Called out as the heart of the app.</li>
+            <li><strong>Hard dependency gating</strong> — <code>depends_on</code> on Task is advisory only; it won't block a task from completing until its predecessor finishes. Needs a custom validate hook.</li>
+            <li><strong>Tiered SLA escalation</strong> — the blocked → PC → PM → Director climb-on-repeat-breach doesn't exist natively; it's a custom scheduled job walking the Reports-To chain.</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h3>From the feature-list deep dive</h3>
+          <ul>
+            <li><strong>Survey engine</strong> — no native RRA / baseline / endline templating with selectable question sets and media capture.</li>
+            <li><strong>Activity- and user-level budget %</strong> — native ERPNext Budget is account/cost-center scoped, not per-task or per-user.</li>
+            <li><strong>Goal → Objective → KRE weighted rollup</strong> — no native OKR-style weighted hierarchy that sums to 100% and rolls up.</li>
+            <li><strong>Concept Note → Project spawning</strong> — a Concept Note must exist before a Project can be created; this will be mandated.</li>
+            <li><strong>Baseline-vs-endline delta reporting</strong> — the diff/comparison analytics across two survey rounds is custom.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <h2><span class="num">03</span>The Concept Note flow, at a glance</h2>
+      <p class="section-intro">Four states. Only one person can act at each stage, and every move is deliberate — nothing advances on its own. This is the reference pattern every approval-style flow in the app follows.</p>
+      <div class="flow">
+        <div class="flow-state">Draft</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-state pending">Pending Approval</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-branch">
+          <div class="flow-state approved">Approved</div>
+          <div class="flow-state rejected">Rejected</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roles">
+      <h2><span class="num">04</span>Roles involved</h2>
+      <div class="roles">
+        <div class="role-card">
+          <div class="role-name">Creator</div>
+          <p>Fills in the Concept Note and submits it for approval. Can be anyone with access to the form.</p>
+        </div>
+        <div class="role-card">
+          <div class="role-name">Approver</div>
+          <p>Named on the note itself. Only this specific person can approve or reject it — not just anyone holding an approver role.</p>
+        </div>
+        <div class="role-card">
+          <div class="role-name">System</div>
+          <p>Sends the notification email the moment a note is submitted, and keeps the record of who did what and when.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="walkthrough">
+      <h2><span class="num">05</span>Step-by-step walkthrough</h2>
+      <div class="timeline">
+        <div class="step" data-n="1">
+          <div class="step-head">
+            <span class="step-title">Creator fills out the Concept Note</span>
+            <span class="step-who">who: creator</span>
+          </div>
+          <p>Title, description and expected benefits are entered, and the intended Approver is selected from a list of eligible people. The Creator's own name and email fill in automatically — nothing to type there.</p>
+          <div class="step-where">Concept Note form, new record</div>
+        </div>
+        <div class="step" data-n="2">
+          <div class="step-head">
+            <span class="step-title">Creator submits for approval</span>
+            <span class="step-who">who: creator</span>
+          </div>
+          <p>A single click moves the note from Draft to Pending Approval. Nothing is sent for approval until the Creator chooses to submit it.</p>
+          <div class="step-where">Workflow action button, top-right of the form</div>
+        </div>
+        <div class="step" data-n="3">
+          <div class="step-head">
+            <span class="step-title">Approver is notified automatically</span>
+            <span class="step-who">who: system</span>
+          </div>
+          <p>The moment the note reaches Pending Approval, an email goes out to the named Approver with the title, who raised it, and a direct link straight to the record — no searching for it.</p>
+          <div class="step-where">Automatic email, triggered by the submit action</div>
+        </div>
+        <div class="step" data-n="4">
+          <div class="step-head">
+            <span class="step-title">Approver approves or rejects</span>
+            <span class="step-who">who: role-based</span>
+          </div>
+          <p>The named Approver reviews the note from the link in the notification email and moves it to Approved or Rejected — the final, deliberate decision in the flow.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="fields">
+      <h2><span class="num">06</span>Field reference — Concept Note DocType</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Field</th><th>Fieldname</th><th>Type</th><th>Linked DocType</th><th>Required</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Concept Note Title</td><td class="fieldname">title</td><td>Data</td><td class="dim">—</td>
+              <td><span class="badge mandatory">mandatory</span></td><td>Shown in list view</td>
+            </tr>
+            <tr>
+              <td>Thematic Area (Theme)</td><td class="fieldname">thematic_area</td><td>Link</td><td>Project Theme</td>
+              <td><span class="badge optional">optional</span></td><td>Shown in list view</td>
+            </tr>
+            <tr>
+              <td>Status</td><td class="fieldname">status</td><td>Select</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Draft / Under Review / Approved / Rejected; defaults to "Draft"; used as standard filter</td>
+            </tr>
+            <tr>
+              <td class="dim">Column break</td><td class="fieldname">column_break_1</td><td>Column Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Splits the form into two columns; no data stored</td>
+            </tr>
+            <tr>
+              <td>Target Geography (Village / Block / District)</td><td class="fieldname">target_geography</td><td>Data</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Free text</td>
+            </tr>
+            <tr>
+              <td>Estimated Beneficiaries</td><td class="fieldname">beneficiary_estimate</td><td>Int</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Numeric count</td>
+            </tr>
+            <tr>
+              <td>Estimated Budget (INR)</td><td class="fieldname">estimated_budget</td><td>Currency</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Shown in list view</td>
+            </tr>
+            <tr>
+              <td>Duration (Months)</td><td class="fieldname">duration_months</td><td>Int</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Numeric</td>
+            </tr>
+            <tr>
+              <td class="dim">Proposal Details</td><td class="fieldname">section_details</td><td>Section Break</td><td class="dim">—</td>
+              <td><span class="badge layout">layout only</span></td><td>Starts a new section on the form</td>
+            </tr>
+            <tr>
+              <td>Rationale &amp; Project Background</td><td class="fieldname">rationale</td><td>Text Editor</td><td class="dim">—</td>
+              <td><span class="badge optional">optional</span></td><td>Rich-text field</td>
+            </tr>
+            <tr>
+              <td>Raised By</td><td class="fieldname">raised_by</td><td>Link</td><td>User</td>
+              <td><span class="badge optional">optional</span></td><td>Links to the requesting user</td>
+            </tr>
+            <tr>
+              <td>Spawned Project</td><td class="fieldname">project</td><td>Link</td><td>Project</td>
+              <td><span class="badge optional">optional</span></td><td>Read-only — likely auto-populated once a Project is created from this note</td>
+            </tr>
+            <tr>
+              <td>Amended From</td><td class="fieldname">amended_from</td><td>Link</td><td>Concept Note</td>
+              <td><span class="badge optional">optional</span></td><td>Read-only, no_copy, print_hide — standard Frappe field auto-set when a submitted document is amended</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="observations">
+      <h2><span class="num">07</span>Observations worth flagging</h2>
+      <ul class="obs-list">
+        <li>No attachment fields are defined on this DocType — if supporting documents (proposal PDFs, budget sheets) need to attach to a Concept Note, an Attach or Attach Image field has to be added.</li>
+        <li>The DocType is submittable (<code>is_submittable: 1</code>), so once submitted, most fields would typically lock unless explicitly made editable post-submit — worth confirming which fields should stay editable after submission.</li>
+        <li><code>track_changes: 1</code> is enabled, so field-level edit history is visible in the document's timeline automatically — no separate "commentary" field is needed for that.</li>
+      </ul>
+    </section>
+
+    <footer>Concept Note — user journey &amp; design reference</footer>
+  </main>
+</div>
+</body>
+</html>

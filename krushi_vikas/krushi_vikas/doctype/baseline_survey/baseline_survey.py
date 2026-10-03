@@ -5,11 +5,16 @@ from frappe.utils import flt, cint
 
 class BaselineSurvey(Document):
 	def validate(self):
+		self.sync_village_from_profile()
 		self.calculate_family_members()
 		self.calculate_crop_financials()
 		self.calculate_livestock_totals()
 		self.calculate_income_expenditure()
 		self.validate_landholdings()
+
+	def sync_village_from_profile(self):
+		profile = frappe.get_doc("Village Profile", self.village_profile)
+		self.village = profile.village_name
 
 	def calculate_family_members(self):
 		if self.get("household_members_table"):

@@ -1,36 +1,41 @@
 import frappe
 
+TEST_USERS = {
+    "fo1_test@krushivikas.org": "Field Officer",
+    "fo2_test@krushivikas.org": "Field Officer",
+    "pm1_test@krushivikas.org": "Project Manager",
+    "pm2_test@krushivikas.org": "Project Manager",
+    "pc1_test@krushivikas.org": "Project Coordinator",
+    "pc2_test@krushivikas.org": "Project Coordinator",
+    "dir_test@krushivikas.org": "Project Director",
+    "ceo_test@krushivikas.org": "CEO",
+}
+
+
+def provision_test_users():
+    """Create local-only demo accounts with their assigned Krushi Vikas role."""
+    if not frappe.conf.developer_mode:
+        frappe.throw("Test users can only be provisioned on a developer-mode site.")
+
+    for email, role in TEST_USERS.items():
+        user = frappe.get_doc("User", email) if frappe.db.exists("User", email) else frappe.new_doc("User")
+        user.email = email
+        user.first_name = email.split("_")[0].upper()
+        user.enabled = 1
+        user.user_type = "System User"
+        user.set("roles", [{"role": role}])
+        user.save(ignore_permissions=True)
+        frappe.utils.password.update_password(user=email, pwd="1234")
+        frappe.clear_cache(user=email)
+
+    frappe.db.commit()
+    print("Provisioned 8 local test users. Password: 1234")
+
+
 def run():
     print("=== TESTING COMPLETE HIERARCHICAL OWNERSHIP & UPDATE RULES ===")
     
-    test_users = {
-        "fo1_test@krushivikas.org": "Field Officer",
-        "fo2_test@krushivikas.org": "Field Officer",
-        "pm1_test@krushivikas.org": "Project Manager",
-        "pm2_test@krushivikas.org": "Project Manager",
-        "pc1_test@krushivikas.org": "Project Coordinator",
-        "pc2_test@krushivikas.org": "Project Coordinator",
-        "dir_test@krushivikas.org": "Project Director",
-        "ceo_test@krushivikas.org": "CEO",
-    }
-    
-    for email, role in test_users.items():
-        if not frappe.db.exists("User", email):
-            u = frappe.new_doc("User")
-            u.email = email
-            u.first_name = email.split("_")[0].upper()
-            u.enabled = 1
-            u.user_type = "System User"
-            u.append("roles", {"role": role})
-            u.insert(ignore_permissions=True)
-        else:
-            u = frappe.get_doc("User", email)
-            roles = [r.role for r in u.roles]
-            if role not in roles:
-                u.append("roles", {"role": role})
-                u.save(ignore_permissions=True)
-                
-    frappe.db.commit()
+    provision_test_users()
     
     # ----------------------------------------------------
     # SETUP TEST DATA: Project P1 (PC1) -> Activity A1 (PM1) -> Task T1 (FO1)
@@ -41,6 +46,14 @@ def run():
         frappe.delete_doc("Task", t.name, ignore_permissions=True)
     for a in frappe.get_all("Activity", filters={"activity_name": "Sapling Distribution Activity"}):
         frappe.delete_doc("Activity", a.name, ignore_permissions=True)
+    for fs in frappe.get_all("Feedback Survey", filters={"village": "Ralegan Siddhi"}):
+        try:
+            doc = frappe.get_doc("Feedback Survey", fs.name)
+            if doc.docstatus == 1:
+                doc.cancel()
+            frappe.delete_doc("Feedback Survey", fs.name, ignore_permissions=True)
+        except Exception:
+            frappe.delete_doc("Feedback Survey", fs.name, ignore_permissions=True)
     if frappe.db.exists("KV Project", {"project_name": proj_name}):
         frappe.delete_doc("KV Project", frappe.db.get_value("KV Project", {"project_name": proj_name}, "name"), ignore_permissions=True)
     if frappe.db.exists("Project", {"project_name": proj_name}):
@@ -78,13 +91,15 @@ def run():
     frappe.session.user = "pm1_test@krushivikas.org"
     a1 = frappe.new_doc("Activity")
     a1.activity_name = "Sapling Distribution Activity"
+    # Activity.project links to KV Project, not the ERPNext Project.
+    # Task.project below is an ERPNext field and correctly keeps p_erp.
     a1.project = p1.name
     a1.assignee = "pm1_test@krushivikas.org"
     a1.status = "Open"
-    a1.planned_budget = 100000
+    a1.approved_budget = 100000
     a1.insert()
     frappe.db.commit()
-    print(f"Setup: Created Activity '{a1.name}' (Assigned to PM1 under {p_erp.name})")
+    print(f"Setup: Created Activity '{a1.name}' (Assigned to PM1 under {p1.name})")
 
     # Ensure Employees exist for FO1 and FO2
     for fo_email in ["fo1_test@krushivikas.org", "fo2_test@krushivikas.org"]:
@@ -214,7 +229,7 @@ def run():
     # 2.1 PM1 (Assigned Owner) edits A1 -> MUST PASS
     frappe.session.user = "pm1_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 110000
+    doc_a.approved_budget = 110000
     doc_a.save()
     print("  [2.1] PASS: Assigned Project Manager PM1 edited Activity A1.")
 
@@ -222,7 +237,7 @@ def run():
     frappe.session.user = "pm2_test@krushivikas.org"
     try:
         doc_a = frappe.get_doc("Activity", a1.name)
-        doc_a.planned_budget = 120000
+        doc_a.approved_budget = 120000
         doc_a.save()
         print("  [2.2] FAIL: PM2 was able to edit PM1's activity!")
     except Exception as e:
@@ -231,7 +246,7 @@ def run():
     # 2.3 PC1 (Coordinator owning P1) edits Activity A1 -> MUST PASS (Hierarchical access)
     frappe.session.user = "pc1_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 130000
+    doc_a.approved_budget = 130000
     doc_a.save()
     print("  [2.3] PASS: PC1 edited Activity A1 (because PC1 owns Project P1).")
 
@@ -239,7 +254,7 @@ def run():
     frappe.session.user = "pc2_test@krushivikas.org"
     try:
         doc_a = frappe.get_doc("Activity", a1.name)
-        doc_a.planned_budget = 140000
+        doc_a.approved_budget = 140000
         doc_a.save()
         print("  [2.4] FAIL: PC2 was able to edit Activity in PC1's project!")
     except Exception as e:
@@ -249,7 +264,7 @@ def run():
     frappe.session.user = "fo1_test@krushivikas.org"
     try:
         doc_a = frappe.get_doc("Activity", a1.name)
-        doc_a.planned_budget = 150000
+        doc_a.approved_budget = 150000
         doc_a.save()
         print("  [2.5] FAIL: Field Officer was able to edit Activity!")
     except Exception as e:
@@ -258,13 +273,13 @@ def run():
     # 2.6 Project Director & CEO edit Activity -> MUST PASS
     frappe.session.user = "dir_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 160000
+    doc_a.approved_budget = 160000
     doc_a.save()
     print("  [2.6] PASS: Project Director edited Activity A1.")
 
     frappe.session.user = "ceo_test@krushivikas.org"
     doc_a = frappe.get_doc("Activity", a1.name)
-    doc_a.planned_budget = 170000
+    doc_a.approved_budget = 170000
     doc_a.save()
     print("  [2.7] PASS: CEO edited Activity A1.")
 
@@ -337,6 +352,126 @@ def run():
     doc_t.save()
     print("  [3.8] PASS: CEO edited Task T1.")
 
+    # ----------------------------------------------------
+    # SECTION 4: FEEDBACK SURVEY UPDATE RIGHTS (Lateral FO Isolation & Hierarchy)
+    # ----------------------------------------------------
+    print("\n--- [SECTION 4] Feedback Survey Update Permissions ---")
+
+    # 4.1 FO1 creates Feedback Survey FS1
+    frappe.session.user = "fo1_test@krushivikas.org"
+    fs1 = frappe.new_doc("Feedback Survey")
+    fs1.village = "Ralegan Siddhi"
+    fs1.date_of_visit = "2026-09-13"
+    fs1.field_officer = "fo1_test@krushivikas.org"
+    fs1.activity = "Sapling Distribution Activity"
+    fs1.respondent_type = "Farmer"
+    fs1.project = p1.name
+    fs1.total_participants = 25
+    fs1.adoption_percentage = 80.0
+    fs1.outputs_achieved = "25 saplings planted"
+    fs1.significant_change = "High survival rate"
+    fs1.community_voice = "Great support from field staff"
+    fs1.overall_rating = "4"
+    fs1.confirmation_accuracy = 1
+    fs1.insert()
+    frappe.db.commit()
+    print(f"Setup: Created Feedback Survey '{fs1.name}' (Conducted by FO1 under {p1.name})")
+
+    # 4.2 FO1 (Conducted Officer) edits FS1 -> MUST PASS
+    frappe.session.user = "fo1_test@krushivikas.org"
+    doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+    doc_fs.total_participants = 30
+    doc_fs.save()
+    print("  [4.2] PASS: Assigned Field Officer FO1 edited their own survey.")
+
+    # 4.3 FO2 (Another Field Officer) tries to edit FS1 -> MUST FAIL (Lateral Isolation)
+    frappe.session.user = "fo2_test@krushivikas.org"
+    try:
+        doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+        doc_fs.total_participants = 35
+        doc_fs.save()
+        print("  [4.3] FAIL: FO2 was able to edit FO1's survey!")
+    except Exception as e:
+        print(f"  [4.3] PASS: Peer Field Officer FO2 blocked correctly: {str(e)[:70]}")
+
+    # 4.4 PM1 (Manager owning Project P1) edits FS1 -> MUST PASS
+    frappe.session.user = "pm1_test@krushivikas.org"
+    doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+    doc_fs.total_participants = 40
+    doc_fs.save()
+    print("  [4.4] PASS: PM1 edited Feedback Survey FS1 (because PM1 manages P1).")
+
+    # 4.5 PM2 (Another Manager) tries to edit FS1 -> MUST FAIL
+    frappe.session.user = "pm2_test@krushivikas.org"
+    try:
+        doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+        doc_fs.total_participants = 45
+        doc_fs.save()
+        print("  [4.5] FAIL: PM2 was able to edit survey under PM1's project!")
+    except Exception as e:
+        print(f"  [4.5] PASS: PM2 blocked correctly: {str(e)[:70]}")
+
+    # 4.6 PC1 (Coordinator owning Project P1) edits FS1 -> MUST PASS
+    frappe.session.user = "pc1_test@krushivikas.org"
+    doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+    doc_fs.total_participants = 50
+    doc_fs.save()
+    print("  [4.6] PASS: PC1 edited Feedback Survey FS1 (because PC1 coordinates P1).")
+
+    # 4.7 PC2 (Another Coordinator) tries to edit FS1 -> MUST FAIL
+    frappe.session.user = "pc2_test@krushivikas.org"
+    try:
+        doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+        doc_fs.total_participants = 55
+        doc_fs.save()
+        print("  [4.7] FAIL: PC2 was able to edit survey under PC1's project!")
+    except Exception as e:
+        print(f"  [4.7] PASS: PC2 blocked correctly: {str(e)[:70]}")
+
+    # 4.8 Project Director & CEO edit FS1 -> MUST PASS
+    frappe.session.user = "dir_test@krushivikas.org"
+    doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+    doc_fs.overall_rating = "5"
+    doc_fs.save()
+    print("  [4.8] PASS: Project Director edited Feedback Survey FS1.")
+
+    frappe.session.user = "ceo_test@krushivikas.org"
+    doc_fs = frappe.get_doc("Feedback Survey", fs1.name)
+    doc_fs.submission_status = "Approved"
+    doc_fs.save()
+    print("  [4.9] PASS: CEO edited/approved Feedback Survey FS1.")
+
+    frappe.session.user = "Administrator"
+    teardown(proj_name)
+
     print("\n=======================================================")
     print("🎉 ALL HIERARCHICAL & OWNERSHIP UPDATE TESTS PASSED! 🎉")
     print("=======================================================")
+
+
+def teardown(proj_name):
+    """Leave the site as it was found.
+
+    The suite switches users and commits as it goes, so a rollback would not
+    undo the earlier writes — the records it made have to be removed by hand.
+    """
+    frappe.set_user("Administrator")
+
+    for dt in ("Task", "Activity", "Feedback Survey"):
+        for name in frappe.get_all(dt, pluck="name", limit_page_length=0):
+            try:
+                doc = frappe.get_doc(dt, name)
+                if doc.docstatus == 1:
+                    doc.cancel()
+                frappe.delete_doc(dt, name, force=True, ignore_permissions=True)
+            except Exception:
+                frappe.delete_doc(dt, name, force=True, ignore_permissions=True)
+
+    for dt in ("KV Project", "Project"):
+        for name in frappe.get_all(dt, filters={"project_name": proj_name}, pluck="name"):
+            frappe.delete_doc(dt, name, force=True, ignore_permissions=True)
+
+    frappe.db.delete("Deleted Document", {"deleted_doctype": ["in",
+        ["KV Project", "Project", "Activity", "Task", "Feedback Survey"]]})
+    frappe.db.commit()
+
