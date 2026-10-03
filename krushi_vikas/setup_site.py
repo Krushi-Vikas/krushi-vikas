@@ -7,6 +7,7 @@ def run():
     setup_docperms()
     setup_naming()
     setup_custom_fields()
+    setup_task_status_options()
     setup_workspace()
     setup_workflows()
     setup_branding()
@@ -64,13 +65,25 @@ def setup_docperms():
         {"parent": "Project", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Project", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Project", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
-        {"parent": "Project", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
         {"parent": "Project", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Project Activity (Child Table for Project)
+        {"parent": "Project Activity", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # KV Project Activity (Child Table for KV Project)
+        {"parent": "KV Project Activity", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
         # Task
         {"parent": "Task", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
-        {"parent": "Task", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Field Officer", "read": 1, "write": 1, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
         # KV Project — the app's own project doctype.
         #
@@ -205,6 +218,13 @@ def setup_naming():
         set_doctype_property(doctype, "title_field", "Data", title_field)
         set_doctype_property(doctype, "show_title_field_in_link", "Check", "1")
 
+    # Disable quick entry for Task and Project so full forms with all custom fields & activities open directly
+    set_doctype_property("Project", "quick_entry", "Check", "0")
+    set_doctype_property("Task", "quick_entry", "Check", "0")
+
+    # Link standard Task.project to KV Project so projects show in dropdowns
+    set_field_property("Task", "project", "options", "Link", "KV Project")
+
     frappe.clear_cache()
 
 
@@ -230,6 +250,37 @@ def set_doctype_property(doctype, prop, property_type, value):
         "value": value,
         "module": "Krushi Vikas",
     }).insert(ignore_permissions=True)
+
+
+def set_field_property(doctype, fieldname, prop, property_type, value):
+    """Idempotent field-level Property Setter."""
+    existing = frappe.db.get_value(
+        "Property Setter",
+        {"doc_type": doctype, "field_name": fieldname, "property": prop},
+        "name",
+    )
+
+    if existing:
+        if frappe.db.get_value("Property Setter", existing, "value") != value:
+            frappe.db.set_value("Property Setter", existing, "value", value)
+        return
+
+    frappe.get_doc({
+        "doctype": "Property Setter",
+        "doctype_or_field": "DocField",
+        "doc_type": doctype,
+        "field_name": fieldname,
+        "property": prop,
+        "property_type": property_type,
+        "value": value,
+        "module": "Krushi Vikas",
+    }).insert(ignore_permissions=True)
+
+
+def setup_task_status_options():
+    print("Setting up Task Status Options...")
+    options = "Open\nWorking\nPending Review\nNeeds Work\nOverdue\nTemplate\nCompleted\nCancelled"
+    set_field_property("Task", "status", "options", "Select", options)
 
 
 def setup_custom_fields():
@@ -355,6 +406,85 @@ def setup_custom_fields():
                 "in_standard_filter": 1,
                 "module": "Krushi Vikas",
                 "allow_in_quick_entry": 1
+            },
+            {
+                "fieldname": "custom_assignee",
+                "label": "Assigned Field Officer",
+                "fieldtype": "Link",
+                "options": "User",
+                "insert_after": "custom_activity_owner",
+                "in_list_view": 1,
+                "allow_in_quick_entry": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_section_evidence",
+                "label": "Task Evidence & Review",
+                "fieldtype": "Section Break",
+                "insert_after": "custom_activity",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_require_evidence",
+                "label": "Evidence Image Required for Completion",
+                "fieldtype": "Check",
+                "default": "0",
+                "insert_after": "custom_section_evidence",
+                "in_list_view": 1,
+                "in_standard_filter": 1,
+                "allow_in_quick_entry": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_evidence_image",
+                "label": "Task Evidence Image / Attachment",
+                "fieldtype": "Attach Image",
+                "insert_after": "custom_require_evidence",
+                "allow_in_quick_entry": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_col_evidence",
+                "fieldtype": "Column Break",
+                "insert_after": "custom_evidence_image",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_review_status",
+                "label": "Evidence Review Status",
+                "fieldtype": "Select",
+                "options": "Not Submitted\nPending Review\nApproved\nRejected",
+                "default": "Not Submitted",
+                "read_only": 1,
+                "in_list_view": 1,
+                "in_standard_filter": 1,
+                "insert_after": "custom_col_evidence",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_review_comment",
+                "label": "Review Comment / Instructions",
+                "fieldtype": "Small Text",
+                "read_only": 1,
+                "insert_after": "custom_review_status",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_reviewed_by",
+                "label": "Reviewed By",
+                "fieldtype": "Link",
+                "options": "User",
+                "read_only": 1,
+                "insert_after": "custom_review_comment",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_reviewed_on",
+                "label": "Reviewed On",
+                "fieldtype": "Datetime",
+                "read_only": 1,
+                "insert_after": "custom_reviewed_by",
+                "module": "Krushi Vikas"
             }
         ],
         "Project": [
@@ -394,6 +524,7 @@ def setup_custom_fields():
                 "options": "User",
                 "insert_after": "custom_project_coordinator",
                 "in_list_view": 1,
+                "reqd": 1,
                 "module": "Krushi Vikas"
             },
             {

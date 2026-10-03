@@ -1,5 +1,11 @@
 frappe.ui.form.on('KV Project', {
     onload(frm) {
+        if (frm.is_new()) {
+            const roles = frappe.user_roles || [];
+            if (roles.includes('Project Coordinator') && !frm.doc.project_coordinator) {
+                frm.set_value('project_coordinator', frappe.session.user);
+            }
+        }
         frm.set_query('theme', 'activities', () => ({ filters: { is_group: 1 } }));
         frm.set_query('village_profile', 'project_villages', () => ({ filters: { docstatus: 1 } }));
         frm.set_query('sub_theme', 'activities', (doc, cdt, cdn) => {
@@ -10,7 +16,15 @@ frappe.ui.form.on('KV Project', {
     refresh(frm) {
         frm.trigger('calc_remaining');
         frm.trigger('render_theme_chips');
+        frm.set_df_property('activities', 'read_only', 0);
+
         if (frm.is_new()) {
+            frm.add_custom_button(__('Add Activity'), () => {
+                let row = frm.add_child('activities');
+                row.status = 'Planned';
+                frm.refresh_field('activities');
+                frm.scroll_to_field('activities');
+            }).addClass('btn-primary');
             frm.add_custom_button(__('Use Template'), () => {
                 frappe.db.get_list('KV Project Template', { fields: ['name'], limit_page_length: 0 }).then((templates) => {
                     if (!templates.length) {

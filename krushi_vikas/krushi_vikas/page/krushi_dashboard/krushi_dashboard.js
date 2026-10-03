@@ -8,6 +8,8 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	let previewRole = "";
 	let previewUser = "";
 	let optionsLoaded = false;
+	let currentTaskFilter = "active";
+	let allDashboardTasks = [];
 
 	const routes = {
 		projects: () => frappe.set_route("krushi-projects"),
@@ -223,7 +225,15 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 							<div id="my-activities"></div>
 						</div>
 						<div>
-							<h4 class="kv-subhead">${icon("tasks")}<span>Tasks</span></h4>
+							<div class="kv-tasks-header">
+								<h4 class="kv-subhead">${icon("tasks")}<span>Tasks</span></h4>
+								<div class="kv-task-filter-chips">
+									<button type="button" class="kv-task-chip active" data-task-filter="active">Active</button>
+									<button type="button" class="kv-task-chip" data-task-filter="pending_review">Pending Review</button>
+									<button type="button" class="kv-task-chip" data-task-filter="completed">Completed</button>
+									<button type="button" class="kv-task-chip" data-task-filter="all">All</button>
+								</div>
+							</div>
 							<div id="my-tasks"></div>
 						</div>
 					</div>
@@ -292,7 +302,7 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			"In Progress": "s-progress", Working: "s-progress",
 			Deployed: "s-deployed", "Pending Review": "s-deployed",
 			Completed: "s-completed", Approved: "s-completed",
-			Cancelled: "s-cancelled", Rejected: "s-cancelled"
+			Cancelled: "s-cancelled", Rejected: "s-cancelled", "Needs Work": "s-cancelled"
 		}[status] || "s-planning";
 	}
 
@@ -592,14 +602,35 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 			);
 		}
 
-		const $tasks = $("#my-tasks");
-		const tasks = data.my_tasks || [];
+		allDashboardTasks = data.my_tasks || [];
+		renderFilteredTasks();
+	}
 
-		if (!tasks.length) {
-			emptySmall($tasks, "tasks", "No tasks assigned to you.");
+	function renderFilteredTasks() {
+		const $tasks = $("#my-tasks");
+		const tasks = allDashboardTasks || [];
+
+		let filtered = tasks;
+		if (currentTaskFilter === "active") {
+			filtered = tasks.filter((t) => t.status !== "Completed" && t.status !== "Cancelled");
+		} else if (currentTaskFilter === "pending_review") {
+			filtered = tasks.filter((t) => t.status === "Pending Review" || t.custom_review_status === "Pending Review" || t.is_pending_review);
+		} else if (currentTaskFilter === "completed") {
+			filtered = tasks.filter((t) => t.status === "Completed");
+		}
+
+		$(".kv-task-chip").removeClass("active");
+		$(`.kv-task-chip[data-task-filter="${currentTaskFilter}"]`).addClass("active");
+
+		if (!filtered.length) {
+			const emptyMsg = currentTaskFilter === "active" ? "No active tasks."
+				: currentTaskFilter === "pending_review" ? "No tasks pending review."
+				: currentTaskFilter === "completed" ? "No completed tasks."
+				: "No tasks found.";
+			emptySmall($tasks, "tasks", emptyMsg);
 		} else {
 			$tasks.html(
-				tasks
+				filtered
 					.map(
 						(t) => `
 						<button class="kv-row${t.is_overdue ? " overdue" : ""}" data-task="${esc(t.name)}">
@@ -889,6 +920,12 @@ frappe.pages["krushi-dashboard"].on_page_load = function (wrapper) {
 	$main.on("click", "[data-task]", function () {
 		const name = $(this).data("task");
 		if (name && frappe.model.can_read("Task")) frappe.set_route("Form", "Task", name);
+	});
+
+	$main.on("click", ".kv-task-chip", function (e) {
+		e.stopPropagation();
+		currentTaskFilter = $(this).data("task-filter");
+		renderFilteredTasks();
 	});
 
 	frappe.pages["krushi-dashboard"]._refresh = loadDashboard;

@@ -26,7 +26,7 @@ ROLE_PRIORITY = (
 	"Field Officer",
 )
 
-OPEN_TASK_STATUSES = ("Open", "Working", "Pending Review", "Overdue")
+OPEN_TASK_STATUSES = ("Open", "Working", "Pending Review", "Needs Work", "Overdue")
 CLOSED_TASK_STATUSES = ("Completed", "Cancelled")
 
 
@@ -482,6 +482,8 @@ def get_my_activities(user):
 
 
 def get_my_tasks(user):
+	from krushi_vikas.api import can_review_task_submission
+
 	tasks = get_assigned_tasks(
 		user,
 		fields=[
@@ -491,11 +493,41 @@ def get_my_tasks(user):
 			"priority",
 			"project",
 			"custom_activity",
+			"custom_review_status",
 			"exp_start_date",
 			"exp_end_date",
 		],
-		limit=50,
+		limit=100,
 	)
+	existing_task_names = {task.name for task in tasks}
+
+	roles = frappe.get_roles(user)
+	if any(r in roles for r in ["Project Coordinator", "Project Manager", "CEO", "Project Director", "Administrator", "System Manager"]):
+		pending_review_tasks = frappe.get_all(
+			"Task",
+			or_filters=[
+				{"status": "Pending Review"},
+				{"custom_review_status": "Pending Review"},
+			],
+			fields=[
+				"name",
+				"subject",
+				"status",
+				"priority",
+				"project",
+				"custom_activity",
+				"custom_review_status",
+				"exp_start_date",
+				"exp_end_date",
+			],
+			limit=100,
+		)
+		for pt in pending_review_tasks:
+			if pt.name not in existing_task_names:
+				if can_review_task_submission(pt, user):
+					pt["is_pending_review"] = True
+					tasks.append(pt)
+					existing_task_names.add(pt.name)
 
 	activity_names = [task.custom_activity for task in tasks if task.custom_activity]
 	activity_labels = {}
@@ -520,10 +552,11 @@ def get_my_tasks(user):
 			task.exp_end_date, task.status, CLOSED_TASK_STATUSES, today
 		)
 
-	# Open work first, then by due date — nulls last.
+	# Pending review first, open work next, closed work last, then by due date
 	tasks.sort(
 		key=lambda task: (
 			task.status in CLOSED_TASK_STATUSES,
+			task.status != "Pending Review" and task.get("custom_review_status") != "Pending Review",
 			as_date(task.exp_end_date) or date.max,
 		)
 	)

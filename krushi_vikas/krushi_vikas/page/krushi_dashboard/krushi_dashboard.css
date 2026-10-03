@@ -1251,3 +1251,54 @@ button.kv-kpi:hover {
 .kv-recent-row .kv-row-body strong { font-size: 12.5px; }
 .kv-recent-row .kv-row-body span { font-size: 11px; }
 .kv-recent-row .kv-tag { margin-left: auto; }
+
+/* ── Task Filter Header & Chips ────────────────────────── */
+.kv-tasks-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 0 0 8px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--kv-line);
+}
+
+.kv-tasks-header .kv-subhead {
+	margin: 0;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.kv-task-filter-chips {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+.kv-task-chip {
+	border: 1px solid var(--kv-line);
+	background: var(--kv-ground);
+	color: var(--kv-ink-soft);
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 12px;
+	cursor: pointer;
+	line-height: 1.4;
+	transition: all 0.15s ease;
+	outline: none;
+}
+
+.kv-task-chip:hover {
+	background: #fff;
+	color: var(--kv-ink);
+	border-color: #cbd5e1;
+}
+
+.kv-task-chip.active {
+	background: var(--kv-green);
+	border-color: var(--kv-green);
+	color: #fff;
+}
+

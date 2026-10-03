@@ -122,7 +122,9 @@ def run():
     t1.subject = "Verify village nursery stock"
     t1.project = p_erp.name
     t1.custom_activity = a1.name
-    t1.custom_activity_owner = fo1_emp
+    t1.custom_activity_owner = "fo1_test@krushivikas.org"
+    t1.custom_assigned_to = "fo1_test@krushivikas.org"
+    t1.custom_assignee = "fo1_test@krushivikas.org"
     t1.status = "Open"
     t1.insert()
     frappe.db.commit()
@@ -440,6 +442,86 @@ def run():
     doc_fs.submission_status = "Approved"
     doc_fs.save()
     print("  [4.9] PASS: CEO edited/approved Feedback Survey FS1.")
+
+    # ----------------------------------------------------
+    # SECTION 5: TASK EVIDENCE REVIEW WORKFLOW (MAKER-CHECKER)
+    # ----------------------------------------------------
+    print("\n--- [SECTION 5] Task Evidence Review Workflow (Maker-Checker) ---")
+
+    # 5.1 PC1 (Coordinator) configures task T1 to require evidence
+    frappe.session.user = "pc1_test@krushivikas.org"
+    doc_t = frappe.get_doc("Task", t1.name)
+    doc_t.custom_require_evidence = 1
+    doc_t.save()
+    print("  [5.1] PASS: Project Coordinator PC1 required image evidence for task completion.")
+
+    # 5.2 FO1 (Field Officer) cannot uncheck custom_require_evidence
+    frappe.session.user = "fo1_test@krushivikas.org"
+    try:
+        doc_t = frappe.get_doc("Task", t1.name)
+        doc_t.custom_require_evidence = 0
+        doc_t.save()
+        assert False, "FO1 should not be able to disable evidence requirement!"
+    except frappe.PermissionError as e:
+        print(f"  [5.2] PASS: Field Officer FO1 blocked from removing evidence requirement: {str(e)[:60]}")
+
+    # 5.3 FO1 cannot complete task without evidence
+    frappe.session.user = "fo1_test@krushivikas.org"
+    try:
+        doc_t = frappe.get_doc("Task", t1.name)
+        doc_t.status = "Completed"
+        doc_t.save()
+        assert False, "FO1 should not be able to complete task without evidence image!"
+    except frappe.ValidationError as e:
+        print(f"  [5.3] PASS: FO1 blocked from marking Completed without evidence image: {str(e)[:60]}")
+
+    # 5.4 FO1 attaches evidence image and submits for review
+    frappe.session.user = "fo1_test@krushivikas.org"
+    doc_t = frappe.get_doc("Task", t1.name)
+    doc_t.custom_evidence_image = "/files/sample_nursery_stock.jpg"
+    doc_t.save()
+    from krushi_vikas.api import submit_task_for_review, review_task_submission
+    sub_res = submit_task_for_review(t1.name)
+    doc_t.reload()
+    assert doc_t.status == "Pending Review", f"Expected Pending Review, got {doc_t.status}"
+    assert doc_t.custom_review_status == "Pending Review", f"Expected Pending Review, got {doc_t.custom_review_status}"
+    print("  [5.4] PASS: FO1 attached evidence and submitted for review (Status: Pending Review).")
+
+    # 5.5 PC2 (Unrelated Coordinator) cannot review task evidence
+    frappe.session.user = "pc2_test@krushivikas.org"
+    try:
+        review_task_submission(t1.name, "reject", comment="Irrelevant rejection by PC2")
+        assert False, "PC2 should not be able to review tasks in PC1's project!"
+    except frappe.PermissionError as e:
+        print(f"  [5.5] PASS: Unrelated Coordinator PC2 blocked from reviewing task: {str(e)[:60]}")
+
+    # 5.6 PC1 (Assigned Coordinator) rejects evidence -> status must be 'Needs Work'
+    frappe.session.user = "pc1_test@krushivikas.org"
+    rej_res = review_task_submission(t1.name, "reject", comment="Stock counts unclear, please attach clear geotagged photo.")
+    doc_t.reload()
+    assert doc_t.status == "Needs Work", f"Expected status 'Needs Work', got '{doc_t.status}'"
+    assert doc_t.custom_review_status == "Rejected", f"Expected custom_review_status 'Rejected', got '{doc_t.custom_review_status}'"
+    assert "Stock counts unclear" in doc_t.custom_review_comment, "Comment missing"
+    print("  [5.6] PASS: PC1 rejected evidence; task returned to Field Officer queue with status 'Needs Work'.")
+
+    # 5.7 FO1 updates evidence and resubmits for review
+    frappe.session.user = "fo1_test@krushivikas.org"
+    doc_t = frappe.get_doc("Task", t1.name)
+    doc_t.custom_evidence_image = "/files/clear_geotagged_nursery.jpg"
+    doc_t.save()
+    sub_res2 = submit_task_for_review(t1.name)
+    doc_t.reload()
+    assert doc_t.status == "Pending Review", f"Expected Pending Review, got {doc_t.status}"
+    print("  [5.7] PASS: FO1 updated evidence and resubmitted task for review.")
+
+    # 5.8 PC1 approves evidence -> status must be 'Completed'
+    frappe.session.user = "pc1_test@krushivikas.org"
+    app_res = review_task_submission(t1.name, "approve")
+    doc_t.reload()
+    assert doc_t.status == "Completed", f"Expected status 'Completed', got '{doc_t.status}'"
+    assert doc_t.custom_review_status == "Approved", f"Expected custom_review_status 'Approved', got '{doc_t.custom_review_status}'"
+    assert doc_t.custom_reviewed_by == "pc1_test@krushivikas.org", f"Reviewer not recorded: {doc_t.custom_reviewed_by}"
+    print("  [5.8] PASS: PC1 approved evidence; task status transitioned to 'Completed' (Review Status: Approved).")
 
     frappe.session.user = "Administrator"
     teardown(proj_name)

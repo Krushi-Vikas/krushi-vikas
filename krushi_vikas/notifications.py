@@ -10,7 +10,7 @@ readable directly for the dashboard's own Notifications card.
 import frappe
 from frappe.utils import today, getdate, date_diff
 
-OPEN_TASK_STATUSES = ("Open", "Working", "Pending Review")
+OPEN_TASK_STATUSES = ("Open", "Working", "Pending Review", "Needs Work")
 APPROVAL_REMINDER_AFTER_DAYS = 2
 
 

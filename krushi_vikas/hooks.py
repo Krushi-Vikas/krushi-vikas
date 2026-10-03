@@ -66,7 +66,11 @@ permission_query_conditions = {
 	"Task": "krushi_vikas.api.get_task_permission_query_conditions",
 }
 doctype_js = {
-	"Project": "public/js/project_custom.js"
+	"Project": "public/js/project_custom.js",
+	"Task": "public/js/task_custom.js"
+}
+doctype_list_js = {
+	"Task": "public/js/task_list.js"
 }
 
 # Loaded on every Desk page. Redirects field-level roles back to Krushi
