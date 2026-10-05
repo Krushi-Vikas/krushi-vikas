@@ -342,7 +342,13 @@ def run():
     for name in [act.name, fresh_act.name]:
         frappe.delete_doc("Activity", name, force=True, ignore_permissions=True)
     for fs_id in [res_minimal["name"], res_partial["name"], res_act["name"]]:
-        frappe.delete_doc("Feedback Survey", fs_id, force=True, ignore_permissions=True)
+        try:
+            doc = frappe.get_doc("Feedback Survey", fs_id)
+            if doc.docstatus == 1:
+                doc.cancel()
+            doc.delete(ignore_permissions=True)
+        except Exception:
+            pass
     frappe.db.commit()
     print("  [5.2] PASS: Cleaned up thorough test data.")
 
