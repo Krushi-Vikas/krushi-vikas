@@ -11,8 +11,13 @@ def run():
     setup_custom_fields()
     setup_workspace()
     setup_workflows()
+    setup_default_app()
     frappe.db.commit()
     print("All site configurations and workflows completed successfully!")
+
+def setup_default_app():
+    print("Setting default app...")
+    frappe.db.set_value("System Settings", "System Settings", "default_app", "krushi_vikas")
 
 def setup_roles():
     print("Setting up Roles...")
