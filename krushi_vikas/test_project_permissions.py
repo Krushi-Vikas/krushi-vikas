@@ -42,22 +42,25 @@ def run():
     # ----------------------------------------------------
     frappe.session.user = "Administrator"
     proj_name = "Tree Plantation Drive 2026"
+    for fs in frappe.get_all("Feedback Survey"):
+        fs_doc = frappe.get_doc("Feedback Survey", fs.name)
+        if fs_doc.village == "Ralegan Siddhi" or fs_doc.project in [proj_name, "Solar Pump Initiative 2026"] or (fs_doc.activity and "Sapling" in fs_doc.activity):
+            try:
+                if fs_doc.docstatus == 1:
+                    fs_doc.cancel()
+                frappe.delete_doc("Feedback Survey", fs.name, ignore_permissions=True, force=True)
+            except Exception:
+                frappe.delete_doc("Feedback Survey", fs.name, ignore_permissions=True, force=True)
+
     for t in frappe.get_all("Task", filters={"subject": "Verify village nursery stock"}):
-        frappe.delete_doc("Task", t.name, ignore_permissions=True)
-    for a in frappe.get_all("Activity", filters={"activity_name": "Sapling Distribution Activity"}):
-        frappe.delete_doc("Activity", a.name, ignore_permissions=True)
-    for fs in frappe.get_all("Feedback Survey", filters={"village": "Ralegan Siddhi"}):
-        try:
-            doc = frappe.get_doc("Feedback Survey", fs.name)
-            if doc.docstatus == 1:
-                doc.cancel()
-            frappe.delete_doc("Feedback Survey", fs.name, ignore_permissions=True)
-        except Exception:
-            frappe.delete_doc("Feedback Survey", fs.name, ignore_permissions=True)
-    if frappe.db.exists("KV Project", {"project_name": proj_name}):
-        frappe.delete_doc("KV Project", frappe.db.get_value("KV Project", {"project_name": proj_name}, "name"), ignore_permissions=True)
-    if frappe.db.exists("Project", {"project_name": proj_name}):
-        frappe.delete_doc("Project", frappe.db.get_value("Project", {"project_name": proj_name}, "name"), ignore_permissions=True)
+        frappe.delete_doc("Task", t.name, ignore_permissions=True, force=True)
+    for a in frappe.get_all("Activity", filters={"activity_name": ["in", ["Sapling Distribution Activity", "Water Harvesting Activity"]]}):
+        frappe.delete_doc("Activity", a.name, ignore_permissions=True, force=True)
+    for p_name in [proj_name, "Solar Pump Initiative 2026"]:
+        if frappe.db.exists("KV Project", {"project_name": p_name}):
+            frappe.delete_doc("KV Project", frappe.db.get_value("KV Project", {"project_name": p_name}, "name"), ignore_permissions=True, force=True)
+        if frappe.db.exists("Project", {"project_name": p_name}):
+            frappe.delete_doc("Project", frappe.db.get_value("Project", {"project_name": p_name}, "name"), ignore_permissions=True, force=True)
     frappe.db.commit()
     
     # PC1 creates project
