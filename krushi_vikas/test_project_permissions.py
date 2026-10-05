@@ -121,8 +121,8 @@ def run():
 
     # PM1 creates Task T1 assigned to FO1
     t1 = frappe.new_doc("Task")
-    t1.subject = "Verify village nursery stock"
-    t1.project = p_erp.name
+    task_proj_options = frappe.db.get_value("Property Setter", {"doc_type": "Task", "field_name": "project", "property": "options"}, "value") or frappe.db.get_value("DocField", {"parent": "Task", "fieldname": "project"}, "options")
+    t1.project = p1.name if task_proj_options == "KV Project" else p_erp.name
     t1.custom_activity = a1.name
     t1.custom_activity_owner = "fo1_test@krushivikas.org"
     t1.custom_assigned_to = "fo1_test@krushivikas.org"
