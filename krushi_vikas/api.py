@@ -2,6 +2,19 @@ import frappe
 from frappe import _
 from frappe.utils import flt, cint, nowdate
 
+# Safe Task.update_project patch to avoid crashing when Task.project links to KV Project
+try:
+    from erpnext.projects.doctype.task.task import Task
+    if not hasattr(Task, "_krushi_orig_update_project"):
+        Task._krushi_orig_update_project = Task.update_project
+        def _safe_update_project(self):
+            if self.project and not self.flags.from_project:
+                if frappe.db.exists("Project", self.project):
+                    return self._krushi_orig_update_project()
+        Task.update_project = _safe_update_project
+except Exception:
+    pass
+
 @frappe.whitelist()
 def get_template_questions(template):
     doc = frappe.get_doc("Survey Template", template)
