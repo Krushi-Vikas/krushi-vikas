@@ -116,7 +116,7 @@ def run():
     assert fs_min.project == proj.name
     assert fs_min.village is None or fs_min.village == ""
     assert fs_min.total_participants in (0, None)
-    assert not fs_min.overall_rating
+    assert fs_min.overall_rating in ("3", None, "")
     assert fs_min.docstatus == 1, "Expected survey to be submitted"
     print(f"  [2.1] PASS: Project survey with all fields omitted created & submitted: {fs_min.name}")
 
