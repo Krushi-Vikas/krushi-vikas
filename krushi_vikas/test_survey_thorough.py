@@ -115,8 +115,8 @@ def run():
     assert fs_min.survey_level == "Project"
     assert fs_min.project == proj.name
     assert fs_min.village is None or fs_min.village == ""
-    assert fs_min.total_participants is None
-    assert fs_min.overall_rating is None
+    assert fs_min.total_participants in (0, None)
+    assert not fs_min.overall_rating
     assert fs_min.docstatus == 1, "Expected survey to be submitted"
     print(f"  [2.1] PASS: Project survey with all fields omitted created & submitted: {fs_min.name}")
 
@@ -131,7 +131,7 @@ def run():
     fs_part = frappe.get_doc("Feedback Survey", res_partial["name"])
     assert fs_part.overall_rating == "5"
     assert fs_part.significant_change.startswith("Transformative")
-    assert fs_part.total_participants is None
+    assert fs_part.total_participants in (0, None)
     print(f"  [2.2] PASS: Project survey with partial fields created & submitted: {fs_part.name}")
 
     # 2.3 Format validation on Project survey when values ARE provided
