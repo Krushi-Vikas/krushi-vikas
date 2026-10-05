@@ -79,6 +79,7 @@
                     </p>
                 </div>
                 <div class="header-controls">
+                    <a href="/feedback_survey?survey_level=Project&project={{ project.name }}" class="btn-secondary" style="color: #059669; border-color: #a7f3d0; background: #ecfdf5;"><i class="fa-solid fa-comment-dots"></i> Project Feedback</a>
                     <button class="btn-primary" onclick="openAddActivityModal()"><i class="fa-solid fa-plus"></i> Add Activity</button>
                     <a href="/project_form" class="btn-secondary"><i class="fa-regular fa-pen-to-square"></i> Edit Project</a>
                 </div>
@@ -197,18 +198,31 @@
                     <!-- 2. Feedback Surveys / Field Tracking -->
                     <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; background: #ffffff;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;"><i class="fa-solid fa-comment-dots" style="color: #059669;"></i> Field Tracking Form</div>
-                            <span class="badge-status badge-deployed">{{ structured_forms.feedback_surveys|length }} Records</span>
+                            <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;"><i class="fa-solid fa-comment-dots" style="color: #059669;"></i> Feedback Surveys</div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="badge-status badge-deployed">{{ structured_forms.feedback_surveys|length }} Records</span>
+                                <a href="/feedback_survey?survey_level=Project&project={{ project.name }}" style="font-size: 0.75rem; color: #059669; text-decoration: none; font-weight: 600;"><i class="fa-solid fa-plus"></i> Add</a>
+                            </div>
                         </div>
                         {% if structured_forms.feedback_surveys %}
                             {% for f in structured_forms.feedback_surveys %}
                             <div style="padding: 10px; background: #f8fafc; border-radius: 6px; margin-bottom: 8px; font-size: 0.8rem;">
-                                <div style="font-weight: 600; color: #0f172a;">{{ f.name }} ({{ f.village }})</div>
-                                <div style="color: var(--text-muted); margin-top: 2px;">Rating: ⭐ {{ f.overall_rating }}/5 &bull; Reached: {{ f.total_participants }}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: 600; color: #0f172a;">{{ f.name }}{% if f.village %} ({{ f.village }}){% endif %}</span>
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; background: {% if f.survey_level == 'Project' %}#ecfdf5; color: #059669;{% else %}#eff6ff; color: #2563eb;{% endif %}">{{ f.survey_level or 'Activity' }}</span>
+                                </div>
+                                <div style="color: var(--text-muted); margin-top: 3px;">
+                                    {% if f.overall_rating %}Rating: ⭐ {{ f.overall_rating }}/5 &bull; {% endif %}
+                                    {% if f.total_participants is not none %}Reached: {{ f.total_participants }} &bull; {% endif %}
+                                    {{ f.activity or 'Feedback' }}
+                                </div>
                             </div>
                             {% endfor %}
                         {% else %}
-                            <p style="font-size: 0.78rem; color: var(--text-muted);">No field tracking feedback linked yet.</p>
+                            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0;">No feedback surveys linked yet.</p>
+                            <p style="font-size: 0.74rem; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px; padding: 6px 8px; margin: 0;">
+                                ⚠️ <strong>Pre-Closure Requirement:</strong> At least one feedback survey is required before closing this project.
+                            </p>
                         {% endif %}
                     </div>
 

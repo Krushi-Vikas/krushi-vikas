@@ -16,12 +16,27 @@ frappe.ui.form.on("Feedback Survey", {
 
     toggle_survey_level: function(frm) {
         const is_project = frm.doc.survey_level === "Project";
-        frm.toggle_reqd("project", is_project);
+        const act_reqd = !is_project;
+
+        // Project is optional for Project level surveys
+        frm.toggle_reqd("project", false);
         frm.toggle_display("project", true);
 
-        frm.toggle_reqd("activity", !is_project);
-        frm.toggle_display("activity", !is_project);
-        frm.toggle_display("linked_activity", !is_project);
+        // Activity fields
+        frm.toggle_reqd("activity", act_reqd);
+        frm.toggle_display("activity", act_reqd);
+        frm.toggle_display("linked_activity", act_reqd);
+
+        // All other survey fields are optional for Project level, but mandatory for Activity level
+        frm.toggle_reqd("village", act_reqd);
+        frm.toggle_reqd("date_of_visit", act_reqd);
+        frm.toggle_reqd("field_officer", act_reqd);
+        frm.toggle_reqd("respondent_type", act_reqd);
+        frm.toggle_reqd("total_participants", act_reqd);
+        frm.toggle_reqd("adoption_percentage", act_reqd);
+        frm.toggle_reqd("significant_change", act_reqd);
+        frm.toggle_reqd("overall_rating", act_reqd);
+        frm.toggle_reqd("confirmation_accuracy", act_reqd);
 
         if (is_project && !frm.doc.activity) {
             frm.set_value("activity", "Project Level Feedback");

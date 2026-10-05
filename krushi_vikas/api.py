@@ -180,31 +180,34 @@ def submit_feedback_survey(data):
     if not field_officer_val:
         field_officer_val = frappe.session.user if frappe.session.user and frappe.session.user != "Guest" else "Administrator"
 
-    doc = frappe.get_doc({
+    is_project = (survey_level == "Project")
+
+    doc_data = {
         "doctype": "Feedback Survey",
         "survey_level": survey_level,
         "linked_activity": data.get("linked_activity"),
         "village": data.get("village"),
-        "date_of_visit": data.get("date_of_visit") or frappe.utils.today(),
+        "date_of_visit": data.get("date_of_visit") or (frappe.utils.today() if not is_project else None),
         "field_officer": field_officer_val,
         "activity": activity_val,
         "respondent_type": data.get("respondent_type"),
         "respondent_type_other": data.get("respondent_type_other"),
         "project": data.get("project"),
         "beneficiary": data.get("beneficiary"),
-        "total_participants": int(data.get("total_participants") or 0),
-        "households_involved": int(data.get("households_involved") or 0) if data.get("households_involved") else None,
-        "sessions_conducted": int(data.get("sessions_conducted") or 0) if data.get("sessions_conducted") else None,
-        "adoption_percentage": float(data.get("adoption_percentage") or 0),
+        "total_participants": int(data.get("total_participants")) if data.get("total_participants") not in (None, "") else (0 if not is_project else None),
+        "households_involved": int(data.get("households_involved")) if data.get("households_involved") not in (None, "") else None,
+        "sessions_conducted": int(data.get("sessions_conducted")) if data.get("sessions_conducted") not in (None, "") else None,
+        "adoption_percentage": float(data.get("adoption_percentage")) if data.get("adoption_percentage") not in (None, "") else (0.0 if not is_project else None),
         "outputs_achieved": data.get("outputs_achieved"),
         "significant_change": data.get("significant_change"),
         "community_voice": data.get("community_voice"),
         "barriers_challenges": data.get("barriers_challenges"),
         "facilitator_observations": data.get("facilitator_observations"),
-        "overall_rating": str(data.get("overall_rating") or "3"),
-        "confirmation_accuracy": 1 if data.get("confirmation_accuracy") else 0,
+        "overall_rating": str(data.get("overall_rating")) if data.get("overall_rating") else ("3" if not is_project else None),
+        "confirmation_accuracy": 1 if data.get("confirmation_accuracy") or is_project else 0,
         "submission_status": "Submitted"
-    })
+    }
+    doc = frappe.get_doc(doc_data)
     
     doc.insert(ignore_permissions=True)
     if data.get("submit_now", True):
@@ -2399,7 +2402,7 @@ def get_project_detail(project_id=None):
         fb_docs = frappe.get_all(
             "Feedback Survey",
             filters={"project": ["in", [p_name, p_title]]},
-            fields=["name", "village", "activity", "date_of_visit", "total_participants", "overall_rating", "respondent_type", "significant_change"],
+            fields=["name", "survey_level", "village", "activity", "date_of_visit", "total_participants", "overall_rating", "respondent_type", "significant_change"],
             order_by="creation desc"
         )
         if not fb_docs and project_data["custom_linked_field_tracking_form"]:
@@ -2407,6 +2410,7 @@ def get_project_detail(project_id=None):
                 fb = frappe.get_doc("Feedback Survey", project_data["custom_linked_field_tracking_form"])
                 fb_docs = [{
                     "name": fb.name,
+                    "survey_level": getattr(fb, "survey_level", "Activity"),
                     "village": fb.village or "Rampur",
                     "activity": fb.activity or "Water Budgeting Workshop",
                     "date_of_visit": fb.date_of_visit or "2026-02-15",

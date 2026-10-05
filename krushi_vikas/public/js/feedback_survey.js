@@ -176,14 +176,41 @@
     const activityReq = document.getElementById('activity_req');
     const officerLabel = document.getElementById('field_officer_label');
     const dateLabel = document.getElementById('date_of_visit_label');
+    const callout = document.querySelector('.info-callout span');
+
+    // Toggle visual required asterisk indicators across the entire form
+    document.querySelectorAll('.req').forEach(el => {
+      el.style.display = isProject ? 'none' : 'inline';
+    });
+
+    // Toggle HTML5 required attributes
+    const fieldIds = [
+      'project', 'activity', 'village', 'date_of_visit', 'field_officer',
+      'respondent_type', 'total_participants', 'adoption_percentage',
+      'significant_change', 'confirmation_accuracy'
+    ];
+    fieldIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (isProject) {
+          el.removeAttribute('required');
+        } else {
+          // For Activity level, reinstate required on mandatory fields
+          if (id !== 'project') {
+            el.setAttribute('required', 'required');
+          }
+        }
+      }
+    });
 
     if (isProject) {
       if (labelAct) { labelAct.style.borderColor = '#e2e8f0'; labelAct.style.background = '#ffffff'; }
       if (labelProj) { labelProj.style.borderColor = '#059669'; labelProj.style.background = '#ecfdf5'; }
-      if (projectReq) projectReq.style.display = 'inline';
+      if (projectReq) projectReq.style.display = 'none';
       if (activityReq) activityReq.style.display = 'none';
-      if (officerLabel) officerLabel.innerHTML = 'Project Manager / Evaluator <span class="req">*</span>';
-      if (dateLabel) dateLabel.innerHTML = 'Date of Evaluation / Survey <span class="req">*</span>';
+      if (officerLabel) officerLabel.textContent = 'Project Manager / Evaluator (Optional)';
+      if (dateLabel) dateLabel.textContent = 'Date of Evaluation / Survey (Optional)';
+      if (callout) callout.textContent = 'Project Level Feedback: All fields are optional. Fill as many details as are available for your project.';
     } else {
       if (labelAct) { labelAct.style.borderColor = '#059669'; labelAct.style.background = '#ecfdf5'; }
       if (labelProj) { labelProj.style.borderColor = '#e2e8f0'; labelProj.style.background = '#ffffff'; }
@@ -191,6 +218,7 @@
       if (activityReq) activityReq.style.display = 'inline';
       if (officerLabel) officerLabel.innerHTML = 'Field Officer / Facilitator <span class="req">*</span>';
       if (dateLabel) dateLabel.innerHTML = 'Date of Visit <span class="req">*</span>';
+      if (callout) callout.textContent = 'Please provide information about the activity and the person who is giving feedback.';
     }
   }
 
@@ -354,33 +382,85 @@
     clearErrors();
     let isValid = true;
 
+    // ================= PROJECT LEVEL SURVEY =================
+    // For Project level, ALL fields are optional. Only format validations run if a field is filled.
+    if (formData.survey_level === 'Project') {
+      if (currentStep === 1) {
+        const dateOfVisit = document.getElementById('date_of_visit');
+        if (dateOfVisit && dateOfVisit.value.trim()) {
+          const selectedDate = new Date(dateOfVisit.value);
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          if (selectedDate > today) {
+            showError(dateOfVisit, 'Date cannot be in the future');
+            isValid = false;
+          }
+        }
+      } else if (currentStep === 2) {
+        const participants = document.getElementById('total_participants');
+        const households = document.getElementById('households_involved');
+        const sessions = document.getElementById('sessions_conducted');
+        const adoption = document.getElementById('adoption_percentage');
+
+        let pVal = NaN;
+        if (participants && participants.value.trim()) {
+          pVal = parseInt(participants.value, 10);
+          if (isNaN(pVal) || pVal < 0) {
+            showError(participants, 'Total Participants must be a valid number (0 or greater)');
+            isValid = false;
+          }
+        }
+
+        if (households && households.value.trim()) {
+          const hVal = parseInt(households.value, 10);
+          if (isNaN(hVal) || hVal < 0) {
+            showError(households, 'Households involved cannot be negative');
+            isValid = false;
+          } else if (!isNaN(pVal) && pVal > 0 && hVal > pVal) {
+            showError(households, `Households involved (${hVal}) cannot exceed Total Participants (${pVal})`);
+            isValid = false;
+          }
+        }
+
+        if (sessions && sessions.value.trim()) {
+          const sVal = parseInt(sessions.value, 10);
+          if (isNaN(sVal) || sVal < 0) {
+            showError(sessions, 'Sessions conducted cannot be negative');
+            isValid = false;
+          }
+        }
+
+        if (adoption && adoption.value.trim()) {
+          const aVal = parseFloat(adoption.value);
+          if (isNaN(aVal) || aVal < 0 || aVal > 100) {
+            showError(adoption, 'Adoption / Usage percentage must be between 0% and 100%');
+            isValid = false;
+          }
+        }
+      }
+      return isValid;
+    }
+
+    // ================= ACTIVITY LEVEL SURVEY =================
+    // Keep current requirements: all mandatory fields strictly enforced
     if (currentStep === 1) {
       const village = document.getElementById('village');
       const dateOfVisit = document.getElementById('date_of_visit');
       const officer = document.getElementById('field_officer');
-      const project = document.getElementById('project');
       const activity = document.getElementById('activity');
       const respondentType = document.getElementById('respondent_type');
       const otherInput = document.getElementById('respondent_type_other');
 
-      if (formData.survey_level === 'Project') {
-        if (!project || !project.value.trim()) {
-          showError(project, 'Please select a Project for Project Level Feedback');
-          isValid = false;
-        }
-      } else {
-        if (!activity || !activity.value.trim()) {
-          showError(activity, 'Please select an Activity / Intervention for Activity Level Feedback');
-          isValid = false;
-        }
+      if (!activity || !activity.value.trim()) {
+        showError(activity, 'Please select an Activity / Intervention for Activity Level Feedback');
+        isValid = false;
       }
-
-      if (!village.value.trim()) { 
+      if (!village || !village.value.trim()) { 
         showError(village, 'Please select or enter a Village / Location'); 
         isValid = false; 
       }
-      if (!dateOfVisit.value.trim()) { 
-        showError(dateOfVisit, 'Please select the Date of Visit / Survey'); 
+      if (!dateOfVisit || !dateOfVisit.value.trim()) { 
+        showError(dateOfVisit, 'Please select the Date of Visit'); 
         isValid = false; 
       } else {
         const selectedDate = new Date(dateOfVisit.value);
@@ -391,15 +471,15 @@
           isValid = false;
         }
       }
-      if (!officer.value.trim()) { 
-        showError(officer, formData.survey_level === 'Project' ? 'Please select a Project Manager / Evaluator' : 'Please select a Field Officer / Facilitator'); 
+      if (!officer || !officer.value.trim()) { 
+        showError(officer, 'Please select a Field Officer / Facilitator'); 
         isValid = false; 
       }
-      if (!respondentType.value.trim()) { 
+      if (!respondentType || !respondentType.value.trim()) { 
         showError(respondentType, 'Please select the Respondent Type'); 
         isValid = false; 
       }
-      if (respondentType.value === 'Other' && (!otherInput || otherInput.value.trim().length < 2)) {
+      if (respondentType && respondentType.value === 'Other' && (!otherInput || otherInput.value.trim().length < 2)) {
         showError(otherInput, 'Please specify the respondent type (at least 2 characters)');
         isValid = false;
       }
@@ -410,7 +490,7 @@
       const adoption = document.getElementById('adoption_percentage');
 
       const pVal = parseInt(participants.value, 10);
-      if (!participants.value.trim() || isNaN(pVal) || pVal < 0) {
+      if (!participants || !participants.value.trim() || isNaN(pVal) || pVal < 0) {
         showError(participants, 'Total Participants must be a valid number (0 or greater)');
         isValid = false;
       }
@@ -435,13 +515,13 @@
       }
 
       const aVal = parseFloat(adoption.value);
-      if (!adoption.value.trim() || isNaN(aVal) || aVal < 0 || aVal > 100) {
+      if (!adoption || !adoption.value.trim() || isNaN(aVal) || aVal < 0 || aVal > 100) {
         showError(adoption, 'Adoption / Usage percentage must be between 0% and 100%');
         isValid = false;
       }
     } else if (currentStep === 3) {
       const change = document.getElementById('significant_change');
-      if (!change.value.trim() || change.value.trim().length < 10) {
+      if (!change || !change.value.trim() || change.value.trim().length < 10) {
         showError(change, 'Most Significant Change / Success Story is required (at least 10 characters)');
         isValid = false;
       }

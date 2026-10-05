@@ -502,6 +502,28 @@ def run():
     fs_proj.insert()
     print(f"  [4.12] PASS: PM1 created Project-level Feedback Survey '{fs_proj.name}' for {p1.name}.")
 
+    # 4.12b Project Manager PM1 creates Project-level feedback survey with ALL fields omitted (All fields optional for Project level) -> MUST PASS
+    frappe.session.user = "pm1_test@krushivikas.org"
+    fs_proj_optional = frappe.new_doc("Feedback Survey")
+    fs_proj_optional.survey_level = "Project"
+    fs_proj_optional.project = p1.name
+    # Deliberately omit village, date_of_visit, respondent_type, total_participants, adoption_percentage, significant_change, confirmation_accuracy, etc.
+    fs_proj_optional.insert()
+    print(f"  [4.12b] PASS: PM1 created Project-level Feedback Survey with all optional fields omitted '{fs_proj_optional.name}'.")
+
+    # 4.12c Field Officer FO1 tries to create Activity-level survey with missing required fields -> MUST FAIL (Activity fields strictly mandatory)
+    frappe.session.user = "fo1_test@krushivikas.org"
+    try:
+        fs_act_missing = frappe.new_doc("Feedback Survey")
+        fs_act_missing.survey_level = "Activity"
+        fs_act_missing.linked_activity = a1.name
+        fs_act_missing.activity = a1.activity_name
+        # Deliberately omit village, respondent_type, total_participants, etc.
+        fs_act_missing.insert()
+        assert False, "Activity-level survey without required fields should fail!"
+    except frappe.ValidationError as e:
+        print(f"  [4.12c] PASS: Activity-level survey correctly strictly enforces mandatory fields: {str(e)[:70]}")
+
     # 4.13 Activity creation unblocked: Creating new Activity without survey must succeed
     frappe.session.user = "pm1_test@krushivikas.org"
     a_new = frappe.new_doc("Activity")
