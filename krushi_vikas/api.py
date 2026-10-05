@@ -94,6 +94,8 @@ def get_feedback_survey_options():
             "Ganeshpur", "Vikas Nagar", "Adarsh Gram", "Sundarpur", "Navgaon"
         ],
         "field_officers": [],
+        "projects": [],
+        "activities_list": [],
         "activities": [
             "Kitchen Garden Initiative",
             "Drip Irrigation Demonstration",
@@ -137,6 +139,22 @@ def get_feedback_survey_options():
             {"name": "fo_priya", "full_name": "Priya Patil (Facilitator)"},
             {"name": "fo_vikas", "full_name": "Vikas Shinde (Watershed Coordinator)"}
         ]
+
+    # Fetch projects
+    try:
+        if frappe.db.exists("DocType", "KV Project"):
+            options["projects"] = frappe.get_all("KV Project", fields=["name", "project_name"], order_by="creation desc", limit=50)
+        elif frappe.db.exists("DocType", "Project"):
+            options["projects"] = frappe.get_all("Project", fields=["name", "project_name"], order_by="creation desc", limit=50)
+    except Exception:
+        options["projects"] = []
+
+    # Fetch activities
+    try:
+        if frappe.db.exists("DocType", "Activity"):
+            options["activities_list"] = frappe.get_all("Activity", fields=["name", "activity_name", "project"], order_by="creation desc", limit=100)
+    except Exception:
+        options["activities_list"] = []
         
     return options
 
@@ -146,13 +164,30 @@ def submit_feedback_survey(data):
     import json
     if isinstance(data, str):
         data = json.loads(data)
-        
+
+    survey_level = data.get("survey_level")
+    if not survey_level:
+        if data.get("project") and not data.get("activity") and not data.get("linked_activity"):
+            survey_level = "Project"
+        else:
+            survey_level = "Activity"
+
+    activity_val = data.get("activity")
+    if survey_level == "Project" and not activity_val:
+        activity_val = "Project Level Feedback"
+
+    field_officer_val = data.get("field_officer")
+    if not field_officer_val:
+        field_officer_val = frappe.session.user if frappe.session.user and frappe.session.user != "Guest" else "Administrator"
+
     doc = frappe.get_doc({
         "doctype": "Feedback Survey",
+        "survey_level": survey_level,
+        "linked_activity": data.get("linked_activity"),
         "village": data.get("village"),
         "date_of_visit": data.get("date_of_visit") or frappe.utils.today(),
-        "field_officer": data.get("field_officer") or "Administrator",
-        "activity": data.get("activity"),
+        "field_officer": field_officer_val,
+        "activity": activity_val,
         "respondent_type": data.get("respondent_type"),
         "respondent_type_other": data.get("respondent_type_other"),
         "project": data.get("project"),
@@ -1550,16 +1585,9 @@ def has_feedback_survey_permission(doc=None, ptype="read", user=None):
     Evaluates role-based least privilege permissions for Feedback Survey:
     - Administrator, System Manager, CEO, Project Director: Unrestricted access.
     - Read: Allowed for all authenticated internal roles.
-    - Create: Allowed for Field Officer, Project Manager, Project Coordinator, Project Director, CEO, System Manager.
-    - Write / Edit:
-        * CEO, Project Director, System Manager, Administrator: Can edit ANY survey.
-        * Project Coordinator: Can edit surveys under projects they coordinate, or surveys they own.
-        * Project Manager: Can edit surveys under projects they manage, or surveys they own.
-        * Field Officer: Can edit ONLY surveys where doc.field_officer == user or doc.owner == user.
-          (Peer Field Officers are strictly blocked from editing each other's surveys - lateral isolation).
-    - Submit:
-        * Field Officer can submit their own survey (doc.field_officer == user or doc.owner == user).
-        * PM, PC, Project Director, CEO, System Manager can submit.
+    - Survey Level Rules:
+        * Project-level: Only Project Manager (managing project or owning) and supervising roles can create/write/submit. Field Officer is strictly blocked.
+        * Activity-level: Only Field Officer can create/fill. Lateral isolation between peer Field Officers. Project Managers can review/edit existing surveys under their managed project.
     - Delete: Allowed ONLY for CEO, Project Director, System Manager, Administrator.
     """
     if not user:
@@ -1577,34 +1605,77 @@ def has_feedback_survey_permission(doc=None, ptype="read", user=None):
     if ptype == "read":
         return True
 
+    survey_level = doc.get("survey_level") if doc else None
+
     if ptype == "create":
+        if survey_level == "Project":
+            return any(r in roles for r in ["Project Manager", "Project Coordinator"])
+        elif survey_level == "Activity":
+            return "Field Officer" in roles
         return any(r in roles for r in ["Field Officer", "Project Manager", "Project Coordinator"])
 
     if ptype in ("write", "submit"):
         if not doc:
             return any(r in roles for r in ["Field Officer", "Project Manager", "Project Coordinator"])
 
-        # Creator / owner always retains editing rights
-        if doc.owner == user:
+        survey_level = doc.get("survey_level") or ("Project" if doc.get("project") and not doc.get("activity") and not doc.get("linked_activity") else "Activity")
+
+        # Project level survey
+        if survey_level == "Project":
+            if "Field Officer" in roles and not any(r in roles for r in ["Project Manager", "Project Coordinator"]):
+                return False
+            if "Project Manager" in roles:
+                if doc.owner == user:
+                    return True
+                if doc.get("project"):
+                    pm = None
+                    if frappe.db.exists("KV Project", doc.project):
+                        pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                    elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_manager"):
+                        pm = frappe.db.get_value("Project", doc.project, "custom_project_manager")
+                    if pm == user:
+                        return True
+                return False
+            if "Project Coordinator" in roles:
+                if doc.owner == user:
+                    return True
+                if doc.get("project"):
+                    coord = None
+                    if frappe.db.exists("KV Project", doc.project):
+                        coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                    elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_coordinator"):
+                        coord = frappe.db.get_value("Project", doc.project, "custom_project_coordinator")
+                    if coord == user:
+                        return True
+                return False
+            return False
+
+        # Activity level survey
+        if doc.owner == user and "Field Officer" in roles:
             return True
 
-        # Field Officer: strictly limited to their own assigned survey
         if "Field Officer" in roles:
             fo = doc.get("field_officer") or doc.owner
             return fo == user
 
-        # Project Manager: can edit if they manage the linked project
         if "Project Manager" in roles:
-            if doc.get("project") and frappe.db.exists("KV Project", doc.project):
-                pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+            if doc.get("project"):
+                pm = None
+                if frappe.db.exists("KV Project", doc.project):
+                    pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", doc.project, "custom_project_manager")
                 if pm == user:
                     return True
             return False
 
-        # Project Coordinator: can edit if they coordinate the linked project
         if "Project Coordinator" in roles:
-            if doc.get("project") and frappe.db.exists("KV Project", doc.project):
-                coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+            if doc.get("project"):
+                coord = None
+                if frappe.db.exists("KV Project", doc.project):
+                    coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_coordinator"):
+                    coord = frappe.db.get_value("Project", doc.project, "custom_project_coordinator")
                 if coord == user:
                     return True
             return False
@@ -1857,36 +1928,91 @@ def enforce_feedback_survey_least_privilege(doc, method=None):
     if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
         return
 
-    # If new and created by a Field Officer, ensure field_officer defaults to current user
-    if doc.is_new() and "Field Officer" in roles and not doc.get("field_officer"):
-        doc.field_officer = user
+    survey_level = doc.get("survey_level") or ("Project" if doc.get("project") and not doc.get("activity") and not doc.get("linked_activity") else "Activity")
 
-    if not doc.is_new():
-        if "Field Officer" in roles:
-            fo = doc.get("field_officer") or doc.owner
-            if fo != user and doc.owner != user:
+    # 1. Project level Feedback Survey rules:
+    # Field Officers CANNOT fill or edit Project-level surveys! Only Project Managers (and supervising roles).
+    if survey_level == "Project":
+        if "Field Officer" in roles and not any(r in roles for r in ["Project Manager", "Project Coordinator", "Project Director", "CEO", "System Manager", "Administrator"]):
+            frappe.throw(
+                frappe._("Permission Denied: Field Officers cannot fill Project-level Feedback Surveys. Project-level surveys must be filled by the Project Manager."),
+                frappe.PermissionError
+            )
+
+        if "Project Manager" in roles:
+            # Check project manager ownership
+            if doc.get("project"):
+                pm = None
+                if frappe.db.exists("KV Project", doc.project):
+                    pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", doc.project, "custom_project_manager")
+                if pm and pm != user and doc.owner != user:
+                    frappe.throw(
+                        frappe._(f"Permission Denied: Feedback Survey for project '{doc.project}' is managed by Project Manager '{pm}'. Another Project Manager cannot fill or edit this survey."),
+                        frappe.PermissionError
+                    )
+
+        if "Project Coordinator" in roles and not ("Project Manager" in roles):
+            if doc.get("project"):
+                coord = None
+                if frappe.db.exists("KV Project", doc.project):
+                    coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_coordinator"):
+                    coord = frappe.db.get_value("Project", doc.project, "custom_project_coordinator")
+                if coord and coord != user and doc.owner != user:
+                    frappe.throw(
+                        frappe._(f"Permission Denied: Feedback Survey for project '{doc.project}' is coordinated by '{coord}'. You cannot fill or edit this survey."),
+                        frappe.PermissionError
+                    )
+
+    # 2. Activity level Feedback Survey rules:
+    # Only Field Officers will be able to fill it!
+    elif survey_level == "Activity":
+        if doc.is_new():
+            # When creating/filling an Activity-level survey:
+            # Project Manager or Coordinator without Field Officer role cannot create/fill
+            if "Project Manager" in roles and not ("Field Officer" in roles):
                 frappe.throw(
-                    frappe._(f"Permission Denied: Feedback Survey '{doc.name}' was conducted by Field Officer '{fo}'. Another Field Officer cannot edit this survey."),
+                    frappe._("Permission Denied: Activity-level Feedback Surveys can only be filled by Field Officers."),
                     frappe.PermissionError
                 )
-        elif "Project Manager" in roles:
-            if doc.owner != user:
-                if doc.get("project") and frappe.db.exists("KV Project", doc.project):
-                    pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
-                    if pm and pm != user:
-                        frappe.throw(
-                            frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project managed by '{pm}'. You cannot edit this survey."),
-                            frappe.PermissionError
-                        )
-        elif "Project Coordinator" in roles:
-            if doc.owner != user:
-                if doc.get("project") and frappe.db.exists("KV Project", doc.project):
-                    coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
-                    if coord and coord != user:
-                        frappe.throw(
-                            frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project coordinated by '{coord}'. You cannot edit this survey."),
-                            frappe.PermissionError
-                        )
+            if "Project Coordinator" in roles and not ("Field Officer" in roles):
+                frappe.throw(
+                    frappe._("Permission Denied: Activity-level Feedback Surveys can only be filled by Field Officers."),
+                    frappe.PermissionError
+                )
+
+        # If new and created by a Field Officer, ensure field_officer defaults to current user
+        if doc.is_new() and "Field Officer" in roles and not doc.get("field_officer"):
+            doc.field_officer = user
+
+        if not doc.is_new():
+            if "Field Officer" in roles:
+                fo = doc.get("field_officer") or doc.owner
+                if fo != user and doc.owner != user:
+                    frappe.throw(
+                        frappe._(f"Permission Denied: Feedback Survey '{doc.name}' was conducted by Field Officer '{fo}'. Another Field Officer cannot edit this survey."),
+                        frappe.PermissionError
+                    )
+            elif "Project Manager" in roles:
+                if doc.owner != user:
+                    if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                        pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                        if pm and pm != user:
+                            frappe.throw(
+                                frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project managed by '{pm}'. You cannot edit this survey."),
+                                frappe.PermissionError
+                            )
+            elif "Project Coordinator" in roles:
+                if doc.owner != user:
+                    if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                        coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                        if coord and coord != user:
+                            frappe.throw(
+                                frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project coordinated by '{coord}'. You cannot edit this survey."),
+                                frappe.PermissionError
+                            )
 
 
 def validate_project_finances_and_activities(doc, method=None):
@@ -1903,6 +2029,28 @@ def validate_project_finances_and_activities(doc, method=None):
     if doc.expected_start_date and doc.expected_end_date:
         if str(doc.expected_end_date) < str(doc.expected_start_date):
             frappe.throw("End Date cannot be before Start Date for Project.")
+
+    # Enforce at least one feedback survey before completing/closing Project
+    if doc.status == "Completed" and not doc.is_new():
+        has_feedback = False
+        for row in doc.get("custom_feedback_surveys") or []:
+            if row.feedback_survey:
+                has_feedback = True
+                break
+        if not has_feedback and doc.get("custom_linked_field_tracking_form"):
+            has_feedback = True
+        if not has_feedback:
+            has_feedback = bool(frappe.db.exists("Feedback Survey", {
+                "project": ["in", [doc.name, doc.get("project_name") or doc.name]],
+                "docstatus": ["!=", 2]
+            }))
+        if not has_feedback:
+            frappe.throw(
+                frappe._("Cannot close or complete Project '{0}': At least one Feedback Survey must be completed and linked before closing the project.").format(
+                    doc.get("project_name") or doc.name
+                ),
+                frappe.ValidationError
+            )
 
 
 def sync_project_activities(doc, method=None):
@@ -2347,6 +2495,26 @@ def get_activity_detail(activity_id=None):
         td["can_review_submission"] = can_review_task_submission(td)
         td["can_submit_submission"] = can_submit_task_evidence(td)
     
+    # Fetch feedback surveys for this activity
+    feedback_surveys = []
+    if frappe.db.exists("DocType", "Feedback Survey"):
+        try:
+            feedback_surveys = frappe.get_all(
+                "Feedback Survey",
+                filters={"docstatus": ["!=", 2]},
+                or_filters={
+                    "linked_activity": act.name,
+                    "activity": ["in", [act.name, act.activity_name]]
+                },
+                fields=[
+                    "name", "village", "activity", "date_of_visit", "total_participants",
+                    "overall_rating", "respondent_type", "significant_change", "field_officer"
+                ],
+                order_by="creation desc"
+            )
+        except Exception:
+            feedback_surveys = []
+
     return {
         "activity": {
             "name": act.name,
@@ -2364,7 +2532,8 @@ def get_activity_detail(activity_id=None):
             "target": flt(act.target),
             "achievement": flt(act.achievement)
         },
-        "tasks": tasks
+        "tasks": tasks,
+        "feedback_surveys": feedback_surveys
     }
 
 

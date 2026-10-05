@@ -16,6 +16,30 @@ GRID_STATUS_MAP = {
 
 class Activity(Document):
 
+    def onload(self):
+        """Loads and updates linked feedback surveys under this activity"""
+        if self.name and hasattr(self, "feedback_surveys"):
+            surveys = frappe.get_all(
+                "Feedback Survey",
+                filters={"docstatus": ["!=", 2]},
+                or_filters={
+                    "linked_activity": self.name,
+                    "activity": ["in", [self.name, self.activity_name]]
+                },
+                fields=["name", "village", "activity", "date_of_visit", "total_participants", "overall_rating"]
+            )
+            if surveys:
+                self.set("feedback_surveys", [])
+                for s in surveys:
+                    self.append("feedback_surveys", {
+                        "feedback_survey": s.name,
+                        "village": s.village,
+                        "activity": s.activity,
+                        "date_of_visit": s.date_of_visit,
+                        "total_participants": s.total_participants,
+                        "overall_rating": s.overall_rating
+                    })
+
     def validate(self):
         """
         Validate Activity dates and Task dates.
@@ -57,6 +81,33 @@ class Activity(Document):
                 )
 
         self.enforce_task_sequence()
+        self.validate_feedback_survey_for_completion()
+
+    def validate_feedback_survey_for_completion(self):
+        """Enforces that at least one Activity-level Feedback Survey exists before closing/completing."""
+        if self.status == "Completed" and not self.is_new():
+            has_feedback = bool(frappe.db.exists("Feedback Survey", {
+                "linked_activity": self.name,
+                "docstatus": ["!=", 2]
+            }))
+            if not has_feedback:
+                has_feedback = bool(frappe.db.exists("Feedback Survey", {
+                    "activity": ["in", [self.name, self.activity_name]],
+                    "docstatus": ["!=", 2]
+                }))
+            if not has_feedback and self.get("feedback_surveys"):
+                for row in self.feedback_surveys:
+                    if row.feedback_survey:
+                        has_feedback = True
+                        break
+
+            if not has_feedback:
+                frappe.throw(
+                    frappe._("Cannot complete Activity '{0}': At least one Activity-level Feedback Survey must be completed and linked before closing the activity.").format(
+                        self.activity_name or self.name
+                    ),
+                    frappe.ValidationError
+                )
 
     def enforce_task_sequence(self):
         """Tasks in the grid are a step-by-step checklist by default.

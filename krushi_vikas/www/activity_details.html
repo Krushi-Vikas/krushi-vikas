@@ -80,6 +80,7 @@
                     </p>
                 </div>
                 <div class="header-controls">
+                    <a href="/feedback_survey?survey_level=Activity&activity={{ activity.name }}&project={{ activity.project }}" class="btn-secondary" style="color: #059669; border-color: #a7f3d0; background: #ecfdf5;"><i class="fa-solid fa-comment-dots"></i> Feedback Survey</a>
                     <button class="btn-primary" onclick="openAddTaskModal()"><i class="fa-solid fa-plus"></i> Add Task</button>
                     <a href="/project_details?name={{ activity.project }}" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back to Project</a>
                 </div>
@@ -211,6 +212,71 @@
                     <i class="fa-solid fa-bars-progress"></i>
                     <p>No tasks added under this activity yet.</p>
                     <button class="btn-primary btn-sm" onclick="openAddTaskModal()" style="margin-top: 10px;"><i class="fa-solid fa-plus"></i> Add First Task</button>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- SECTION: FEEDBACK SURVEYS (ACTIVITY LEVEL) -->
+            <section class="section-card" style="margin-top: 24px;">
+                <div class="section-card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+                    <div>
+                        <div class="section-title">
+                            <i class="fa-solid fa-comment-dots" style="color: #059669;"></i> Activity Feedback Surveys ({{ feedback_surveys|length }})
+                        </div>
+                        <p style="font-size: 0.82rem; color: #64748b; margin: 4px 0 0 0;">
+                            Field Officers log community adoption, beneficiary feedback, and change stories. At least one survey is required before completing this activity.
+                        </p>
+                    </div>
+                    <a href="/feedback_survey?survey_level=Activity&activity={{ activity.name }}&project={{ activity.project }}" class="btn-secondary btn-sm" style="color: #059669; border-color: #a7f3d0; background: #ecfdf5; white-space: nowrap;">
+                        <i class="fa-solid fa-plus"></i> Fill Activity Feedback
+                    </a>
+                </div>
+
+                {% if feedback_surveys %}
+                <div class="data-table-wrapper" style="margin-top: 14px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Survey ID</th>
+                                <th>Village</th>
+                                <th>Field Officer</th>
+                                <th>Date of Visit</th>
+                                <th>Participants</th>
+                                <th>Rating</th>
+                                <th>Significant Change</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fs in feedback_surveys %}
+                            <tr>
+                                <td><a href="/app/feedback-survey/{{ fs.name }}" target="_blank" style="font-weight: 600; color: #059669; text-decoration: none;">{{ fs.name }}</a></td>
+                                <td>{{ fs.village or '-' }}</td>
+                                <td>{{ fs.field_officer or '-' }}</td>
+                                <td>{{ fs.date_of_visit or '-' }}</td>
+                                <td><span style="font-weight: 600;">{{ fs.total_participants or 0 }}</span></td>
+                                <td><span class="badge-status badge-deployed">★ {{ fs.overall_rating or '3' }}/5</span></td>
+                                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ fs.significant_change or '-' }}</td>
+                                <td style="text-align: right;">
+                                    <a href="/app/feedback-survey/{{ fs.name }}" target="_blank" class="btn-secondary btn-sm"><i class="fa-solid fa-eye"></i> View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state" style="padding: 24px; text-align: center;">
+                    <i class="fa-solid fa-comment-dots" style="font-size: 2rem; color: #94a3b8;"></i>
+                    <p style="margin: 8px 0; color: #64748b; font-size: 0.88rem;">No activity-level feedback surveys recorded yet.</p>
+                    <div style="font-size: 0.78rem; color: #b45309; background: #fef3c7; display: inline-block; padding: 6px 14px; border-radius: 6px; margin-top: 4px; border: 1px solid #fde68a;">
+                        ⚠️ <strong>Pre-Closure Requirement:</strong> At least one submitted feedback survey by a Field Officer is required before closing this activity.
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <a href="/feedback_survey?survey_level=Activity&activity={{ activity.name }}&project={{ activity.project }}" class="btn-primary btn-sm" style="background: #059669; border-color: #059669;">
+                            <i class="fa-solid fa-plus"></i> Submit Activity Feedback
+                        </a>
+                    </div>
                 </div>
                 {% endif %}
             </section>

@@ -83,6 +83,30 @@ class KVProject(Document):
 
         self.set_journey_stage()
         self.recompute_themes_covered()
+        self.validate_feedback_survey_for_completion()
+
+    def validate_feedback_survey_for_completion(self):
+        """Enforces that at least one Feedback Survey exists before closing/completing."""
+        if self.status == "Completed" and not self.is_new():
+            has_feedback = False
+            for row in self.get("feedback_surveys") or []:
+                if row.feedback_survey:
+                    has_feedback = True
+                    break
+            if not has_feedback and self.get("linked_field_tracking_form"):
+                has_feedback = True
+            if not has_feedback:
+                has_feedback = bool(frappe.db.exists("Feedback Survey", {
+                    "project": ["in", [self.name, getattr(self, "project_name", self.name)]],
+                    "docstatus": ["!=", 2]
+                }))
+            if not has_feedback:
+                frappe.throw(
+                    frappe._("Cannot close or complete Project '{0}': At least one Feedback Survey must be completed and linked before closing the project.").format(
+                        getattr(self, "project_name", self.name)
+                    ),
+                    frappe.ValidationError
+                )
 
     def refresh_baseline_coverage(self):
         villages = self.get("project_villages") or []

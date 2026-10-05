@@ -443,6 +443,157 @@ def run():
     doc_fs.save()
     print("  [4.9] PASS: CEO edited/approved Feedback Survey FS1.")
 
+    # 4.10 Field Officer FO1 cannot fill a Project-level feedback survey (PM only)
+    frappe.session.user = "fo1_test@krushivikas.org"
+    try:
+        fs_proj_bad = frappe.new_doc("Feedback Survey")
+        fs_proj_bad.survey_level = "Project"
+        fs_proj_bad.project = p1.name
+        fs_proj_bad.village = "Ralegan Siddhi"
+        fs_proj_bad.date_of_visit = "2026-09-15"
+        fs_proj_bad.field_officer = "fo1_test@krushivikas.org"
+        fs_proj_bad.respondent_type = "Farmer"
+        fs_proj_bad.total_participants = 10
+        fs_proj_bad.adoption_percentage = 70.0
+        fs_proj_bad.outputs_achieved = "Project Output"
+        fs_proj_bad.significant_change = "Project Outcome"
+        fs_proj_bad.confirmation_accuracy = 1
+        fs_proj_bad.insert()
+        assert False, "FO1 should NOT be allowed to create a Project-level feedback survey!"
+    except frappe.PermissionError as e:
+        print(f"  [4.10] PASS: Field Officer FO1 blocked from creating Project-level survey: {str(e)[:70]}")
+
+    # 4.11 Project Manager PM1 cannot fill an Activity-level feedback survey (FO only)
+    frappe.session.user = "pm1_test@krushivikas.org"
+    try:
+        fs_act_bad = frappe.new_doc("Feedback Survey")
+        fs_act_bad.survey_level = "Activity"
+        fs_act_bad.linked_activity = a1.name
+        fs_act_bad.activity = a1.activity_name
+        fs_act_bad.project = p1.name
+        fs_act_bad.village = "Ralegan Siddhi"
+        fs_act_bad.date_of_visit = "2026-09-15"
+        fs_act_bad.field_officer = "pm1_test@krushivikas.org"
+        fs_act_bad.respondent_type = "Farmer"
+        fs_act_bad.total_participants = 10
+        fs_act_bad.adoption_percentage = 70.0
+        fs_act_bad.outputs_achieved = "Activity Output"
+        fs_act_bad.significant_change = "Activity Outcome"
+        fs_act_bad.confirmation_accuracy = 1
+        fs_act_bad.insert()
+        assert False, "PM1 should NOT be allowed to create an Activity-level feedback survey!"
+    except frappe.PermissionError as e:
+        print(f"  [4.11] PASS: Project Manager PM1 blocked from creating Activity-level survey: {str(e)[:70]}")
+
+    # 4.12 Project Manager PM1 creates Project-level feedback survey for their project -> MUST PASS
+    frappe.session.user = "pm1_test@krushivikas.org"
+    fs_proj = frappe.new_doc("Feedback Survey")
+    fs_proj.survey_level = "Project"
+    fs_proj.project = p1.name
+    fs_proj.village = "Ralegan Siddhi"
+    fs_proj.date_of_visit = "2026-09-15"
+    fs_proj.field_officer = "pm1_test@krushivikas.org"
+    fs_proj.respondent_type = "Farmer"
+    fs_proj.total_participants = 50
+    fs_proj.adoption_percentage = 85.0
+    fs_proj.outputs_achieved = "Overall project outputs achieved"
+    fs_proj.significant_change = "Overall community improvement observed"
+    fs_proj.confirmation_accuracy = 1
+    fs_proj.insert()
+    print(f"  [4.12] PASS: PM1 created Project-level Feedback Survey '{fs_proj.name}' for {p1.name}.")
+
+    # 4.13 Activity creation unblocked: Creating new Activity without survey must succeed
+    frappe.session.user = "pm1_test@krushivikas.org"
+    a_new = frappe.new_doc("Activity")
+    a_new.activity_name = "Water Harvesting Activity"
+    a_new.project = p1.name
+    a_new.assignee = "pm1_test@krushivikas.org"
+    a_new.status = "Open"
+    a_new.approved_budget = 50000
+    a_new.insert()
+    print(f"  [4.13] PASS: New Activity '{a_new.name}' created without requiring initial feedback survey.")
+
+    # 4.14 Activity completion validation: Cannot mark Completed without Feedback Survey
+    frappe.session.user = "pm1_test@krushivikas.org"
+    doc_a = frappe.get_doc("Activity", a_new.name)
+    doc_a.status = "Completed"
+    try:
+        doc_a.save()
+        assert False, "Activity should NOT be closed without at least one feedback survey!"
+    except frappe.ValidationError as e:
+        print(f"  [4.14a] PASS: Closing Activity without feedback survey blocked: {str(e)[:70]}")
+
+    # FO1 fills feedback survey for a_new -> now Activity can be closed
+    frappe.session.user = "fo1_test@krushivikas.org"
+    fs_act_new = frappe.new_doc("Feedback Survey")
+    fs_act_new.survey_level = "Activity"
+    fs_act_new.linked_activity = a_new.name
+    fs_act_new.activity = a_new.activity_name
+    fs_act_new.project = p1.name
+    fs_act_new.village = "Ralegan Siddhi"
+    fs_act_new.date_of_visit = "2026-09-16"
+    fs_act_new.field_officer = "fo1_test@krushivikas.org"
+    fs_act_new.respondent_type = "Farmer"
+    fs_act_new.total_participants = 15
+    fs_act_new.adoption_percentage = 90.0
+    fs_act_new.outputs_achieved = "Water pond completed"
+    fs_act_new.significant_change = "Water available for irrigation"
+    fs_act_new.confirmation_accuracy = 1
+    fs_act_new.insert()
+
+    frappe.session.user = "pm1_test@krushivikas.org"
+    doc_a = frappe.get_doc("Activity", a_new.name)
+    doc_a.status = "Completed"
+    doc_a.save()
+    assert doc_a.status == "Completed", f"Expected Completed, got {doc_a.status}"
+    print(f"  [4.14b] PASS: Activity marked Completed after adding feedback survey '{fs_act_new.name}'.")
+
+    # 4.15 Project creation unblocked: Creating new Project without survey must succeed
+    frappe.session.user = "pc1_test@krushivikas.org"
+    p_fresh = frappe.new_doc("KV Project")
+    p_fresh.project_name = "Solar Pump Initiative 2026"
+    p_fresh.project_coordinator = "pc1_test@krushivikas.org"
+    p_fresh.project_manager = "pm1_test@krushivikas.org"
+    p_fresh.start_date = "2026-10-01"
+    p_fresh.end_date = "2026-12-31"
+    p_fresh.budget = 200000
+    p_fresh.status = "Open"
+    p_fresh.insert()
+    print(f"  [4.15] PASS: New Project '{p_fresh.name}' created without requiring initial feedback survey.")
+
+    # 4.16 Project completion validation: Cannot mark Completed without Feedback Survey
+    frappe.session.user = "pc1_test@krushivikas.org"
+    doc_p = frappe.get_doc("KV Project", p_fresh.name)
+    doc_p.status = "Completed"
+    try:
+        doc_p.save()
+        assert False, "Project should NOT be closed without at least one feedback survey!"
+    except frappe.ValidationError as e:
+        print(f"  [4.16a] PASS: Closing Project without feedback survey blocked: {str(e)[:70]}")
+
+    # PM1 creates Project-level survey for p_fresh -> now Project can be completed
+    frappe.session.user = "pm1_test@krushivikas.org"
+    fs_fresh_proj = frappe.new_doc("Feedback Survey")
+    fs_fresh_proj.survey_level = "Project"
+    fs_fresh_proj.project = p_fresh.name
+    fs_fresh_proj.village = "Ralegan Siddhi"
+    fs_fresh_proj.date_of_visit = "2026-10-02"
+    fs_fresh_proj.field_officer = "pm1_test@krushivikas.org"
+    fs_fresh_proj.respondent_type = "Farmer"
+    fs_fresh_proj.total_participants = 30
+    fs_fresh_proj.adoption_percentage = 95.0
+    fs_fresh_proj.outputs_achieved = "Solar pumps functional"
+    fs_fresh_proj.significant_change = "Clean energy adoption"
+    fs_fresh_proj.confirmation_accuracy = 1
+    fs_fresh_proj.insert()
+
+    frappe.session.user = "pc1_test@krushivikas.org"
+    doc_p = frappe.get_doc("KV Project", p_fresh.name)
+    doc_p.status = "Completed"
+    doc_p.save()
+    assert doc_p.status == "Completed", f"Expected Completed, got {doc_p.status}"
+    print(f"  [4.16b] PASS: Project marked Completed after adding Project-level feedback survey '{fs_fresh_proj.name}'.")
+
     # ----------------------------------------------------
     # SECTION 5: TASK EVIDENCE REVIEW WORKFLOW (MAKER-CHECKER)
     # ----------------------------------------------------

@@ -6,14 +6,16 @@
  "engine": "InnoDB",
  "field_order": [
   "section_respondent",
+  "survey_level",
+  "project",
+  "linked_activity",
+  "activity",
   "village",
   "date_of_visit",
   "field_officer",
-  "activity",
   "column_break_1",
   "respondent_type",
   "respondent_type_other",
-  "project",
   "beneficiary",
   "section_quantitative",
   "total_participants",
@@ -41,6 +43,42 @@
    "label": "Respondent & Activity Details"
   },
   {
+   "default": "Activity",
+   "fieldname": "survey_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Survey Level",
+   "options": "Activity\nProject",
+   "reqd": 1
+  },
+  {
+   "description": "The Krushi Vikas project this belongs to. Required for Project-level surveys.",
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "KV Project",
+   "mandatory_depends_on": "eval:doc.survey_level=='Project'"
+  },
+  {
+   "depends_on": "eval:doc.survey_level=='Activity'",
+   "fieldname": "linked_activity",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Linked Activity",
+   "options": "Activity"
+  },
+  {
+   "fieldname": "activity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Activity / Intervention",
+   "reqd": 0,
+   "depends_on": "eval:doc.survey_level=='Activity'",
+   "mandatory_depends_on": "eval:doc.survey_level=='Activity'"
+  },
+  {
    "fieldname": "village",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -64,13 +102,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "activity",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Activity / Intervention",
-   "reqd": 1
-  },
-  {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
@@ -88,14 +119,6 @@
    "fieldname": "respondent_type_other",
    "fieldtype": "Data",
    "label": "Other (please specify)"
-  },
-  {
-   "description": "The Krushi Vikas project this belongs to. Repointed from the ERPNext Project doctype, which this app does not populate.",
-   "fieldname": "project",
-   "fieldtype": "Link",
-   "in_standard_filter": 1,
-   "label": "Project",
-   "options": "KV Project"
   },
   {
    "fieldname": "beneficiary",

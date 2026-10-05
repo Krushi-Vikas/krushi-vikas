@@ -28,7 +28,9 @@
   "column_break_4",
   "achievement",
   "tasks_section",
-  "tasks"
+  "tasks",
+  "feedback_surveys_section",
+  "feedback_surveys"
  ],
  "fields": [
   {
@@ -176,6 +178,18 @@
    "fieldtype": "Table",
    "label": "Tasks",
    "options": "Activity Task Detail"
+  },
+  {
+   "fieldname": "feedback_surveys_section",
+   "fieldtype": "Section Break",
+   "label": "Feedback Surveys & Field Observations"
+  },
+  {
+   "fieldname": "feedback_surveys",
+   "fieldtype": "Table",
+   "label": "Feedback Surveys",
+   "options": "Project Feedback Detail",
+   "read_only": 1
   }
  ],
  "links": [],

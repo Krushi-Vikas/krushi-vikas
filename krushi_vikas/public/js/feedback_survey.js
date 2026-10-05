@@ -11,7 +11,13 @@
   // State
   let currentStep = 1;
   const totalSteps = 4;
+  let rawActivitiesList = [];
+  let rawProjectsList = [];
+
   const formData = {
+    survey_level: 'Activity',
+    project: '',
+    linked_activity: '',
     village: '',
     date_of_visit: '',
     field_officer: '',
@@ -44,6 +50,7 @@
   // Initialize
   document.addEventListener('DOMContentLoaded', () => {
     initDefaultDate();
+    initUrlParams();
     initOptions();
     bindEvents();
     updateUI();
@@ -54,6 +61,31 @@
       const today = new Date().toISOString().split('T')[0];
       dateInput.value = today;
     }
+  }
+
+  function initUrlParams() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramLevel = urlParams.get('survey_level');
+      const paramProject = urlParams.get('project');
+      const paramActivity = urlParams.get('activity');
+
+      if (paramLevel && (paramLevel.toLowerCase() === 'project' || paramLevel.toLowerCase() === 'activity')) {
+        formData.survey_level = paramLevel.charAt(0).toUpperCase() + paramLevel.slice(1).toLowerCase();
+        const rad = document.getElementById(`survey_level_${formData.survey_level.toLowerCase()}`);
+        if (rad) rad.checked = true;
+      }
+      if (paramProject) {
+        formData.project = paramProject;
+      }
+      if (paramActivity) {
+        formData.activity = paramActivity;
+        formData.linked_activity = paramActivity;
+      }
+    } catch (e) {
+      console.warn('Could not parse URL params', e);
+    }
+    handleSurveyLevelChange(formData.survey_level);
   }
 
   function initOptions() {
@@ -80,8 +112,86 @@
   function applyOptions(msg) {
     if (msg.villages) populateSelect('village', msg.villages, 'Select village');
     if (msg.field_officers) populateOfficers('field_officer', msg.field_officers);
-    if (msg.activities) populateSelect('activity', msg.activities, 'Select activity');
+    if (msg.projects) {
+      rawProjectsList = msg.projects;
+      populateProjects('project', msg.projects);
+    }
+    if (msg.activities_list && msg.activities_list.length > 0) {
+      rawActivitiesList = msg.activities_list;
+      populateActivities('activity', rawActivitiesList, formData.project);
+    } else if (msg.activities) {
+      populateSelect('activity', msg.activities, 'Select activity');
+    }
     if (msg.respondent_types) populateSelect('respondent_type', msg.respondent_types, 'Select type');
+
+    // Pre-select project or activity if in formData
+    if (formData.project) {
+      const projSelect = document.getElementById('project');
+      if (projSelect) projSelect.value = formData.project;
+    }
+    if (formData.activity) {
+      const actSelect = document.getElementById('activity');
+      if (actSelect) actSelect.value = formData.activity;
+    }
+    handleSurveyLevelChange(formData.survey_level);
+  }
+
+  function populateProjects(elemId, projects) {
+    const select = document.getElementById(elemId);
+    if (!select || !projects) return;
+    const currentVal = formData.project || select.value;
+    select.innerHTML = '<option value="">Select project</option>' +
+      projects.map(p => {
+        const val = p.name;
+        const label = p.project_name ? `${p.project_name} (${p.name})` : p.name;
+        const isSel = (currentVal === val) ? 'selected' : '';
+        return `<option value="${escapeHtml(val)}" ${isSel}>${escapeHtml(label)}</option>`;
+      }).join('');
+  }
+
+  function populateActivities(elemId, activities, filterProject) {
+    const select = document.getElementById(elemId);
+    if (!select || !activities) return;
+    let list = activities;
+    if (filterProject) {
+      list = activities.filter(a => !a.project || a.project === filterProject);
+      if (list.length === 0) list = activities; // fallback if no specific match
+    }
+    const currentVal = formData.activity || select.value;
+    select.innerHTML = '<option value="">Select activity</option>' +
+      list.map(a => {
+        const val = a.name || a.activity_name;
+        const label = a.activity_name ? `${a.activity_name}${a.project ? ' [' + a.project + ']' : ''}` : val;
+        const isSel = (currentVal === val || currentVal === a.activity_name) ? 'selected' : '';
+        return `<option value="${escapeHtml(val)}" data-project="${escapeHtml(a.project || '')}" data-name="${escapeHtml(a.name || '')}" ${isSel}>${escapeHtml(label)}</option>`;
+      }).join('');
+  }
+
+  function handleSurveyLevelChange(level) {
+    formData.survey_level = level;
+    const isProject = (level === 'Project');
+    const labelAct = document.getElementById('label_level_activity');
+    const labelProj = document.getElementById('label_level_project');
+    const projectReq = document.getElementById('project_req');
+    const activityReq = document.getElementById('activity_req');
+    const officerLabel = document.getElementById('field_officer_label');
+    const dateLabel = document.getElementById('date_of_visit_label');
+
+    if (isProject) {
+      if (labelAct) { labelAct.style.borderColor = '#e2e8f0'; labelAct.style.background = '#ffffff'; }
+      if (labelProj) { labelProj.style.borderColor = '#059669'; labelProj.style.background = '#ecfdf5'; }
+      if (projectReq) projectReq.style.display = 'inline';
+      if (activityReq) activityReq.style.display = 'none';
+      if (officerLabel) officerLabel.innerHTML = 'Project Manager / Evaluator <span class="req">*</span>';
+      if (dateLabel) dateLabel.innerHTML = 'Date of Evaluation / Survey <span class="req">*</span>';
+    } else {
+      if (labelAct) { labelAct.style.borderColor = '#059669'; labelAct.style.background = '#ecfdf5'; }
+      if (labelProj) { labelProj.style.borderColor = '#e2e8f0'; labelProj.style.background = '#ffffff'; }
+      if (projectReq) projectReq.style.display = 'none';
+      if (activityReq) activityReq.style.display = 'inline';
+      if (officerLabel) officerLabel.innerHTML = 'Field Officer / Facilitator <span class="req">*</span>';
+      if (dateLabel) dateLabel.innerHTML = 'Date of Visit <span class="req">*</span>';
+    }
   }
 
   function populateSelect(elemId, items, placeholder) {
@@ -140,6 +250,42 @@
       });
     });
 
+    // Survey Level change listener
+    document.querySelectorAll('input[name="survey_level"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        handleSurveyLevelChange(e.target.value);
+      });
+    });
+
+    // Project selection listener
+    const projectSelect = document.getElementById('project');
+    if (projectSelect) {
+      projectSelect.addEventListener('change', (e) => {
+        formData.project = e.target.value;
+        if (rawActivitiesList.length > 0 && formData.survey_level === 'Activity') {
+          populateActivities('activity', rawActivitiesList, formData.project);
+        }
+      });
+    }
+
+    // Activity selection listener
+    const activitySelect = document.getElementById('activity');
+    if (activitySelect) {
+      activitySelect.addEventListener('change', () => {
+        const selectedOpt = activitySelect.options[activitySelect.selectedIndex];
+        const actName = selectedOpt ? selectedOpt.getAttribute('data-name') : '';
+        const actProject = selectedOpt ? selectedOpt.getAttribute('data-project') : '';
+        formData.activity = activitySelect.value;
+        formData.linked_activity = actName || activitySelect.value;
+        const linkedInput = document.getElementById('linked_activity');
+        if (linkedInput) linkedInput.value = formData.linked_activity;
+        if (actProject && projectSelect && !projectSelect.value) {
+          projectSelect.value = actProject;
+          formData.project = actProject;
+        }
+      });
+    }
+
     // Respondent Type conditional 'Other' field
     if (respondentTypeSelect) {
       respondentTypeSelect.addEventListener('change', () => {
@@ -177,6 +323,15 @@
   }
 
   function collectStepData() {
+    const levelRadio = document.querySelector('input[name="survey_level"]:checked');
+    if (levelRadio) formData.survey_level = levelRadio.value;
+
+    const projectSelect = document.getElementById('project');
+    if (projectSelect) formData.project = projectSelect.value;
+
+    const linkedAct = document.getElementById('linked_activity');
+    if (linkedAct) formData.linked_activity = linkedAct.value;
+
     const activePanel = document.querySelector(`.form-step-panel[data-step="${currentStep}"]`);
     if (!activePanel) return;
 
@@ -203,32 +358,41 @@
       const village = document.getElementById('village');
       const dateOfVisit = document.getElementById('date_of_visit');
       const officer = document.getElementById('field_officer');
+      const project = document.getElementById('project');
       const activity = document.getElementById('activity');
       const respondentType = document.getElementById('respondent_type');
       const otherInput = document.getElementById('respondent_type_other');
+
+      if (formData.survey_level === 'Project') {
+        if (!project || !project.value.trim()) {
+          showError(project, 'Please select a Project for Project Level Feedback');
+          isValid = false;
+        }
+      } else {
+        if (!activity || !activity.value.trim()) {
+          showError(activity, 'Please select an Activity / Intervention for Activity Level Feedback');
+          isValid = false;
+        }
+      }
 
       if (!village.value.trim()) { 
         showError(village, 'Please select or enter a Village / Location'); 
         isValid = false; 
       }
       if (!dateOfVisit.value.trim()) { 
-        showError(dateOfVisit, 'Please select the Date of Visit'); 
+        showError(dateOfVisit, 'Please select the Date of Visit / Survey'); 
         isValid = false; 
       } else {
         const selectedDate = new Date(dateOfVisit.value);
         const today = new Date();
         today.setHours(23, 59, 59, 999);
         if (selectedDate > today) {
-          showError(dateOfVisit, 'Date of Visit cannot be in the future');
+          showError(dateOfVisit, 'Date cannot be in the future');
           isValid = false;
         }
       }
       if (!officer.value.trim()) { 
-        showError(officer, 'Please select a Field Officer / Facilitator'); 
-        isValid = false; 
-      }
-      if (!activity.value.trim()) { 
-        showError(activity, 'Please select an Activity / Intervention'); 
+        showError(officer, formData.survey_level === 'Project' ? 'Please select a Project Manager / Evaluator' : 'Please select a Field Officer / Facilitator'); 
         isValid = false; 
       }
       if (!respondentType.value.trim()) { 
@@ -387,6 +551,9 @@
     collectStepData();
 
     // Section A Review
+    const revSurveyLevel = document.getElementById('rev_survey_level');
+    const revProject = document.getElementById('rev_project');
+    const revOfficerKey = document.getElementById('rev_officer_key');
     const revVillage = document.getElementById('rev_village');
     const revDate = document.getElementById('rev_date');
     const revOfficer = document.getElementById('rev_officer');
@@ -394,6 +561,15 @@
     const revRespondentType = document.getElementById('rev_respondent_type');
     const revOther = document.getElementById('rev_other');
 
+    if (revSurveyLevel) revSurveyLevel.textContent = `${formData.survey_level || 'Activity'} Level`;
+    if (revProject) {
+      const projSelect = document.getElementById('project');
+      const projText = projSelect && projSelect.selectedIndex > 0 ? projSelect.options[projSelect.selectedIndex].text : formData.project;
+      revProject.textContent = projText || formData.project || '-';
+    }
+    if (revOfficerKey) {
+      revOfficerKey.textContent = (formData.survey_level === 'Project') ? 'Project Manager / Evaluator' : 'Field Officer / Facilitator';
+    }
     if (revVillage) revVillage.textContent = formData.village || '-';
     if (revDate) revDate.textContent = formatDateDisplay(formData.date_of_visit);
     if (revOfficer) {
@@ -401,7 +577,9 @@
       const officerText = officerSelect ? officerSelect.options[officerSelect.selectedIndex]?.text : formData.field_officer;
       revOfficer.textContent = officerText || formData.field_officer || '-';
     }
-    if (revActivity) revActivity.textContent = formData.activity || '-';
+    if (revActivity) {
+      revActivity.textContent = (formData.survey_level === 'Project') ? (formData.activity || 'Not Applicable (Project Level)') : (formData.activity || '-');
+    }
     if (revRespondentType) revRespondentType.textContent = formData.respondent_type || '-';
     if (revOther) revOther.textContent = formData.respondent_type_other || '-';
 
@@ -476,6 +654,10 @@
     }
 
     const payload = { ...formData, submit_now: true };
+    if (payload.survey_level === 'Activity') {
+      if (!payload.linked_activity && payload.activity) payload.linked_activity = payload.activity;
+      if (!payload.activity && payload.linked_activity) payload.activity = payload.linked_activity;
+    }
 
     function getCsrfToken() {
       if (window.csrf_token && window.csrf_token !== 'None' && window.csrf_token !== '') {
@@ -514,11 +696,17 @@
     .then(resData => {
       if (resData && resData.message && resData.message.success) {
         showSuccessScreen(resData.message.name);
+      } else if (resData && resData.message && resData.message.error) {
+        alert('Submission error: ' + resData.message.error);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Submit';
+        }
       } else if (resData && resData.exc) {
         alert('Submission error: ' + (resData._server_messages || 'Validation failed.'));
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = 'Submit ✈';
+          submitBtn.innerHTML = 'Submit';
         }
       } else {
         const mockRef = 'FS-2026-' + Math.floor(10000 + Math.random() * 90000);
