@@ -105,6 +105,8 @@ def run():
     for fo_email in ["fo1_test@krushivikas.org", "fo2_test@krushivikas.org"]:
         emp_id = frappe.db.get_value("Employee", {"user_id": fo_email}, "name")
         if not emp_id:
+            if not frappe.db.exists("Gender", "Female"):
+                frappe.get_doc({"doctype": "Gender", "gender": "Female"}).insert(ignore_permissions=True)
             emp = frappe.new_doc("Employee")
             emp.first_name = fo_email.split("_")[0].upper()
             emp.user_id = fo_email
