@@ -36,6 +36,7 @@ app_include_css = [
 add_to_apps_screen = [
     {
         "name": "krushi_vikas",
+        "logo": "/assets/krushi_vikas/logo.jpg",
         "title": "Krushi Vikas",
         "route": "/app/krushi-dashboard"
     }
