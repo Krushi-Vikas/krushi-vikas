@@ -582,7 +582,7 @@ def run():
     p_fresh.start_date = "2026-10-01"
     p_fresh.end_date = "2026-12-31"
     p_fresh.budget = 200000
-    p_fresh.status = "Open"
+    p_fresh.status = "Planning"
     p_fresh.insert()
     print(f"  [4.15] PASS: New Project '{p_fresh.name}' created without requiring initial feedback survey.")
 
