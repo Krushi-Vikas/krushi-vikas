@@ -2,6 +2,9 @@ import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 import json
 
+def execute():
+    run()
+    
 def run():
     setup_roles()
     setup_docperms()
