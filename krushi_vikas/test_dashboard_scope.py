@@ -257,7 +257,7 @@ def ensure_projects():
 		{
 			"project_name": PROJECT_B,
 			"project_coordinator": "pc2_test@krushivikas.org",
-			"project_manager": None,
+			"project_manager": "pm2_test@krushivikas.org",
 			"field_officer": None,
 		},
 	]
