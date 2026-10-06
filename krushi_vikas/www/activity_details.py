@@ -9,10 +9,16 @@ def get_context(context):
         detail = get_activity_detail(activity_id)
         context.activity = detail.get("activity") or {"name": "ACT-DEFAULT", "activity_name": "General Activity", "project": "General", "project_title": "General Project", "status": "Open"}
         context.tasks = detail.get("tasks") or []
+        context.feedback_surveys = detail.get("feedback_surveys") or []
     except Exception as e:
         context.error = str(e)
         context.activity = {"name": "ACT-DEFAULT", "activity_name": "General Activity", "project": "General", "project_title": "General Project", "status": "Open"}
         context.tasks = []
+        context.feedback_surveys = []
         
     context.options = get_all_dropdown_options()
+    roles = frappe.get_roles(frappe.session.user)
+    context.can_configure_task_evidence = frappe.session.user == "Administrator" or any(
+        role in roles for role in ("System Manager", "CEO", "Project Director", "Project Coordinator")
+    )
     return context

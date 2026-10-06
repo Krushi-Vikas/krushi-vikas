@@ -8,16 +8,46 @@ def execute():
 def run():
     setup_roles()
     setup_docperms()
+    setup_naming()
     setup_custom_fields()
+    setup_task_status_options()
     setup_workspace()
     setup_workflows()
     setup_default_app()
+    setup_branding()
     frappe.db.commit()
     print("All site configurations and workflows completed successfully!")
 
 def setup_default_app():
     print("Setting default app...")
     frappe.db.set_value("System Settings", "System Settings", "default_app", "krushi_vikas")
+
+def setup_branding():
+    """Replace the default Frappe/ERPNext mark on the login page and desk
+    with Krushi Vikas's own — shipped as a real app asset (not a runtime
+    File upload) so it survives a fresh install with no manual step.
+    """
+    print("Setting up Branding...")
+    ws = frappe.get_single("Website Settings")
+    changed = False
+
+    if ws.app_name != "Krushi Vikas":
+        ws.app_name = "Krushi Vikas"
+        changed = True
+
+    # The version suffix isn't for cache-busting the file itself (Frappe
+    # doesn't hash this path) — it's so that swapping the actual image on
+    # disk, as happened here, forces browsers who already cached the old
+    # bytes at the old URL to fetch fresh ones from a URL they've never
+    # seen. Bump it whenever the logo file changes.
+    logo_url = "/assets/krushi_vikas/images/logo.png?v=2"
+
+    if ws.app_logo != logo_url:
+        ws.app_logo = logo_url
+        changed = True
+
+    if changed:
+        ws.save(ignore_permissions=True)
 
 def setup_roles():
     print("Setting up Roles...")
@@ -42,20 +72,223 @@ def setup_docperms():
         {"parent": "Project", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Project", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Project", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
-        {"parent": "Project", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
         {"parent": "Project", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Project Activity (Child Table for Project)
+        {"parent": "Project Activity", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Activity", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # KV Project Activity (Child Table for KV Project)
+        {"parent": "KV Project Activity", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Activity", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
         # Task
         {"parent": "Task", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
         {"parent": "Task", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
-        {"parent": "Task", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
-        {"parent": "Task", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Task", "role": "Field Officer", "read": 1, "write": 1, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # KV Project — the app's own project doctype.
+        #
+        # A single Custom DocPerm row on a doctype makes Frappe ignore the
+        # permissions declared in its JSON entirely. Rows existed here for
+        # four roles, which silently dropped CEO and Project Director even
+        # though kv_project.json lists them — so the unrestricted executive
+        # access in api.has_project_permission never took effect, because the
+        # base permission check denied them first.
+        {"parent": "KV Project", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Activity — mirrors api.has_activity_permission.
+        {"parent": "Activity", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Activity", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Activity", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Activity", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Activity", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Roadmap documents (steps 01-03). Reviewers need write access in
+        # their review state; the workflows narrow it further per state.
+        {"parent": "Concept Note", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Concept Note", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Concept Note", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Concept Note", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Concept Note", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "RRA Report", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "RRA Report", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "RRA Report", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "RRA Report", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "RRA Report", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Proposal", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Proposal", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Proposal", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Proposal", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Proposal", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Project Theme / Sub-theme catalog. Only senior roles curate the
+        # tree; everyone else (including Project Manager and Coordinator)
+        # can only pick from what already exists — they never get create
+        # or write here, no matter what role grants it on other doctypes.
+        {"parent": "Project Theme", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Project Coordinator", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Project Theme", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # KV Project Template — only executives/coordinators manage the
+        # template catalog; Managers and Field Officers can read it (to
+        # build a project from one) but not create or edit templates.
+        {"parent": "KV Project Template", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "KV Project Template", "role": "Field Officer", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        # Feedback Survey — Field Officers conduct and submit surveys from the
+        # field. Peer Field Officers are isolated from each other's submissions,
+        # while management retains supervisory review and oversight.
+        {"parent": "Feedback Survey", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Project Coordinator", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Project Manager", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "cancel": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Feedback Survey", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "cancel": 0, "report": 1, "export": 1, "print": 1},
+        # Field surveys (step 05). These are raised in the field, so the Field
+        # Officer is the only non-executive role that can create one. Everyone
+        # above reads them — step 06 builds the project from this data — but
+        # api.has_survey_permission narrows each role to its own scope, and
+        # submitting locks the record so the 'before' picture cannot be edited.
+        {"parent": "Baseline Survey", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Baseline Survey", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Baseline Survey", "role": "Project Coordinator", "read": 1, "write": 1, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Baseline Survey", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Baseline Survey", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Village Profile", "role": "CEO", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Village Profile", "role": "Project Director", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "report": 1, "export": 1, "print": 1},
+        {"parent": "Village Profile", "role": "Project Coordinator", "read": 1, "write": 1, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Village Profile", "role": "Project Manager", "read": 1, "write": 0, "create": 0, "delete": 0, "report": 1, "export": 1, "print": 1},
+        {"parent": "Village Profile", "role": "Field Officer", "read": 1, "write": 1, "create": 1, "delete": 0, "submit": 1, "report": 1, "export": 1, "print": 1},
     ]
     for p in perms:
-        if not frappe.db.exists("Custom DocPerm", {"parent": p["parent"], "role": p["role"]}):
+        if not frappe.db.exists("DocType", p["parent"]):
+            continue
+
+        existing = frappe.db.get_value(
+            "Custom DocPerm", {"parent": p["parent"], "role": p["role"]}, "name"
+        )
+
+        if existing:
+            # Update in place: a stale row that is missing a permission is
+            # worse than no row at all, because Custom DocPerms suppress the
+            # doctype's own JSON permissions wholesale.
+            doc = frappe.get_doc("Custom DocPerm", existing)
+            doc.update(p)
+            doc.save(ignore_permissions=True)
+        else:
             doc = frappe.new_doc("Custom DocPerm")
             doc.update(p)
             doc.insert(ignore_permissions=True)
+
+def setup_naming():
+    """Show readable names instead of document IDs.
+
+    ERPNext names a Task TASK-2026-00001. That ID is the right thing to
+    store — it never changes when somebody edits the subject, so history and
+    links stay intact — but it is the wrong thing to show a field officer.
+
+    Task.title_field is already `subject`; what was missing is
+    show_title_field_in_link, which tells Frappe to render the subject
+    wherever the Task appears in a link field, list or breadcrumb. The ID
+    stays underneath as the immutable key.
+
+    Set autoname to "field:subject" instead if the ID itself must be the
+    subject — but note two tasks called "Site survey" would then collide,
+    and renaming a subject would rewrite every reference to it.
+    """
+    print("Setting up Naming & Titles...")
+
+    titles = [
+        # doctype, title field
+        ("Task", "subject"),
+        ("Activity", "activity_name"),
+        ("KV Project", "project_name"),
+        ("Concept Note", "title"),
+        ("RRA Report", "title"),
+        ("Project Proposal", "title"),
+        ("KV Project Template", "template_name"),
+    ]
+
+    for doctype, title_field in titles:
+        if not frappe.db.exists("DocType", doctype):
+            continue
+
+        set_doctype_property(doctype, "title_field", "Data", title_field)
+        set_doctype_property(doctype, "show_title_field_in_link", "Check", "1")
+
+    # Disable quick entry for Task and Project so full forms with all custom fields & activities open directly
+    set_doctype_property("Project", "quick_entry", "Check", "0")
+    set_doctype_property("Task", "quick_entry", "Check", "0")
+
+    # Link standard Task.project to KV Project so projects show in dropdowns
+    set_field_property("Task", "project", "options", "Link", "KV Project")
+
+    frappe.clear_cache()
+
+
+def set_doctype_property(doctype, prop, property_type, value):
+    """Idempotent doctype-level Property Setter."""
+    existing = frappe.db.get_value(
+        "Property Setter",
+        {"doc_type": doctype, "property": prop, "doctype_or_field": "DocType"},
+        "name",
+    )
+
+    if existing:
+        if frappe.db.get_value("Property Setter", existing, "value") != value:
+            frappe.db.set_value("Property Setter", existing, "value", value)
+        return
+
+    frappe.get_doc({
+        "doctype": "Property Setter",
+        "doctype_or_field": "DocType",
+        "doc_type": doctype,
+        "property": prop,
+        "property_type": property_type,
+        "value": value,
+        "module": "Krushi Vikas",
+    }).insert(ignore_permissions=True)
+
+
+def set_field_property(doctype, fieldname, prop, property_type, value):
+    """Idempotent field-level Property Setter."""
+    existing = frappe.db.get_value(
+        "Property Setter",
+        {"doc_type": doctype, "field_name": fieldname, "property": prop},
+        "name",
+    )
+
+    if existing:
+        if frappe.db.get_value("Property Setter", existing, "value") != value:
+            frappe.db.set_value("Property Setter", existing, "value", value)
+        return
+
+    frappe.get_doc({
+        "doctype": "Property Setter",
+        "doctype_or_field": "DocField",
+        "doc_type": doctype,
+        "field_name": fieldname,
+        "property": prop,
+        "property_type": property_type,
+        "value": value,
+        "module": "Krushi Vikas",
+    }).insert(ignore_permissions=True)
+
+
+def setup_task_status_options():
+    print("Setting up Task Status Options...")
+    options = "Open\nWorking\nPending Review\nNeeds Work\nOverdue\nTemplate\nCompleted\nCancelled"
+    set_field_property("Task", "status", "options", "Select", options)
+
 
 def setup_custom_fields():
     print("Setting up Custom Fields...")
@@ -103,6 +336,7 @@ def setup_custom_fields():
                 "options": "User",
                 "insert_after": "custom_is_milestone_activity",
                 "in_list_view": 1,
+                "allow_in_quick_entry": 1,
                 "module": "Krushi Vikas"
             },
             {
@@ -177,6 +411,86 @@ def setup_custom_fields():
                 "insert_after": "project",
                 "in_list_view": 1,
                 "in_standard_filter": 1,
+                "module": "Krushi Vikas",
+                "allow_in_quick_entry": 1
+            },
+            {
+                "fieldname": "custom_assignee",
+                "label": "Assigned Field Officer",
+                "fieldtype": "Link",
+                "options": "User",
+                "insert_after": "custom_activity_owner",
+                "in_list_view": 1,
+                "allow_in_quick_entry": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_section_evidence",
+                "label": "Task Evidence & Review",
+                "fieldtype": "Section Break",
+                "insert_after": "custom_activity",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_require_evidence",
+                "label": "Evidence Image Required for Completion",
+                "fieldtype": "Check",
+                "default": "0",
+                "insert_after": "custom_section_evidence",
+                "in_list_view": 1,
+                "in_standard_filter": 1,
+                "allow_in_quick_entry": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_evidence_image",
+                "label": "Task Evidence Image / Attachment",
+                "fieldtype": "Attach Image",
+                "insert_after": "custom_require_evidence",
+                "allow_in_quick_entry": 1,
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_col_evidence",
+                "fieldtype": "Column Break",
+                "insert_after": "custom_evidence_image",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_review_status",
+                "label": "Evidence Review Status",
+                "fieldtype": "Select",
+                "options": "Not Submitted\nPending Review\nApproved\nRejected",
+                "default": "Not Submitted",
+                "read_only": 1,
+                "in_list_view": 1,
+                "in_standard_filter": 1,
+                "insert_after": "custom_col_evidence",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_review_comment",
+                "label": "Review Comment / Instructions",
+                "fieldtype": "Small Text",
+                "read_only": 1,
+                "insert_after": "custom_review_status",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_reviewed_by",
+                "label": "Reviewed By",
+                "fieldtype": "Link",
+                "options": "User",
+                "read_only": 1,
+                "insert_after": "custom_review_comment",
+                "module": "Krushi Vikas"
+            },
+            {
+                "fieldname": "custom_reviewed_on",
+                "label": "Reviewed On",
+                "fieldtype": "Datetime",
+                "read_only": 1,
+                "insert_after": "custom_reviewed_by",
                 "module": "Krushi Vikas"
             }
         ],
@@ -217,6 +531,7 @@ def setup_custom_fields():
                 "options": "User",
                 "insert_after": "custom_project_coordinator",
                 "in_list_view": 1,
+                "reqd": 1,
                 "module": "Krushi Vikas"
             },
             {
@@ -327,6 +642,16 @@ def setup_custom_fields():
                 "insert_after": "custom_activities_sec",
                 "module": "Krushi Vikas"
             }
+        ],
+        "User": [
+            {
+                "fieldname": "whatsapp_number",
+                "label": "WhatsApp Number",
+                "fieldtype": "Data",
+                "insert_after": "mobile_no",
+                "description": "E.164 format, digits only, no leading + (e.g. 919876543210). Used for overdue-task and approval WhatsApp alerts.",
+                "module": "Krushi Vikas"
+            }
         ]
     }
     create_custom_fields(custom_fields, update=True)
@@ -358,7 +683,9 @@ def setup_workflows():
         ("Director Signoff", "Primary"),
         ("Approved", "Success"),
         ("Rejected", "Danger"),
-        ("Under Review", "Warning")
+        ("Under Review", "Warning"),
+        ("Management Review", "Warning"),
+        ("Director Review", "Info")
     ]
     for state_name, style in states:
         if not frappe.db.exists("Workflow State", state_name):
@@ -367,45 +694,190 @@ def setup_workflows():
             doc.style = style
             doc.insert(ignore_permissions=True)
 
-    actions = ["Submit", "Review", "Approve", "Reject", "Send Back", "Submit for Review"]
+    actions = [
+        "Submit", "Review", "Approve", "Reject", "Send Back",
+        "Submit for Review", "Escalate"
+    ]
     for action_name in actions:
         if not frappe.db.exists("Workflow Action Master", action_name):
             doc = frappe.new_doc("Workflow Action Master")
             doc.workflow_action_name = action_name
             doc.insert(ignore_permissions=True)
 
-    # Activity Outcome Workflow
-    if frappe.db.exists("Workflow", "Activity Outcome Approval"):
-        frappe.delete_doc("Workflow", "Activity Outcome Approval", ignore_permissions=True)
-
-    if True:
-        wf = frappe.new_doc("Workflow")
-        wf.workflow_name = "Activity Outcome Approval"
-        wf.document_type = "Activity Outcome"
-        wf.is_active = 1
-        wf.workflow_state_field = "workflow_state"
-        wf.send_email_alert = 0
-        
-        wf.set("states", [
-            {"state": "Draft", "doc_status": "0", "allow_edit": "Field Officer"},
-            {"state": "PM Review", "doc_status": "0", "allow_edit": "Project Manager"},
-            {"state": "PC Approval", "doc_status": "1", "allow_edit": "Project Coordinator"},
-            {"state": "Director Signoff", "doc_status": "1", "allow_edit": "Project Director"},
-            {"state": "Approved", "doc_status": "1", "allow_edit": "Project Coordinator"},
-            {"state": "Rejected", "doc_status": "0", "allow_edit": "Field Officer"},
-        ])
-        
-        wf.set("transitions", [
+    # Activity Outcome Workflow — step 10 of the roadmap.
+    ensure_workflow(
+        "Activity Outcome Approval", "Activity Outcome", "workflow_state",
+        [
+            {"state": "Draft", "doc_status": "0", "allow_edit_roles": ["Field Officer"]},
+            {"state": "PM Review", "doc_status": "0", "allow_edit_roles": ["Project Manager"]},
+            {"state": "PC Approval", "doc_status": "1", "allow_edit_roles": ["Project Coordinator"]},
+            {"state": "Director Signoff", "doc_status": "1", "allow_edit_roles": [EXEC]},
+            {"state": "Approved", "doc_status": "1", "allow_edit_roles": ["Project Coordinator"]},
+            {"state": "Rejected", "doc_status": "0", "allow_edit_roles": ["Field Officer"]},
+        ],
+        [
             {"state": "Draft", "action": "Submit", "next_state": "PM Review", "allowed": "Field Officer"},
             {"state": "PM Review", "action": "Approve", "next_state": "PC Approval", "allowed": "Project Manager"},
             {"state": "PM Review", "action": "Reject", "next_state": "Rejected", "allowed": "Project Manager"},
             {"state": "Rejected", "action": "Submit", "next_state": "PM Review", "allowed": "Field Officer"},
-            {"state": "PC Approval", "action": "Approve", "next_state": "Approved", "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 0"},
-            {"state": "PC Approval", "action": "Approve", "next_state": "Director Signoff", "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 1"},
-            {"state": "Director Signoff", "action": "Approve", "next_state": "Approved", "allowed": "Project Director"}
-        ])
-        wf.insert(ignore_permissions=True)
-        print("Workflow 'Activity Outcome Approval' created!")
+            {"state": "PC Approval", "action": "Approve", "next_state": "Approved",
+             "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 0"},
+            {"state": "PC Approval", "action": "Approve", "next_state": "Director Signoff",
+             "allowed": "Project Coordinator", "condition": "doc.is_milestone_activity == 1"},
+            {"state": "Director Signoff", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Director Signoff", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
+        ],
+    )
+
+    setup_journey_workflows()
+
+
+# Leadership tiers that sign off. Kept together so a role rename is a
+# one-line change rather than a hunt through transitions.
+EXEC = "Project Director"
+
+
+# An active workflow narrows editing to the roles named in each state's
+# allow_edit. Without these, the executive tier would lose the unrestricted
+# rights that krushi_vikas.api.has_project_permission grants them — a
+# workflow would silently outrank the permission model.
+ALWAYS_EDIT = ("System Manager", "Project Director", "CEO")
+
+
+def expand_states(states):
+    """Frappe stores one role per state row, so a state editable by several
+    roles needs one row each. Written here as a list per state and expanded."""
+    rows = []
+
+    for state in states:
+        roles = list(state.get("allow_edit_roles") or [])
+
+        for role in ALWAYS_EDIT:
+            if role not in roles:
+                roles.append(role)
+
+        for role in roles:
+            rows.append(
+                {
+                    "state": state["state"],
+                    "doc_status": state["doc_status"],
+                    "allow_edit": role,
+                }
+            )
+
+    return rows
+
+
+def ensure_workflow(name, doctype, state_field, states, transitions):
+    """Recreate a workflow from scratch so edits to this file always win.
+
+    Frappe has no merge semantics for workflow rows; deleting and
+    reinserting is the only way to make this idempotent.
+    """
+    if frappe.db.exists("Workflow", name):
+        frappe.delete_doc("Workflow", name, ignore_permissions=True, force=True)
+
+    states = expand_states(states)
+
+    wf = frappe.new_doc("Workflow")
+    wf.workflow_name = name
+    wf.document_type = doctype
+    wf.is_active = 1
+    wf.workflow_state_field = state_field
+    wf.send_email_alert = 0
+    wf.set("states", states)
+    wf.set("transitions", transitions)
+    wf.insert(ignore_permissions=True)
+    print(f"Workflow '{name}' created!")
+
+
+def setup_journey_workflows():
+    """The maker-checker gates of the 10-step operational roadmap.
+
+    Steps 04 (external approval of the proposal) and 07 (internal approval
+    of the project) are the two hard gates; the concept note and appraisal
+    carry lighter review loops so nothing enters the pipeline unreviewed.
+    """
+
+    # ── 01 Concept Note — reviewed by management ──────────────────
+    # Uses the existing `status` Select rather than adding a second
+    # status field to the form.
+    ensure_workflow(
+        "Concept Note Approval", "Concept Note", "status",
+        [
+            {"state": "Draft", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
+            {"state": "Under Review", "doc_status": "0", "allow_edit_roles": [EXEC]},
+            {"state": "Approved", "doc_status": "1", "allow_edit_roles": [EXEC]},
+            {"state": "Rejected", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
+        ],
+        [
+            {"state": "Draft", "action": "Submit for Review", "next_state": "Under Review",
+             "allowed": "Project Coordinator"},
+            {"state": "Under Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Under Review", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
+            {"state": "Under Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
+            {"state": "Under Review", "action": "Reject", "next_state": "Rejected", "allowed": "CEO"},
+            {"state": "Rejected", "action": "Submit for Review", "next_state": "Under Review",
+             "allowed": "Project Coordinator"},
+        ],
+    )
+
+    # ── 02 RRA Report — management appraisal ──────────────────────
+    ensure_workflow(
+        "RRA Report Approval", "RRA Report", "workflow_state",
+        [
+            {"state": "Draft", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
+            {"state": "Management Review", "doc_status": "0", "allow_edit_roles": [EXEC]},
+            {"state": "Approved", "doc_status": "1", "allow_edit_roles": [EXEC]},
+            {"state": "Rejected", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
+        ],
+        [
+            {"state": "Draft", "action": "Submit for Review", "next_state": "Management Review",
+             "allowed": "Project Coordinator"},
+            {"state": "Management Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Management Review", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
+            {"state": "Management Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
+            {"state": "Management Review", "action": "Reject", "next_state": "Rejected", "allowed": "CEO"},
+            {"state": "Rejected", "action": "Submit for Review", "next_state": "Management Review",
+             "allowed": "Project Coordinator"},
+        ],
+    )
+
+    # ── 03/04 Proposal — drafted by PM, signed off by Director/CXO ─
+    # This is gate 04 of the roadmap. create_project_from_proposal()
+    # refuses to run until this reaches Approved.
+    ensure_workflow(
+        "Project Proposal Approval", "Project Proposal", "workflow_state",
+        [
+            {"state": "Draft", "doc_status": "0", "allow_edit_roles": ["Project Manager"]},
+            {"state": "PC Review", "doc_status": "0", "allow_edit_roles": ["Project Coordinator"]},
+            {"state": "Director Review", "doc_status": "0", "allow_edit_roles": [EXEC]},
+            {"state": "Approved", "doc_status": "1", "allow_edit_roles": [EXEC]},
+            {"state": "Rejected", "doc_status": "0", "allow_edit_roles": ["Project Manager"]},
+        ],
+        [
+            {"state": "Draft", "action": "Submit for Review", "next_state": "PC Review",
+             "allowed": "Project Manager"},
+            {"state": "PC Review", "action": "Escalate", "next_state": "Director Review",
+             "allowed": "Project Coordinator"},
+            {"state": "PC Review", "action": "Send Back", "next_state": "Draft",
+             "allowed": "Project Coordinator"},
+            {"state": "Director Review", "action": "Approve", "next_state": "Approved", "allowed": EXEC},
+            {"state": "Director Review", "action": "Approve", "next_state": "Approved", "allowed": "CEO"},
+            {"state": "Director Review", "action": "Reject", "next_state": "Rejected", "allowed": EXEC},
+            {"state": "Director Review", "action": "Reject", "next_state": "Rejected", "allowed": "CEO"},
+            {"state": "Rejected", "action": "Submit for Review", "next_state": "PC Review",
+             "allowed": "Project Manager"},
+        ],
+    )
+
+    # The project's own approval is no longer a fixed workflow. Routing
+    # depends on who raised it, so krushi_vikas.approvals drives it instead.
+    if frappe.db.exists("Workflow", "KV Project Internal Approval"):
+        frappe.delete_doc("Workflow", "KV Project Internal Approval",
+                          ignore_permissions=True, force=True)
+        print("Removed workflow 'KV Project Internal Approval' (replaced by approval chain)")
+
 
 def json_workspace_content():
     content = [
@@ -414,7 +886,8 @@ def json_workspace_content():
             {"type": "Link", "link_type": "DocType", "link_to": "Project", "label": "Projects"},
             {"type": "Link", "link_type": "DocType", "link_to": "Task", "label": "Activities / Tasks"},
             {"type": "Link", "link_type": "DocType", "link_to": "Project Goal", "label": "Project Goals & Objectives"},
-            {"type": "Link", "link_type": "DocType", "link_to": "Project Theme", "label": "Themes & Sub-themes"}
+            {"type": "Link", "link_type": "DocType", "link_to": "Project Theme", "label": "Themes & Sub-themes"},
+            {"type": "Link", "link_type": "DocType", "link_to": "KV Project Template", "label": "Project Templates"}
         ]}},
         {"type": "card", "data": {"card_name": "Results & KRE (OKRs)", "links": [
             {"type": "Link", "link_type": "DocType", "link_to": "KRE", "label": "Key Result Expectations (KRE)"},

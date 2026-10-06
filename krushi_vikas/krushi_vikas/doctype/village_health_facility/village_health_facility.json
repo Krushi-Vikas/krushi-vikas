@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "facility",
+  "is_available",
+  "working_count",
+  "not_working_count",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "facility",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Description",
+   "options": "PHC (Primary Health Centre)\nSub Centre\nPrivate Hospital\nAnimal Dispensary\nOther",
+   "reqd": 1
+  },
+  {
+   "default": "No",
+   "fieldname": "is_available",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Yes / No",
+   "options": "Yes\nNo"
+  },
+  {
+   "default": "0",
+   "fieldname": "working_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Working"
+  },
+  {
+   "default": "0",
+   "fieldname": "not_working_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Not Working"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "label": "Remarks"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Krushi Vikas",
+ "name": "Village Health Facility",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

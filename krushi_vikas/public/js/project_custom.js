@@ -1,7 +1,34 @@
 frappe.ui.form.on('Project', {
+    onload(frm) {
+        if (frm.is_new()) {
+            const roles = frappe.user_roles || [];
+            if (roles.includes('Project Coordinator') && !frm.doc.custom_project_coordinator) {
+                frm.set_value('custom_project_coordinator', frappe.session.user);
+            }
+        }
+    },
     refresh(frm) {
         frm.trigger('calculate_remaining_funds');
-        if (!frm.is_new()) {
+
+        // Always allow coordinators and managers to add/edit activities
+        frm.set_df_property('custom_activities', 'read_only', 0);
+
+        if (frm.is_new()) {
+            frm.add_custom_button(__('Add Activity'), function() {
+                let row = frm.add_child('custom_activities');
+                row.status = 'Planned';
+                row.timeline = 'Q1 2026';
+                frm.refresh_field('custom_activities');
+                frm.scroll_to_field('custom_activities');
+            }).addClass('btn-primary');
+        } else {
+            frm.add_custom_button(__('Add Activity'), function() {
+                let row = frm.add_child('custom_activities');
+                row.status = 'Planned';
+                row.timeline = 'Q1 2026';
+                frm.refresh_field('custom_activities');
+                frm.scroll_to_field('custom_activities');
+            });
             frm.add_custom_button(__('View Activities'), function() {
                 frappe.set_route('List', 'Activity', { project: frm.doc.name });
             }, __('Project Links'));
@@ -35,7 +62,9 @@ frappe.ui.form.on('Project', {
 });
 
 frappe.ui.form.on('Project Activity', {
-    activities_add(frm, cdt, cdn) {
-        // Default values for new activity row
+    custom_activities_add(frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+        if (!row.status) row.status = 'Planned';
+        if (!row.timeline) row.timeline = 'Q1 2026';
     }
 });

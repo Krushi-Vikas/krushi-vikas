@@ -11,12 +11,12 @@
 <body>
     <!-- Persistent Enterprise Sidebar -->
     <aside class="sidebar">
-        <div class="sidebar-header">
+        <a href="/app/krushi-dashboard" class="sidebar-header" style="text-decoration:none; color:inherit;">
             <div class="logo-icon"><i class="fa-solid fa-leaf"></i></div>
             <span>Krushi Vikas Admin</span>
-        </div>
+        </a>
         <nav class="sidebar-nav">
-            <a href="/app/krushi-vikas" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="/app/krushi-dashboard" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
             <a href="/projects" class="nav-item"><i class="fa-solid fa-folder-open"></i> Projects</a>
             <a href="/activities" class="nav-item"><i class="fa-solid fa-list-check"></i> Activities</a>
             <a href="/tasks" class="nav-item active"><i class="fa-solid fa-bars-progress"></i> Tasks</a>
@@ -119,6 +119,7 @@
                                 <th>Priority</th>
                                 <th>Status</th>
                                 <th>Assignee</th>
+                                <th>Evidence Review</th>
                                 <th>Due Date</th>
                                 <th style="text-align: right;">Actions</th>
                             </tr>
@@ -150,6 +151,22 @@
                                     </span>
                                 </td>
                                 <td>{{ t.custom_assignee or 'Administrator' }}</td>
+                                <td>
+                                    {% if t.custom_evidence_image %}<a class="btn-secondary btn-sm" href="{{ t.custom_evidence_image }}" target="_blank" rel="noopener"><i class="fa-regular fa-image"></i> {% if t.can_review_submission and t.custom_review_status == 'Pending Review' %}Review image{% else %}Open image{% endif %}</a>{% endif %}
+                                    {% if t.custom_require_evidence %}<div style="font-size:0.72rem; color:#7c3aed; font-weight:600;">Image required</div>{% endif %}
+                                    <div style="font-size:0.75rem; margin-top:4px;">{{ t.custom_review_status or 'Not Submitted' }}</div>
+                                    {% if t.custom_review_comment %}<div style="font-size:0.72rem; color:#b91c1c;">{{ t.custom_review_comment }}</div>{% endif %}
+                                    {% if t.can_submit_submission and t.custom_require_evidence and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
+                                    <button class="btn-primary btn-sm" type="button" onclick="chooseTaskEvidence('{{ t.name }}')"><i class="fa-solid fa-upload"></i> {% if t.custom_review_status == 'Rejected' %}Replace image &amp; resubmit{% else %}Upload image{% endif %}</button>
+                                    {% endif %}
+                                    {% if t.can_submit_submission and t.custom_evidence_image and not t.custom_require_evidence and t.custom_review_status != 'Pending Review' and t.custom_review_status != 'Approved' %}
+                                    <button class="btn-secondary btn-sm" type="button" onclick="submitTaskEvidence('{{ t.name }}')"><i class="fa-solid fa-paper-plane"></i> Submit</button>
+                                    {% endif %}
+                                    {% if t.can_review_submission and t.custom_review_status == 'Pending Review' %}
+                                    <button class="btn-primary btn-sm" type="button" onclick="reviewTaskEvidence('{{ t.name }}', 'approve')"><i class="fa-solid fa-check"></i> Approve</button>
+                                    <button class="btn-danger-outline btn-sm" type="button" onclick="reviewTaskEvidence('{{ t.name }}', 'reject')"><i class="fa-solid fa-xmark"></i> Reject</button>
+                                    {% endif %}
+                                </td>
                                 <td>{{ t.exp_end_date or '31-03-2026' }}</td>
                                 <td style="text-align: right;">
                                     <button class="btn-danger-outline btn-sm" onclick="deleteGlobalTask('{{ t.name }}', '{{ t.subject | escape }}')"><i class="fa-regular fa-trash-can"></i></button>
@@ -249,6 +266,17 @@
                         <label class="form-label">Instructions / Description</label>
                         <textarea id="gt_desc" class="form-control" rows="2" placeholder="Task execution details..."></textarea>
                     </div>
+                    <div class="form-group" style="margin-top: 14px;">
+                        <label class="form-label">Evidence Image</label>
+                        <input type="file" id="gt_evidence_image" class="form-control" accept="image/*">
+                        <small style="color:#64748b;">The uploaded photo will be submitted to the Project Coordinator for review.</small>
+                    </div>
+                    {% if can_configure_task_evidence %}
+                    <label style="display:flex; align-items:flex-start; gap:9px; margin-top:12px; padding:12px; border:1px solid #c4b5fd; border-radius:8px; background:#f5f3ff; color:#4c1d95;">
+                        <input type="checkbox" id="gt_require_evidence" style="margin-top:3px;">
+                        <span><strong>Require an image attachment</strong><br><small>The task cannot be completed until its image is submitted and approved.</small></span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <div class="modal-footer">
@@ -281,6 +309,86 @@
 
         function closeGlobalTaskModal() {
             document.getElementById('globalTaskModal').style.display = 'none';
+        }
+
+        async function uploadTaskEvidence(taskName, file, csrf) {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('doctype', 'Task');
+            form.append('docname', taskName);
+            form.append('fieldname', 'custom_evidence_image');
+            form.append('is_private', '1');
+            form.append('csrf_token', csrf);
+            const response = await fetch('/api/method/upload_file', {
+                method: 'POST',
+                headers: csrf ? { 'X-Frappe-CSRF-Token': csrf } : {},
+                body: form
+            });
+            const result = await response.json();
+            if (!response.ok || result.exc || !result.message) {
+                throw new Error(result._server_messages || result.exc || 'Image upload failed.');
+            }
+            return result.message;
+        }
+
+        function chooseTaskEvidence(name) {
+            const picker = document.createElement('input');
+            picker.type = 'file';
+            picker.accept = 'image/*';
+            picker.onchange = async () => {
+                const file = picker.files && picker.files[0];
+                if (!file) return;
+                const csrf = getCsrfToken();
+                try {
+                    await uploadTaskEvidence(name, file, csrf);
+                    const response = await fetch('/api/method/krushi_vikas.api.submit_task_for_review', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}) },
+                        body: JSON.stringify({ name, csrf_token: csrf })
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.message || !result.message.success) {
+                        throw new Error(result._server_messages || result.exc || 'The image could not be submitted for review.');
+                    }
+                    window.location.reload();
+                } catch (error) {
+                    alert('Evidence upload failed: ' + error.message);
+                }
+            };
+            picker.click();
+        }
+
+        async function submitTaskEvidence(name) {
+            if (!confirm('Submit this image to the Project Coordinator for review?')) return;
+            const csrf = getCsrfToken();
+            const response = await fetch('/api/method/krushi_vikas.api.submit_task_for_review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}) },
+                body: JSON.stringify({ name, csrf_token: csrf })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.message || !result.message.success) {
+                alert('Could not submit evidence: ' + (result._server_messages || result.exc || JSON.stringify(result)));
+                return;
+            }
+            window.location.reload();
+        }
+
+        async function reviewTaskEvidence(name, decision) {
+            const comment = decision === 'reject' ? prompt('Please explain why this evidence is being rejected:') : (prompt('Optional approval note:') || '');
+            if (decision === 'reject' && !comment) return;
+            const csrf = getCsrfToken();
+            const response = await fetch('/api/method/krushi_vikas.api.review_task_submission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}) },
+                body: JSON.stringify({ name, decision, comment, csrf_token: csrf })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.message || !result.message.success) {
+                alert('Could not review evidence: ' + (result._server_messages || result.exc || JSON.stringify(result)));
+                return;
+            }
+            window.location.reload();
         }
 
         function filterTaskList() {
@@ -378,19 +486,23 @@
             const csrf = getCsrfToken();
             const headers = { 'Content-Type': 'application/json' };
             if (csrf) headers['X-Frappe-CSRF-Token'] = csrf;
+            const evidenceFile = document.getElementById('gt_evidence_image').files[0];
 
             const payload = {
                 project: document.getElementById('gt_project').value,
                 custom_activity: document.getElementById('gt_activity').value,
                 subject: document.getElementById('gt_subject').value,
                 priority: document.getElementById('gt_priority').value,
-                status: document.getElementById('gt_status').value,
+                status: evidenceFile && document.getElementById('gt_status').value === 'Completed' ? 'Working' : document.getElementById('gt_status').value,
                 custom_assignee: document.getElementById('gt_assignee').value,
                 exp_start_date: document.getElementById('gt_start').value,
                 exp_end_date: document.getElementById('gt_end').value,
                 description: document.getElementById('gt_desc').value,
                 csrf_token: csrf
             };
+            if (document.getElementById('gt_require_evidence')) {
+                payload.require_evidence = document.getElementById('gt_require_evidence').checked;
+            }
 
             try {
                 const res = await fetch('/api/method/krushi_vikas.api.save_task', {
@@ -400,14 +512,26 @@
                 });
                 const result = await res.json();
                 if (result.message && result.message.success) {
+                    if (evidenceFile) {
+                        await uploadTaskEvidence(result.message.name, evidenceFile, csrf);
+                        const submit = await fetch('/api/method/krushi_vikas.api.submit_task_for_review', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-Frappe-CSRF-Token': csrf } : {}) },
+                            body: JSON.stringify({ name: result.message.name, csrf_token: csrf })
+                        });
+                        const submitted = await submit.json();
+                        if (!submit.ok || !submitted.message || !submitted.message.success) {
+                            throw new Error(submitted._server_messages || submitted.exc || 'Evidence could not be submitted for review.');
+                        }
+                    }
                     closeGlobalTaskModal();
-                    alert(`Task "${result.message.subject}" created successfully!`);
+                    alert(evidenceFile ? `Task "${result.message.subject}" created and evidence submitted for review.` : `Task "${result.message.subject}" created successfully!`);
                     window.location.reload();
                 } else {
                     alert('Error: ' + JSON.stringify(result));
                 }
             } catch (err) {
-                alert('Save failed: ' + err.message);
+                alert('Save/upload failed: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Task';

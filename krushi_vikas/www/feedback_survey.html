@@ -122,7 +122,53 @@
       <!-- ================= STEP 1: RESPONDENT & ACTIVITY DETAILS ================= -->
       <div class="form-step-panel active" data-step="1">
         <div class="section-heading-row">
-          <h2 class="section-title">A. Respondent & Activity Details</h2>
+          <h2 class="section-title" id="step1_section_title">A. Respondent & Survey Details</h2>
+        </div>
+
+        <!-- Survey Level Selector -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="font-weight: 600;">Survey Level <span class="req">*</span></label>
+          <div class="survey-level-toggle" style="display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px;">
+            <label id="label_level_activity" style="flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 16px; border: 2px solid #059669; background: #ecfdf5; border-radius: 8px; font-weight: 500; transition: all 0.2s ease;">
+              <input type="radio" name="survey_level" id="survey_level_activity" value="Activity" checked style="accent-color: #059669; width: 18px; height: 18px;">
+              <div>
+                <strong style="display: block; color: #065f46;">Activity Level</strong>
+                <span style="font-size: 12px; color: #047857;">For Field Officers to evaluate specific interventions</span>
+              </div>
+            </label>
+            <label id="label_level_project" style="flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 16px; border: 2px solid #e2e8f0; background: #ffffff; border-radius: 8px; font-weight: 500; transition: all 0.2s ease;">
+              <input type="radio" name="survey_level" id="survey_level_project" value="Project" style="accent-color: #059669; width: 18px; height: 18px;">
+              <div>
+                <strong style="display: block; color: #1e293b;">Project Level</strong>
+                <span style="font-size: 12px; color: #64748b;">For Project Managers to evaluate overall project outcomes</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <!-- Project Selection -->
+          <div class="form-group" id="group_project">
+            <label class="form-label" for="project">Project <span class="req" id="project_req" style="display: none;">*</span></label>
+            <select id="project" name="project" class="form-control">
+              <option value="">Select project</option>
+            </select>
+          </div>
+
+          <!-- Activity / Intervention -->
+          <div class="form-group" id="group_activity">
+            <label class="form-label" for="activity">Activity / Intervention <span class="req" id="activity_req">*</span></label>
+            <select id="activity" name="activity" class="form-control" required>
+              <option value="">Select activity</option>
+              <option value="Kitchen Garden Initiative" selected>Kitchen Garden Initiative</option>
+              <option value="Drip Irrigation Demonstration">Drip Irrigation Demonstration</option>
+              <option value="Organic Fertilizer Distribution">Organic Fertilizer Distribution</option>
+              <option value="Soil Health Assessment & Testing">Soil Health Assessment & Testing</option>
+              <option value="Watershed Bunding & Contour Trenching">Watershed Bunding & Contour Trenching</option>
+              <option value="SHG Capacity Building Workshop">SHG Capacity Building Workshop</option>
+            </select>
+            <input type="hidden" id="linked_activity" name="linked_activity" value="">
+          </div>
         </div>
 
         <div class="form-grid-2">
@@ -146,15 +192,15 @@
 
           <!-- Date of Visit -->
           <div class="form-group">
-            <label class="form-label" for="date_of_visit">Date of Visit <span class="req">*</span></label>
+            <label class="form-label" for="date_of_visit" id="date_of_visit_label">Date of Visit <span class="req">*</span></label>
             <input type="date" id="date_of_visit" name="date_of_visit" class="form-control" value="2024-05-20" required>
           </div>
         </div>
 
         <div class="form-grid-2">
-          <!-- Field Officer / Facilitator -->
+          <!-- Field Officer / Project Manager -->
           <div class="form-group">
-            <label class="form-label" for="field_officer">Field Officer / Facilitator <span class="req">*</span></label>
+            <label class="form-label" for="field_officer" id="field_officer_label">Field Officer / Facilitator <span class="req">*</span></label>
             <select id="field_officer" name="field_officer" class="form-control" required>
               <option value="">Select name</option>
               <option value="Administrator" selected>Anita Sharma</option>
@@ -415,20 +461,28 @@
             </div>
             <div class="review-card-body">
               <div class="review-field-pair">
-                <span class="review-field-key">Village / Location</span>
-                <span class="review-field-val" id="rev_village">Rampur</span>
+                <span class="review-field-key">Survey Level</span>
+                <span class="review-field-val" id="rev_survey_level" style="font-weight: 600; color: #059669;">Activity Level</span>
               </div>
               <div class="review-field-pair">
-                <span class="review-field-key">Date of Visit</span>
-                <span class="review-field-val" id="rev_date">20 / 05 / 2024</span>
-              </div>
-              <div class="review-field-pair">
-                <span class="review-field-key">Field Officer / Facilitator</span>
-                <span class="review-field-val" id="rev_officer">Anita Sharma</span>
+                <span class="review-field-key">Project</span>
+                <span class="review-field-val" id="rev_project">-</span>
               </div>
               <div class="review-field-pair">
                 <span class="review-field-key">Activity / Intervention</span>
                 <span class="review-field-val" id="rev_activity">Kitchen Garden Initiative</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Village / Location</span>
+                <span class="review-field-val" id="rev_village">Rampur</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key">Date of Visit / Survey</span>
+                <span class="review-field-val" id="rev_date">20 / 05 / 2024</span>
+              </div>
+              <div class="review-field-pair">
+                <span class="review-field-key" id="rev_officer_key">Field Officer / Facilitator</span>
+                <span class="review-field-val" id="rev_officer">Anita Sharma</span>
               </div>
               <div class="review-field-pair">
                 <span class="review-field-key">Respondent Type</span>

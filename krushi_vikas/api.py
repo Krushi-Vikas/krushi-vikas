@@ -2,6 +2,19 @@ import frappe
 from frappe import _
 from frappe.utils import flt, cint, nowdate
 
+# Safe Task.update_project patch to avoid crashing when Task.project links to KV Project
+try:
+    from erpnext.projects.doctype.task.task import Task
+    if not hasattr(Task, "_krushi_orig_update_project"):
+        Task._krushi_orig_update_project = Task.update_project
+        def _safe_update_project(self):
+            if self.project and not self.flags.from_project:
+                if frappe.db.exists("Project", self.project):
+                    return self._krushi_orig_update_project()
+        Task.update_project = _safe_update_project
+except Exception:
+    pass
+
 @frappe.whitelist()
 def get_template_questions(template):
     doc = frappe.get_doc("Survey Template", template)
@@ -17,6 +30,11 @@ def get_template_questions(template):
 def enforce_dependency_gate(doc, method):
     """Hard dependency gate: Task cannot be completed if predecessors are not completed"""
     if doc.status == "Completed":
+        evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+        if evidence_required and not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if evidence_required and doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
         for d in (doc.depends_on or []):
             if d.task:
                 pred = frappe.get_doc("Task", d.task)
@@ -89,6 +107,8 @@ def get_feedback_survey_options():
             "Ganeshpur", "Vikas Nagar", "Adarsh Gram", "Sundarpur", "Navgaon"
         ],
         "field_officers": [],
+        "projects": [],
+        "activities_list": [],
         "activities": [
             "Kitchen Garden Initiative",
             "Drip Irrigation Demonstration",
@@ -132,6 +152,22 @@ def get_feedback_survey_options():
             {"name": "fo_priya", "full_name": "Priya Patil (Facilitator)"},
             {"name": "fo_vikas", "full_name": "Vikas Shinde (Watershed Coordinator)"}
         ]
+
+    # Fetch projects
+    try:
+        if frappe.db.exists("DocType", "KV Project"):
+            options["projects"] = frappe.get_all("KV Project", fields=["name", "project_name"], order_by="creation desc", limit=50)
+        elif frappe.db.exists("DocType", "Project"):
+            options["projects"] = frappe.get_all("Project", fields=["name", "project_name"], order_by="creation desc", limit=50)
+    except Exception:
+        options["projects"] = []
+
+    # Fetch activities
+    try:
+        if frappe.db.exists("DocType", "Activity"):
+            options["activities_list"] = frappe.get_all("Activity", fields=["name", "activity_name", "project"], order_by="creation desc", limit=100)
+    except Exception:
+        options["activities_list"] = []
         
     return options
 
@@ -141,30 +177,50 @@ def submit_feedback_survey(data):
     import json
     if isinstance(data, str):
         data = json.loads(data)
-        
-    doc = frappe.get_doc({
+
+    survey_level = data.get("survey_level")
+    if not survey_level:
+        if data.get("project") and not data.get("activity") and not data.get("linked_activity"):
+            survey_level = "Project"
+        else:
+            survey_level = "Activity"
+
+    activity_val = data.get("activity")
+    if survey_level == "Project" and not activity_val:
+        activity_val = "Project Level Feedback"
+
+    field_officer_val = data.get("field_officer")
+    if not field_officer_val:
+        field_officer_val = frappe.session.user if frappe.session.user and frappe.session.user != "Guest" else "Administrator"
+
+    is_project = (survey_level == "Project")
+
+    doc_data = {
         "doctype": "Feedback Survey",
+        "survey_level": survey_level,
+        "linked_activity": data.get("linked_activity"),
         "village": data.get("village"),
-        "date_of_visit": data.get("date_of_visit") or frappe.utils.today(),
-        "field_officer": data.get("field_officer") or "Administrator",
-        "activity": data.get("activity"),
+        "date_of_visit": data.get("date_of_visit") or (frappe.utils.today() if not is_project else None),
+        "field_officer": field_officer_val,
+        "activity": activity_val,
         "respondent_type": data.get("respondent_type"),
         "respondent_type_other": data.get("respondent_type_other"),
         "project": data.get("project"),
         "beneficiary": data.get("beneficiary"),
-        "total_participants": int(data.get("total_participants") or 0),
-        "households_involved": int(data.get("households_involved") or 0) if data.get("households_involved") else None,
-        "sessions_conducted": int(data.get("sessions_conducted") or 0) if data.get("sessions_conducted") else None,
-        "adoption_percentage": float(data.get("adoption_percentage") or 0),
+        "total_participants": int(data.get("total_participants")) if data.get("total_participants") not in (None, "") else (0 if not is_project else None),
+        "households_involved": int(data.get("households_involved")) if data.get("households_involved") not in (None, "") else None,
+        "sessions_conducted": int(data.get("sessions_conducted")) if data.get("sessions_conducted") not in (None, "") else None,
+        "adoption_percentage": float(data.get("adoption_percentage")) if data.get("adoption_percentage") not in (None, "") else (0.0 if not is_project else None),
         "outputs_achieved": data.get("outputs_achieved"),
         "significant_change": data.get("significant_change"),
         "community_voice": data.get("community_voice"),
         "barriers_challenges": data.get("barriers_challenges"),
         "facilitator_observations": data.get("facilitator_observations"),
-        "overall_rating": str(data.get("overall_rating") or "3"),
-        "confirmation_accuracy": 1 if data.get("confirmation_accuracy") else 0,
+        "overall_rating": str(data.get("overall_rating")) if data.get("overall_rating") else ("3" if not is_project else None),
+        "confirmation_accuracy": 1 if data.get("confirmation_accuracy") or is_project else 0,
         "submission_status": "Submitted"
-    })
+    }
+    doc = frappe.get_doc(doc_data)
     
     doc.insert(ignore_permissions=True)
     if data.get("submit_now", True):
@@ -268,115 +324,172 @@ def get_village_profile_options():
         "talukas": talukas,
         "field_officers": field_officers,
         "projects": projects,
-        "soil_types": [
-            "Deep Black Soil",
-            "Medium Black Soil",
-            "Red Sandy Soil",
-            "Loamy Soil",
-            "Laterite Soil",
-            "Mixed Soil"
-        ],
-        "drinking_water_sources": [
-            "GP Piped Water Supply",
-            "Community Open Wells",
-            "Handpumps / Borewells",
-            "Water Tankers (Seasonal)",
-            "River / Canal"
-        ],
-        "water_scarcity_levels": [
-            "Severe / Tanker Dependent",
-            "Moderate Scarcity",
-            "Minor Scarcity",
-            "Adequate / No Scarcity"
-        ],
-        "irrigation_practices": [
-            "Flood Irrigation",
-            "Drip & Sprinkler Micro-Irrigation",
-            "Mixed"
-        ]
     }
 
-@frappe.whitelist(allow_guest=True)
+# Step 05 of the roadmap is field collection. These roles may record it; a
+# Project Manager reviews surveys but does not raise them, and Guest never can.
+SURVEY_COLLECTOR_ROLES = (
+    "Field Officer",
+    "Project Coordinator",
+    "Project Director",
+    "CEO",
+    "System Manager",
+    "Administrator",
+)
+
+
+def assert_can_collect_survey(what="survey"):
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw(
+            _("You must be signed in to record a {0}.").format(what),
+            frappe.PermissionError,
+        )
+    if user == "Administrator":
+        return
+    if not set(frappe.get_roles(user)) & set(SURVEY_COLLECTOR_ROLES):
+        frappe.throw(
+            _("Only a Field Officer can record a {0}.").format(what),
+            frappe.PermissionError,
+        )
+
+
+def _project_leads(project):
+    """(coordinator, manager) for an ERPNext Project, tolerating either the
+    custom field or the KV Project naming."""
+    if not project:
+        return None, None
+
+    if frappe.db.exists("KV Project", project):
+        return frappe.db.get_value("KV Project", project, "project_coordinator"), frappe.db.get_value(
+            "KV Project", project, "project_manager"
+        )
+
+    if not frappe.db.exists("Project", project):
+        return None, None
+
+    coordinator = manager = None
+    if frappe.db.has_column("Project", "custom_project_coordinator"):
+        coordinator = frappe.db.get_value("Project", project, "custom_project_coordinator")
+    if frappe.db.has_column("Project", "custom_project_manager"):
+        manager = frappe.db.get_value("Project", project, "custom_project_manager")
+    return coordinator, manager
+
+
+def has_survey_permission(doc, ptype="read", user=None):
+    """Row-level scope for Baseline Survey and Village Profile.
+
+    Mirrors the survey column of the role matrix in USER_JOURNEY.md: executives
+    see every survey, a Coordinator sees the ones in their project, a Manager
+    sees the ones in projects they run, and a Field Officer sees only the
+    surveys they filed themselves.
+    """
+    user = user or frappe.session.user
+    if user == "Administrator":
+        return True
+
+    roles = set(frappe.get_roles(user))
+    if roles & {"System Manager", "CEO", "Project Director"}:
+        return True
+
+    collector = doc.get("field_officer") if hasattr(doc, "get") else None
+    if collector == user or getattr(doc, "owner", None) == user:
+        return True
+
+    projects = {doc.get("project")} if hasattr(doc, "get") and doc.get("project") else set()
+    village_profile = doc.get("village_profile") if hasattr(doc, "get") else None
+    if village_profile and frappe.db.exists("DocType", "Project Village Detail"):
+        projects.update(
+            frappe.get_all(
+                "Project Village Detail",
+                filters={"village_profile": village_profile, "parenttype": "KV Project"},
+                pluck="parent",
+            )
+        )
+
+    for project in projects:
+        coordinator, manager = _project_leads(project)
+        if "Project Coordinator" in roles and coordinator == user:
+            return True
+        if "Project Manager" in roles and manager == user:
+            return True
+
+    return False
+
+
+VILLAGE_PROFILE_CHILD_TABLES = {    "caste_demographics_table": ("caste_demographics", "Village Caste Demographic"),
+    "land_use_table": ("land_use", "Village Land Use"),
+    "cropping_pattern_table": ("cropping_pattern", "Village Cropping Pattern"),
+    "water_sources_table": ("water_sources", "Village Water Source"),
+    "health_facilities_table": ("health_facilities", "Village Health Facility"),
+    "education_facilities_table": ("education_facilities", "Village Education Facility"),
+    "public_institutions_table": ("public_institutions", "Village Public Institution"),
+    "livestock_table": ("livestock", "Village Livestock"),
+}
+
+VILLAGE_PROFILE_SCALAR_FIELDS = (
+    "village_name", "village_code", "gram_panchayat", "attached_villages",
+    "block_taluka", "district", "state", "pincode", "geo_coordinates",
+    "total_population", "male_population", "female_population", "total_households",
+    "annual_rainfall_mm", "birth_rate", "death_rate",
+    "organic_farming_families", "organic_farming_area", "total_forest_area",
+    "major_forest_trees",
+    "annual_village_water_tap_bill", "annual_private_water_tap_bill",
+    "annual_house_rent_per_family", "summer_water_problem",
+    "human_defecation_management", "families_with_toilets", "families_without_toilets",
+    "families_toilet_not_using", "families_constructing_toilets",
+    "families_shoshkhadda_toilet", "families_septic_tank_toilet", "families_ikosan_toilet",
+    "public_toilets_count", "public_toilet_seats", "public_toilet_seats_used",
+    "public_toilet_water_supply",
+    "daily_contaminated_water_litres", "families_on_public_drainage",
+    "families_having_shoshkhadda", "families_having_kitchen_garden",
+    "families_no_pds_connection", "total_drainage_length_m", "open_drain_length_m",
+    "closed_drain_length_m", "drain_water_management",
+    "daily_waste_production_kg", "families_worm_compost_unit",
+    "families_throwing_waste_open", "families_using_dustbin",
+    "waste_management_description",
+    "families_using_firewood", "families_using_gas", "families_using_kerosene",
+    "families_using_biogas", "families_using_smokeless_hearth",
+    "families_having_shet_tali", "families_having_wells", "families_having_borewells",
+    "families_having_black_land", "families_having_laterite_land",
+    "families_having_white_land",
+    "total_animals_in_village", "families_having_animals", "total_daily_milk_production",
+    "families_having_job_cards", "people_working_mgnrega", "migrated_families_for_job",
+    "daily_migration_people", "families_with_govt_servant", "families_with_private_servant",
+    "major_problems_in_village", "surveyor_observations",
+    "total_shgs_count", "active_fpos_count", "fpo_name", "has_bank_csc",
+    "all_weather_road_connectivity", "watershed_name", "survey_response_json",
+)
+
+
+@frappe.whitelist()
 def submit_village_profile(data):
-    """Submits or creates a Village Profile document"""
+    """Creates a Village Profile (step 05, village level)."""
     import json
     if isinstance(data, str):
         data = json.loads(data)
 
-    doc = frappe.get_doc({
-        "doctype": "Village Profile",
-        "village_name": data.get("village_name"),
-        "village_code": data.get("village_code"),
-        "gram_panchayat": data.get("gram_panchayat") or data.get("village_name"),
-        "block_taluka": data.get("block_taluka"),
-        "district": data.get("district"),
-        "state": data.get("state") or "Maharashtra",
-        "pincode": data.get("pincode"),
-        "field_officer": data.get("field_officer") or "Administrator",
-        "project": data.get("project") or None,
-        "date_of_survey": data.get("date_of_survey") or frappe.utils.today(),
-        "geo_coordinates": data.get("geo_coordinates"),
-        
-        # Demographics
-        "total_population": int(data.get("total_population") or 0),
-        "male_population": int(data.get("male_population") or 0),
-        "female_population": int(data.get("female_population") or 0),
-        "total_households": int(data.get("total_households") or 0),
-        "sc_households": int(data.get("sc_households") or 0),
-        "st_households": int(data.get("st_households") or 0),
-        "obc_general_households": int(data.get("obc_general_households") or 0),
-        "bpl_households": int(data.get("bpl_households") or 0),
-        "female_headed_households": int(data.get("female_headed_households") or 0),
-        "literacy_rate_pct": float(data.get("literacy_rate_pct") or 0) if data.get("literacy_rate_pct") else None,
-        
-        # Land & Agriculture
-        "total_geographical_area_ha": float(data.get("total_geographical_area_ha") or 0),
-        "cultivable_land_ha": float(data.get("cultivable_land_ha") or 0),
-        "irrigated_area_ha": float(data.get("irrigated_area_ha") or 0),
-        "rainfed_area_ha": float(data.get("rainfed_area_ha") or 0),
-        "forest_wasteland_ha": float(data.get("forest_wasteland_ha") or 0),
-        "marginal_farmers_count": int(data.get("marginal_farmers_count") or 0),
-        "small_farmers_count": int(data.get("small_farmers_count") or 0),
-        "medium_large_farmers_count": int(data.get("medium_large_farmers_count") or 0),
-        "landless_households_count": int(data.get("landless_households_count") or 0),
-        "soil_type": data.get("soil_type") or "Medium Black Soil",
-        "major_crops_kharif": data.get("major_crops_kharif"),
-        "major_crops_rabi": data.get("major_crops_rabi"),
-        "horticulture_crops": data.get("horticulture_crops"),
-        
-        # Water Resources
-        "watershed_name": data.get("watershed_name"),
-        "primary_drinking_water_source": data.get("primary_drinking_water_source") or "GP Piped Water Supply",
-        "summer_water_scarcity_status": data.get("summer_water_scarcity_status") or "Moderate Scarcity",
-        "primary_irrigation_practice": data.get("primary_irrigation_practice") or "Mixed",
-        "open_wells_count": int(data.get("open_wells_count") or 0),
-        "borewells_count": int(data.get("borewells_count") or 0),
-        "check_dams_count": int(data.get("check_dams_count") or 0),
-        "farm_ponds_count": int(data.get("farm_ponds_count") or 0),
-        "percolation_tanks_count": int(data.get("percolation_tanks_count") or 0),
-        
-        # Institutions & Facilities
-        "total_shgs_count": int(data.get("total_shgs_count") or 0),
-        "active_fpos_count": int(data.get("active_fpos_count") or 0),
-        "fpo_name": data.get("fpo_name"),
-        "has_primary_school": 1 if data.get("has_primary_school") else 0,
-        "has_secondary_school": 1 if data.get("has_secondary_school") else 0,
-        "has_primary_health_center": 1 if data.get("has_primary_health_center") else 0,
-        "has_veterinary_clinic": 1 if data.get("has_veterinary_clinic") else 0,
-        "has_milk_chilling_center": 1 if data.get("has_milk_chilling_center") else 0,
-        "has_custom_hiring_center": 1 if data.get("has_custom_hiring_center") else 0,
-        "has_bank_csc": 1 if data.get("has_bank_csc") else 0,
-        "all_weather_road_connectivity": 1 if data.get("all_weather_road_connectivity") else 0,
-        
-        # Needs Assessment
-        "key_development_priorities": data.get("key_development_priorities"),
-        "water_conservation_interventions": data.get("water_conservation_interventions"),
-        "livelihood_interventions": data.get("livelihood_interventions"),
-        "surveyor_observations": data.get("surveyor_observations"),
-        "profile_status": "Verified" if data.get("submit_now") else "Draft"
-    })
+    assert_can_collect_survey("Village Profile")
 
-    doc.insert(ignore_permissions=True)
+    doc = frappe.new_doc("Village Profile")
+    doc.field_officer = data.get("field_officer") or frappe.session.user
+    doc.project = data.get("project") or None
+    doc.date_of_survey = data.get("date_of_survey") or frappe.utils.today()
+
+    for fieldname in VILLAGE_PROFILE_SCALAR_FIELDS:
+        if data.get(fieldname) is not None:
+            doc.set(fieldname, data.get(fieldname))
+
+    if not doc.gram_panchayat:
+        doc.gram_panchayat = doc.village_name
+
+    for table_field, (payload_key, _child_doctype) in VILLAGE_PROFILE_CHILD_TABLES.items():
+        for row in data.get(payload_key) or []:
+            doc.append(table_field, row)
+
+    doc.profile_status = "Submitted" if data.get("submit_now") else "Draft"
+    doc.insert()
+
     if data.get("submit_now", True):
         doc.submit()
 
@@ -384,7 +497,7 @@ def submit_village_profile(data):
         "success": True,
         "name": doc.name,
         "village_name": doc.village_name,
-        "message": _("Village Profile created successfully.")
+        "message": _("Village Profile recorded successfully.")
     }
 
 @frappe.whitelist()
@@ -394,7 +507,7 @@ def get_village_profiles_list():
         "Village Profile",
         fields=[
             "name", "village_name", "village_code", "gram_panchayat", "block_taluka", "district",
-            "total_population", "total_households", "cultivable_land_ha", "summer_water_scarcity_status",
+            "total_population", "total_households", "annual_rainfall_mm",
             "docstatus", "profile_status"
         ],
         order_by="village_name asc"
@@ -540,6 +653,7 @@ def submit_baseline_survey(data):
         "doctype": "Baseline Survey",
         "farmer_name": data.get("farmer_name") or basic_info.get("1.head_of_family_name") or "Farmer",
         "contact_number": data.get("contact_number") or basic_info.get("1.mobile_number") or "9999999999",
+        "village_profile": data.get("village_profile"),
         "village": data.get("village") or basic_info.get("2.village_name") or "Sonapur",
         "survey_date": data.get("survey_date") or frappe.utils.today(),
         "field_officer": data.get("field_officer") or "Administrator",
@@ -993,24 +1107,164 @@ def export_baseline_survey_excel(name):
     frappe.response['filename'] = f"{doc.name}_{doc.farmer_name.replace(' ', '_')}_Export.csv"
 
 
+def is_project_visible_to_user(doc, user, roles):
+    """
+    Evaluates whether a user can see/read a given project:
+    - CXO level (CEO, Project Director, System Manager, Administrator): Can see ALL projects.
+    - Below CXO level: Can ONLY see projects assigned to them (as Coordinator or Manager)
+      OR projects where a subtask or activity is assigned to them.
+    """
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+        
+    if not doc:
+        return True
+        
+    coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    pm = doc.get("project_manager") or doc.get("custom_project_manager")
+    if coord == user or pm == user:
+        return True
+        
+    proj_name = doc.name
+    proj_title = doc.get("project_name")
+    # Check if any activity under this project is assigned to user
+    if doc.get("activities"):
+        if any(row.get("assignee") == user for row in doc.activities):
+            return True
+            
+    if frappe.db.exists("Activity", {"project": proj_name, "assignee": user}):
+        return True
+    if proj_title and frappe.db.exists("Activity", {"project": proj_title, "assignee": user}):
+        return True
+        
+    # Check if any task under this project is assigned to user (or employee linked to user)
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    assigned_targets = [user] + emp_ids
+    
+    # Direct task under project
+    if frappe.db.exists("Task", {"project": proj_name, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    if proj_title and frappe.db.exists("Task", {"project": proj_title, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    erp_p = frappe.db.get_value("Project", {"project_name": proj_title or proj_name}, "name")
+    if erp_p and frappe.db.exists("Task", {"project": erp_p, "custom_activity_owner": ["in", assigned_targets]}):
+        return True
+    if frappe.db.exists("Task", {"project": ["in", [proj_name, proj_title, erp_p]], "_assign": ["like", f"%{user}%"]}):
+        return True
+        
+    # Task linked via custom_activity
+    act_names = frappe.get_all("Activity", filters={"project": ["in", [proj_name, proj_title]]}, pluck="name")
+    if act_names:
+        if frappe.db.exists("Task", {"custom_activity": ["in", act_names], "custom_activity_owner": ["in", assigned_targets]}):
+            return True
+        tasks_with_assign = frappe.db.sql("""SELECT name FROM `tabTask` WHERE custom_activity IN %s AND _assign LIKE %s""", (tuple(act_names), f"%{user}%"), as_dict=True)
+        if tasks_with_assign:
+            return True
+            
+    return False
+
+
+def get_project_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to KV Project list views and searches:
+    - CXO level: No restrictions ("").
+    - Below CXO level: Only projects assigned to them or having a subtask/activity assigned to them.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR t.custom_activity_owner IN ({emp_list_escaped})"
+        
+    return f"""(`tabKV Project`.`project_coordinator` = {user_escaped}
+        OR `tabKV Project`.`project_manager` = {user_escaped}
+        OR EXISTS (
+            SELECT 1 FROM `tabActivity` a 
+            WHERE (a.project = `tabKV Project`.name OR a.project = `tabKV Project`.project_name) 
+              AND a.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabKV Project Activity` kpa 
+            WHERE kpa.parent = `tabKV Project`.name AND kpa.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabTask` t
+            WHERE (t.project = `tabKV Project`.name 
+                   OR t.project IN (SELECT p_erp.name FROM `tabProject` p_erp WHERE p_erp.project_name = `tabKV Project`.project_name)
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabKV Project`.name OR a2.project = `tabKV Project`.project_name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t._assign LIKE '%{user}%')
+        )
+    )"""
+
+
+def get_erp_project_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to ERPNext Project list views and searches:
+    - CXO level: No restrictions ("").
+    - Below CXO level: Only projects assigned to them or having a subtask/activity assigned to them.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+    
+    emp_filter_sql = ""
+    if emp_ids:
+        emp_list_escaped = ", ".join([frappe.db.escape(e) for e in emp_ids])
+        emp_filter_sql = f"OR t.custom_activity_owner IN ({emp_list_escaped})"
+        
+    return f"""(`tabProject`.`custom_project_coordinator` = {user_escaped}
+        OR `tabProject`.`custom_project_manager` = {user_escaped}
+        OR EXISTS (
+            SELECT 1 FROM `tabActivity` a 
+            WHERE (a.project = `tabProject`.name OR a.project = `tabProject`.project_name) 
+              AND a.assignee = {user_escaped}
+        )
+        OR EXISTS (
+            SELECT 1 FROM `tabTask` t
+            WHERE (t.project = `tabProject`.name 
+                   OR t.custom_activity IN (SELECT a2.name FROM `tabActivity` a2 WHERE a2.project = `tabProject`.name OR a2.project = `tabProject`.project_name))
+              AND (t.custom_activity_owner = {user_escaped} {emp_filter_sql} OR t._assign LIKE '%{user}%')
+        )
+    )"""
+
+
 def has_project_permission(doc=None, ptype="read", user=None):
     """
     Evaluates role-based least privilege permissions for Project & KV Project:
     Hierarchy:
       1. CEO
       2. Project Director
-      3. Project Coordinator
-      4. Project Manager
+      3. Project Coordinator (Oversees assigned projects)
+      4. Project Manager (Owns assigned project)
       5. Field Officer
     
     Rules:
       - Read: Allowed for all roles.
-      - Create: Allowed ONLY for Project Coordinator, Project Director, CEO, System Manager, Administrator.
+      - Create: Allowed for Project Coordinator, Project Manager, Project Director, CEO, System Manager, Administrator.
       - Write/Edit:
         * CEO, Project Director, System Manager, Administrator: Allowed for any project.
-        * Project Coordinator: Allowed ONLY if assigned to this project (or doc owner).
-        * Another Project Coordinator: DENIED.
-        * Project Manager, Field Officer: DENIED.
+        * Project Coordinator: Allowed for all projects under him/her (assigned_coord == user or doc.owner == user).
+        * Project Manager: Allowed for the project assigned to him/her (assigned_pm == user or doc.owner == user).
+        * Peer Coordinator: DENIED on projects not under them.
+        * Peer Manager: DENIED on projects not assigned to them.
+        * Field Officer: DENIED.
       - Delete: Only CEO, Project Director, System Manager, Administrator.
     """
     if not user:
@@ -1025,22 +1279,38 @@ def has_project_permission(doc=None, ptype="read", user=None):
     if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
         return True
         
-    # 2. Read is accessible across the organization
+    # 2. Read: Below CXO level, members only see projects assigned to them or having a subtask assigned to them
     if ptype == "read":
-        return True
+        return is_project_visible_to_user(doc, user, roles)
         
-    # 3. Create is allowed for Project Coordinator and above
+    # 3. Create is allowed for Project Manager and above. A manager's
+    #    project is not self-approving — krushi_vikas.approvals routes it to
+    #    the coordinator and then the director before it counts.
     if ptype == "create":
-        return "Project Coordinator" in roles
+        return any(r in roles for r in ["Project Coordinator", "Project Manager"])
         
     # 4. Write / Edit
     if ptype == "write":
+        if not doc:
+            return any(r in roles for r in ["Project Coordinator", "Project Manager"])
+
+        # Whoever raised it may keep working on it — otherwise a rejected
+        # project raised by a manager could never be corrected.
+        if doc.owner == user:
+            return True
+
+        assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+        assigned_pm = doc.get("project_manager") or doc.get("custom_project_manager")
+        
+        # Project Coordinator can edit all projects under him/her
         if "Project Coordinator" in roles:
-            if not doc:
+            if assigned_coord == user or doc.owner == user:
                 return True
-            assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator") or doc.get("owner")
-            # Allowed ONLY if this Project Coordinator owns/is assigned to it
-            return assigned_coord == user or doc.owner == user
+                
+        # Project Manager can edit the project assigned to him/her
+        if "Project Manager" in roles:
+            if assigned_pm == user or doc.owner == user:
+                return True
         return False
         
     if ptype == "delete":
@@ -1067,7 +1337,7 @@ def get_project_coordinator_for_activity(activity_doc):
 
 
 def get_activity_manager_and_coordinator_for_task(task_doc):
-    """Retrieves the assigned Project Manager (Activity Owner) and Project Coordinator for a given Task"""
+    """Retrieves the assigned Project Manager (Activity Owner / Project Owner) and Project Coordinator for a given Task"""
     if not task_doc:
         return None, None
         
@@ -1075,15 +1345,19 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     if not activity_name:
         proj_name = task_doc.get("project")
         coord = None
+        pm = None
         if proj_name:
             if frappe.db.exists("KV Project", proj_name):
                 coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+                pm = frappe.db.get_value("KV Project", proj_name, "project_manager")
             elif frappe.db.exists("Project", proj_name):
                 if frappe.db.has_column("Project", "custom_project_coordinator"):
                     coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
                 if not coord:
                     coord = frappe.db.get_value("Project", proj_name, "owner")
-        return None, coord
+                if frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+        return pm, coord
         
     activity = frappe.db.get_values("Activity", activity_name, ["assignee", "project", "owner"], as_dict=True)
     if not activity:
@@ -1097,21 +1371,90 @@ def get_activity_manager_and_coordinator_for_task(task_doc):
     if proj_name:
         if frappe.db.exists("KV Project", proj_name):
             coord = frappe.db.get_value("KV Project", proj_name, "project_coordinator")
+            proj_pm = frappe.db.get_value("KV Project", proj_name, "project_manager")
+            if proj_pm and not pm:
+                pm = proj_pm
         elif frappe.db.exists("Project", proj_name):
             if frappe.db.has_column("Project", "custom_project_coordinator"):
                 coord = frappe.db.get_value("Project", proj_name, "custom_project_coordinator")
             if not coord:
                 coord = frappe.db.get_value("Project", proj_name, "owner")
+            if frappe.db.has_column("Project", "custom_project_manager"):
+                proj_pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+                if proj_pm and not pm:
+                    pm = proj_pm
                 
     return pm, coord
+
+
+def can_review_task_submission(task_doc, user=None):
+    """Return whether the user can review evidence for this task's project."""
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return False
+
+    roles = frappe.get_roles(user)
+    if user in ("Administrator", "System Administrator") or any(
+        role in roles for role in ("Administrator", "System Manager", "CEO", "Project Director")
+    ):
+        return True
+
+    pm, coordinator = get_activity_manager_and_coordinator_for_task(task_doc)
+    if "Project Coordinator" in roles:
+        if not coordinator or coordinator == user:
+            return True
+
+    if "Project Manager" in roles:
+        if pm and pm == user:
+            return True
+        if not pm and not coordinator:
+            return True
+
+    return False
+
+
+def can_submit_task_evidence(task_doc, user=None):
+    """Return whether the user created or is assigned the task."""
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return False
+    if user in (
+        task_doc.get("owner"), task_doc.get("custom_assignee"),
+        task_doc.get("custom_activity_owner"), task_doc.get("custom_assigned_to"),
+    ):
+        return True
+    if task_doc.get("_assign"):
+        try:
+            import json
+            if user in json.loads(task_doc.get("_assign")):
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
+def get_project_manager_for_activity(activity_doc):
+    """Retrieves the assigned Project Manager for a given Activity's Project"""
+    if not activity_doc or not activity_doc.project:
+        return None
+        
+    proj_name = activity_doc.project
+    if frappe.db.exists("KV Project", proj_name):
+        return frappe.db.get_value("KV Project", proj_name, "project_manager")
+    if frappe.db.exists("Project", proj_name):
+        if frappe.db.has_column("Project", "custom_project_manager"):
+            pm = frappe.db.get_value("Project", proj_name, "custom_project_manager")
+            if pm:
+                return pm
+    return None
 
 
 def has_activity_permission(doc=None, ptype="read", user=None):
     """
     Evaluates role-based permissions for Activity:
     - CEO & Project Director: Can edit ANY activity in the organization.
-    - Project Coordinator: Can edit ANY activity in projects owned/assigned to him.
-    - Project Manager: Can edit ONLY activities assigned/owned by him.
+    - Project Coordinator: Can edit ANY activity in projects overseen/assigned to him.
+    - Project Manager: Owns and can edit activities assigned to him OR under his assigned project.
     - Field Officer: Read-only access.
     """
     if not user:
@@ -1136,18 +1479,26 @@ def has_activity_permission(doc=None, ptype="read", user=None):
         # Project Coordinator can edit if the Activity belongs to their Project
         if "Project Coordinator" in roles:
             coord = get_project_coordinator_for_activity(doc)
-            return coord == user or doc.owner == user
+            if coord == user or doc.owner == user:
+                return True
             
-        # Project Manager can edit ONLY their assigned activity
+        # Project Manager owns and can edit activities assigned to him or under his project
         if "Project Manager" in roles:
-            return doc.assignee == user or doc.owner == user
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                return True
             
         return False
         
     if ptype == "delete":
         if "Project Coordinator" in roles and doc:
             coord = get_project_coordinator_for_activity(doc)
-            return coord == user or doc.owner == user
+            if coord == user or doc.owner == user:
+                return True
+        if "Project Manager" in roles and doc:
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                return True
         return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
         
     return False
@@ -1173,33 +1524,246 @@ def has_task_permission(doc=None, ptype="read", user=None):
         return True
         
     if ptype == "read":
-        return True
+        if not doc:
+            return True
+        emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+        fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
+        if fo_assigned == user or fo_assigned in emp_ids or doc.owner == user or user in (doc.get("_assign") or ""):
+            return True
+            
+        pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+        if "Project Manager" in roles and pm == user:
+            return True
+        if "Project Coordinator" in roles and coord == user:
+            return True
+        return False
         
-    if ptype in ("create", "write"):
+    if ptype == "create":
+        # Field officers execute tasks; they do not raise them.
+        if "Field Officer" in roles and not any(
+            r in roles for r in ["Project Coordinator", "Project Manager", "CEO", "Project Director", "Administrator", "System Manager"]
+        ):
+            return False
+        return any(
+            r in roles for r in ["Project Coordinator", "Project Manager", "CEO", "Project Director", "Administrator", "System Manager"]
+        )
+        
+    if ptype == "write":
         if not doc:
             return True
             
         pm, coord = get_activity_manager_and_coordinator_for_task(doc)
         
         # 1. Project Coordinator can edit tasks in his project
-        if "Project Coordinator" in roles and coord == user:
+        if "Project Coordinator" in roles and (coord == user or not coord):
             return True
             
-        # 2. Project Manager can edit tasks in his activity
-        if "Project Manager" in roles and pm == user:
+        # 2. Project Manager can edit tasks in his activity or project
+        if "Project Manager" in roles and (pm == user or not pm):
             return True
             
         # 3. Field Officer can edit ONLY his assigned task
         if "Field Officer" in roles:
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
-            return fo_assigned == user or doc.owner == user
+            if doc.owner == user:
+                return True
+            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
+            if fo_assigned == user:
+                return True
+            if fo_assigned and frappe.db.exists("Employee", fo_assigned):
+                emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
+                if emp_user == user:
+                    return True
+            if user in (doc.get("_assign") or ""):
+                return True
+            return False
             
         return False
         
     if ptype == "delete":
-        return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+        if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+            return True
+        if not doc:
+            return any(r in roles for r in ["Project Coordinator", "Project Manager"])
+        pm, coord = get_activity_manager_and_coordinator_for_task(doc)
+        if "Project Coordinator" in roles and (coord == user or not coord):
+            return True
+        if "Project Manager" in roles and (pm == user or not pm):
+            return True
+        if doc.owner == user and any(r in roles for r in ["Project Coordinator", "Project Manager"]):
+            return True
+        return False
         
     return False
+
+
+def has_feedback_survey_permission(doc=None, ptype="read", user=None):
+    """
+    Evaluates role-based least privilege permissions for Feedback Survey:
+    - Administrator, System Manager, CEO, Project Director: Unrestricted access.
+    - Read: Allowed for all authenticated internal roles.
+    - Survey Level Rules:
+        * Project-level: Only Project Manager (managing project or owning) and supervising roles can create/write/submit. Field Officer is strictly blocked.
+        * Activity-level: Only Field Officer can create/fill. Lateral isolation between peer Field Officers. Project Managers can review/edit existing surveys under their managed project.
+    - Delete: Allowed ONLY for CEO, Project Director, System Manager, Administrator.
+    """
+    if not user:
+        user = frappe.session.user
+
+    if user in ("Administrator", "System Administrator"):
+        return True
+
+    roles = frappe.get_roles(user)
+
+    # 1. Organization-wide executives
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return True
+
+    if ptype == "read":
+        return True
+
+    survey_level = doc.get("survey_level") if doc else None
+
+    if ptype == "create":
+        if survey_level == "Project":
+            return any(r in roles for r in ["Project Manager", "Project Coordinator"])
+        elif survey_level == "Activity":
+            return "Field Officer" in roles
+        return any(r in roles for r in ["Field Officer", "Project Manager", "Project Coordinator"])
+
+    if ptype in ("write", "submit"):
+        if not doc:
+            return any(r in roles for r in ["Field Officer", "Project Manager", "Project Coordinator"])
+
+        survey_level = doc.get("survey_level") or ("Project" if doc.get("project") and not doc.get("activity") and not doc.get("linked_activity") else "Activity")
+
+        # Project level survey
+        if survey_level == "Project":
+            if "Field Officer" in roles and not any(r in roles for r in ["Project Manager", "Project Coordinator"]):
+                return False
+            if "Project Manager" in roles:
+                if doc.owner == user:
+                    return True
+                if doc.get("project"):
+                    pm = None
+                    if frappe.db.exists("KV Project", doc.project):
+                        pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                    elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_manager"):
+                        pm = frappe.db.get_value("Project", doc.project, "custom_project_manager")
+                    if pm == user:
+                        return True
+                return False
+            if "Project Coordinator" in roles:
+                if doc.owner == user:
+                    return True
+                if doc.get("project"):
+                    coord = None
+                    if frappe.db.exists("KV Project", doc.project):
+                        coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                    elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_coordinator"):
+                        coord = frappe.db.get_value("Project", doc.project, "custom_project_coordinator")
+                    if coord == user:
+                        return True
+                return False
+            return False
+
+        # Activity level survey
+        if doc.owner == user and "Field Officer" in roles:
+            return True
+
+        if "Field Officer" in roles:
+            fo = doc.get("field_officer") or doc.owner
+            return fo == user
+
+        if "Project Manager" in roles:
+            if doc.get("project"):
+                pm = None
+                if frappe.db.exists("KV Project", doc.project):
+                    pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", doc.project, "custom_project_manager")
+                if pm == user:
+                    return True
+            return False
+
+        if "Project Coordinator" in roles:
+            if doc.get("project"):
+                coord = None
+                if frappe.db.exists("KV Project", doc.project):
+                    coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_coordinator"):
+                    coord = frappe.db.get_value("Project", doc.project, "custom_project_coordinator")
+                if coord == user:
+                    return True
+            return False
+
+        return False
+
+    if ptype in ("delete", "cancel"):
+        return any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
+
+    return False
+
+
+def get_task_permission_query_conditions(user=None):
+    """
+    SQL query conditions applied to Task list views and searches:
+    - CXO level: No restrictions ("").
+    - Field Officer: Can ONLY see tasks assigned to them (by employee ID, user email, or _assign).
+    - Project Manager: Tasks under their activities or projects, plus assigned tasks.
+    - Project Coordinator: Tasks under their coordinated projects, plus assigned tasks.
+    """
+    if not user:
+        user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return ""
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return ""
+        
+    emp_ids = frappe.get_all("Employee", filters={"user_id": user}, pluck="name") or []
+    user_escaped = frappe.db.escape(user)
+
+    task_meta = frappe.get_meta("Task")
+    assignment_conditions = [f"`tabTask`.`owner` = {user_escaped}", f"`tabTask`.`_assign` LIKE '%{user}%' "]
+    for fieldname in ("custom_activity_owner", "custom_assigned_to", "custom_assignee"):
+        if task_meta.has_field(fieldname):
+            assignment_conditions.append(f"`tabTask`.`{fieldname}` = {user_escaped}")
+            if fieldname == "custom_activity_owner" and emp_ids:
+                emp_list = ", ".join(frappe.db.escape(employee) for employee in emp_ids)
+                assignment_conditions.append(f"`tabTask`.`{fieldname}` IN ({emp_list})")
+
+    conditions = ["(" + " OR ".join(assignment_conditions) + ")"]
+    
+    if "Project Manager" in roles:
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabActivity` act 
+            WHERE act.name = `tabTask`.`custom_activity` AND act.assignee = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabProject` p 
+            WHERE p.name = `tabTask`.`project` AND p.custom_project_manager = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabKV Project` kvp 
+            WHERE kvp.name = `tabTask`.`project` AND kvp.project_manager = {user_escaped}
+        )""")
+        
+    if "Project Coordinator" in roles:
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabProject` p2 
+            WHERE p2.name = `tabTask`.`project` AND p2.custom_project_coordinator = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabKV Project` kvp2 
+            WHERE kvp2.name = `tabTask`.`project` AND kvp2.project_coordinator = {user_escaped}
+        )""")
+        conditions.append(f"""EXISTS (
+            SELECT 1 FROM `tabActivity` act2 
+            JOIN `tabKV Project` kvp3 ON kvp3.name = act2.project OR kvp3.project_name = act2.project
+            WHERE act2.name = `tabTask`.`custom_activity` AND kvp3.project_coordinator = {user_escaped}
+        )""")
+        
+    return f"({' OR '.join(conditions)})"
 
 
 def enforce_activity_least_privilege(doc, method=None):
@@ -1220,24 +1784,26 @@ def enforce_activity_least_privilege(doc, method=None):
             )
             
     if not doc.is_new():
+        allowed = False
         if "Project Coordinator" in roles:
             coord = get_project_coordinator_for_activity(doc)
-            if coord != user and doc.owner != user:
+            if coord == user or doc.owner == user:
+                allowed = True
+        if not allowed and "Project Manager" in roles:
+            pm = get_project_manager_for_activity(doc)
+            if doc.assignee == user or doc.owner == user or pm == user:
+                allowed = True
+        if not allowed:
+            if "Field Officer" in roles:
                 frappe.throw(
-                    frappe._(f"Permission Denied: This Activity belongs to Project Coordinator '{coord}'. You can only edit activities in projects assigned to you."),
+                    frappe._("Permission Denied: Field Officers cannot edit Activity records."),
                     frappe.PermissionError
                 )
-        elif "Project Manager" in roles:
-            if doc.assignee != user and doc.owner != user:
+            else:
                 frappe.throw(
-                    frappe._(f"Permission Denied: Activity '{doc.get('activity_name') or doc.name}' is assigned to Project Manager '{doc.assignee}'. Another Project Manager cannot edit this activity."),
+                    frappe._(f"Permission Denied: You do not have permission to edit Activity '{doc.get('activity_name') or doc.name}'."),
                     frappe.PermissionError
                 )
-        else:
-            frappe.throw(
-                frappe._("Permission Denied: Field Officers cannot edit Activity records."),
-                frappe.PermissionError
-            )
 
 
 def enforce_task_least_privilege(doc, method=None):
@@ -1266,10 +1832,34 @@ def enforce_task_least_privilege(doc, method=None):
                     frappe.PermissionError
                 )
         elif "Field Officer" in roles:
-            fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("owner")
-            if fo_assigned != user and doc.owner != user:
+            is_assigned = False
+            if doc.owner == user:
+                is_assigned = True
+            else:
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee")
+                if fo_assigned == user:
+                    is_assigned = True
+                elif fo_assigned and frappe.db.exists("Employee", fo_assigned):
+                    emp_user = frappe.db.get_value("Employee", fo_assigned, "user_id")
+                    if emp_user == user:
+                        is_assigned = True
+                if not is_assigned and doc.get("_assign"):
+                    try:
+                        import json
+                        is_assigned = user in json.loads(doc.get("_assign"))
+                    except (TypeError, ValueError):
+                        pass
+            if not is_assigned:
+                fo_assigned = doc.get("custom_activity_owner") or doc.get("custom_assigned_to") or doc.get("custom_assignee") or "Another Officer"
                 frappe.throw(
                     frappe._(f"Permission Denied: Task '{doc.subject or doc.name}' is assigned to Field Officer '{fo_assigned}'. Another Field Officer cannot edit this task."),
+                    frappe.PermissionError
+                )
+
+        if not doc.is_new() and doc.has_value_changed("custom_require_evidence"):
+            if not can_review_task_submission(doc, user):
+                frappe.throw(
+                    frappe._("Permission Denied: Only the Project Coordinator can change the evidence requirement."),
                     frappe.PermissionError
                 )
 
@@ -1283,36 +1873,162 @@ def enforce_project_least_privilege(doc, method=None):
     roles = frappe.get_roles(user)
     is_senior_executive = any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"])
     
-    # 1. Project must always be assigned to a Project Coordinator
+    # 1. Project must always maintain both Project Coordinator and Project Manager
     assigned_coord = doc.get("project_coordinator") or doc.get("custom_project_coordinator")
+    assigned_pm = doc.get("project_manager") or doc.get("custom_project_manager")
     if not assigned_coord:
         frappe.throw(
             frappe._("A Project must always be assigned to a Project Coordinator. Please assign a valid Project Coordinator."),
             frappe.ValidationError
         )
+    if not assigned_pm:
+        frappe.throw(
+            frappe._("A Project must always be assigned to a Project Manager. Please assign a valid Project Manager."),
+            frappe.ValidationError
+        )
         
-    # 2. Check Creation privilege
+    # 2. Check Creation privilege. Project Managers may raise a project;
+    #    it goes through the approval chain before it becomes real.
     if doc.is_new():
-        allowed_to_create = is_senior_executive or ("Project Coordinator" in roles)
+        allowed_to_create = is_senior_executive or any(
+            r in roles for r in ["Project Coordinator", "Project Manager"]
+        )
         if not allowed_to_create:
             frappe.throw(
-                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Director, or CEO."),
+                frappe._("Permission Denied: Projects can only be created by a Project Coordinator, Project Manager, Project Director, or CEO."),
                 frappe.PermissionError
             )
             
     # 3. Check Edit / Write privilege
     if not doc.is_new() and not is_senior_executive:
+        # Whoever raised it may keep working on it — otherwise a rejected
+        # project could never be corrected and resubmitted.
+        if doc.owner == user:
+            return
+
+        allowed = False
+        # Project Coordinator can edit all projects under him/her
         if "Project Coordinator" in roles:
-            if assigned_coord != user and doc.owner != user:
+            if assigned_coord == user or doc.owner == user:
+                allowed = True
+        # Project Manager can edit the project assigned to him/her
+        if not allowed and "Project Manager" in roles:
+            if assigned_pm == user or doc.owner == user:
+                allowed = True
+                
+        if not allowed:
+            if "Project Coordinator" in roles:
                 frappe.throw(
-                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is under Project Coordinator '{assigned_coord}'. Another Project Coordinator cannot edit this project."),
                     frappe.PermissionError
                 )
-        else:
+            elif "Project Manager" in roles:
+                frappe.throw(
+                    frappe._(f"Permission Denied: Project '{doc.get('project_name') or doc.name}' is assigned to Project Manager '{assigned_pm}'. Another Project Manager cannot edit this project."),
+                    frappe.PermissionError
+                )
+            else:
+                frappe.throw(
+                    frappe._("Permission Denied: Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Manager, supervising Project Coordinator, Project Director, or CEO."),
+                    frappe.PermissionError
+                )
+
+
+def enforce_feedback_survey_least_privilege(doc, method=None):
+    """Validates Feedback Survey creation & edit rules strictly against hierarchy and lateral isolation"""
+    user = frappe.session.user
+    if user in ("Administrator", "System Administrator"):
+        return
+
+    roles = frappe.get_roles(user)
+    if any(r in roles for r in ["Administrator", "System Manager", "CEO", "Project Director"]):
+        return
+
+    survey_level = doc.get("survey_level") or ("Project" if doc.get("project") and not doc.get("activity") and not doc.get("linked_activity") else "Activity")
+
+    # 1. Project level Feedback Survey rules:
+    # Field Officers CANNOT fill or edit Project-level surveys! Only Project Managers (and supervising roles).
+    if survey_level == "Project":
+        if "Field Officer" in roles and not any(r in roles for r in ["Project Manager", "Project Coordinator", "Project Director", "CEO", "System Manager", "Administrator"]):
             frappe.throw(
-                frappe._("Permission Denied: Project Managers and Field Officers cannot edit Project records. Projects can only be edited by the assigned Project Coordinator, Project Director, or CEO."),
+                frappe._("Permission Denied: Field Officers cannot fill Project-level Feedback Surveys. Project-level surveys must be filled by the Project Manager."),
                 frappe.PermissionError
             )
+
+        if "Project Manager" in roles:
+            # Check project manager ownership
+            if doc.get("project"):
+                pm = None
+                if frappe.db.exists("KV Project", doc.project):
+                    pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_manager"):
+                    pm = frappe.db.get_value("Project", doc.project, "custom_project_manager")
+                if pm and pm != user and doc.owner != user:
+                    frappe.throw(
+                        frappe._(f"Permission Denied: Feedback Survey for project '{doc.project}' is managed by Project Manager '{pm}'. Another Project Manager cannot fill or edit this survey."),
+                        frappe.PermissionError
+                    )
+
+        if "Project Coordinator" in roles and not ("Project Manager" in roles):
+            if doc.get("project"):
+                coord = None
+                if frappe.db.exists("KV Project", doc.project):
+                    coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                elif frappe.db.exists("Project", doc.project) and frappe.db.has_column("Project", "custom_project_coordinator"):
+                    coord = frappe.db.get_value("Project", doc.project, "custom_project_coordinator")
+                if coord and coord != user and doc.owner != user:
+                    frappe.throw(
+                        frappe._(f"Permission Denied: Feedback Survey for project '{doc.project}' is coordinated by '{coord}'. You cannot fill or edit this survey."),
+                        frappe.PermissionError
+                    )
+
+    # 2. Activity level Feedback Survey rules:
+    # Only Field Officers will be able to fill it!
+    elif survey_level == "Activity":
+        if doc.is_new():
+            # When creating/filling an Activity-level survey:
+            # Project Manager or Coordinator without Field Officer role cannot create/fill
+            if "Project Manager" in roles and not ("Field Officer" in roles):
+                frappe.throw(
+                    frappe._("Permission Denied: Activity-level Feedback Surveys can only be filled by Field Officers."),
+                    frappe.PermissionError
+                )
+            if "Project Coordinator" in roles and not ("Field Officer" in roles):
+                frappe.throw(
+                    frappe._("Permission Denied: Activity-level Feedback Surveys can only be filled by Field Officers."),
+                    frappe.PermissionError
+                )
+
+        # If new and created by a Field Officer, ensure field_officer defaults to current user
+        if doc.is_new() and "Field Officer" in roles and not doc.get("field_officer"):
+            doc.field_officer = user
+
+        if not doc.is_new():
+            if "Field Officer" in roles:
+                fo = doc.get("field_officer") or doc.owner
+                if fo != user and doc.owner != user:
+                    frappe.throw(
+                        frappe._(f"Permission Denied: Feedback Survey '{doc.name}' was conducted by Field Officer '{fo}'. Another Field Officer cannot edit this survey."),
+                        frappe.PermissionError
+                    )
+            elif "Project Manager" in roles:
+                if doc.owner != user:
+                    if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                        pm = frappe.db.get_value("KV Project", doc.project, "project_manager")
+                        if pm and pm != user:
+                            frappe.throw(
+                                frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project managed by '{pm}'. You cannot edit this survey."),
+                                frappe.PermissionError
+                            )
+            elif "Project Coordinator" in roles:
+                if doc.owner != user:
+                    if doc.get("project") and frappe.db.exists("KV Project", doc.project):
+                        coord = frappe.db.get_value("KV Project", doc.project, "project_coordinator")
+                        if coord and coord != user:
+                            frappe.throw(
+                                frappe._(f"Permission Denied: Feedback Survey '{doc.name}' belongs to a project coordinated by '{coord}'. You cannot edit this survey."),
+                                frappe.PermissionError
+                            )
 
 
 def validate_project_finances_and_activities(doc, method=None):
@@ -1329,6 +2045,28 @@ def validate_project_finances_and_activities(doc, method=None):
     if doc.expected_start_date and doc.expected_end_date:
         if str(doc.expected_end_date) < str(doc.expected_start_date):
             frappe.throw("End Date cannot be before Start Date for Project.")
+
+    # Enforce at least one feedback survey before completing/closing Project
+    if doc.status == "Completed" and not doc.is_new():
+        has_feedback = False
+        for row in doc.get("custom_feedback_surveys") or []:
+            if row.feedback_survey:
+                has_feedback = True
+                break
+        if not has_feedback and doc.get("custom_linked_field_tracking_form"):
+            has_feedback = True
+        if not has_feedback:
+            has_feedback = bool(frappe.db.exists("Feedback Survey", {
+                "project": ["in", [doc.name, doc.get("project_name") or doc.name]],
+                "docstatus": ["!=", 2]
+            }))
+        if not has_feedback:
+            frappe.throw(
+                frappe._("Cannot close or complete Project '{0}': At least one Feedback Survey must be completed and linked before closing the project.").format(
+                    doc.get("project_name") or doc.name
+                ),
+                frappe.ValidationError
+            )
 
 
 def sync_project_activities(doc, method=None):
@@ -1422,20 +2160,26 @@ def submit_kv_project(data):
         "linked_baseline_survey": data.get("linked_baseline_survey"),
         "linked_field_tracking_form": data.get("linked_field_tracking_form")
     })
+
+    for village in data.get("project_villages") or []:
+        village_profile = village if isinstance(village, str) else village.get("village_profile")
+        if village_profile:
+            doc.append("project_villages", {"village_profile": village_profile})
     
     for act in data.get("activities") or []:
         if not act.get("activity_name"):
             continue
         doc.append("activities", {
             "activity_name": act.get("activity_name"),
-            "goal": act.get("goal"),
+            "theme": act.get("theme") or data.get("theme"),
+            "sub_theme": act.get("sub_theme"),
             "assignee": act.get("assignee"),
             "start_date": act.get("start_date") or doc.start_date,
             "end_date": act.get("end_date") or doc.end_date,
             "status": act.get("status") or "Planned",
-            "description": act.get("description"),
-            "input_output": act.get("input_output"),
-            "impact": act.get("impact")
+            "approved_budget": flt(act.get("approved_budget") or 0),
+            "target": flt(act.get("target") or 0),
+            "achievement": flt(act.get("achievement") or 0)
         })
         
     for fb in data.get("feedback_surveys") or []:
@@ -1596,9 +2340,9 @@ def get_project_detail(project_id=None):
             "Activity",
             filters={"project": ["in", [p_name, p_title]]},
             fields=[
-                "name", "activity_name", "project", "theme", "status",
-                "assignee", "goal", "linked_kre", "start_date", "end_date",
-                "input_output", "impact", "planned_budget", "actual_expenditure", "description"
+                "name", "activity_name", "project", "theme", "sub_theme", "status",
+                "assignee", "start_date", "end_date",
+                "approved_budget", "total_expenditure", "target", "achievement"
             ],
             order_by="creation asc"
         )
@@ -1619,11 +2363,8 @@ def get_project_detail(project_id=None):
                 "assignee": a.assignee or "Administrator",
                 "start_date": a.start_date or "2026-01-01",
                 "end_date": a.end_date or "2026-03-31",
-                "input_output": a.input_output or "",
-                "impact": a.impact or "",
-                "planned_budget": flt(getattr(a, "planned_budget", 0)),
-                "actual_expenditure": flt(getattr(a, "actual_expenditure", 0)),
-                "description": a.description or "",
+                "approved_budget": flt(getattr(a, "approved_budget", 0)),
+                "total_expenditure": flt(getattr(a, "total_expenditure", 0)),
                 "task_count": frappe.db.count("Task", {"custom_activity": a.linked_activity or a.name}) or 0
             })
             
@@ -1674,7 +2415,7 @@ def get_project_detail(project_id=None):
         fb_docs = frappe.get_all(
             "Feedback Survey",
             filters={"project": ["in", [p_name, p_title]]},
-            fields=["name", "village", "activity", "date_of_visit", "total_participants", "overall_rating", "respondent_type", "significant_change"],
+            fields=["name", "survey_level", "village", "activity", "date_of_visit", "total_participants", "overall_rating", "respondent_type", "significant_change"],
             order_by="creation desc"
         )
         if not fb_docs and project_data["custom_linked_field_tracking_form"]:
@@ -1682,6 +2423,7 @@ def get_project_detail(project_id=None):
                 fb = frappe.get_doc("Feedback Survey", project_data["custom_linked_field_tracking_form"])
                 fb_docs = [{
                     "name": fb.name,
+                    "survey_level": getattr(fb, "survey_level", "Activity"),
                     "village": fb.village or "Rampur",
                     "activity": fb.activity or "Water Budgeting Workshop",
                     "date_of_visit": fb.date_of_visit or "2026-02-15",
@@ -1747,19 +2489,49 @@ def get_activity_detail(activity_id=None):
         project_title = frappe.db.get_value("KV Project", p_name, "project_name") or p_name
         
     # Fetch tasks for this activity
+    available_task_fields = {field.fieldname for field in frappe.get_meta("Task").fields}
+    task_fields = [
+        "name", "subject", "owner", "project", "custom_activity", "status",
+        "priority", "exp_start_date", "exp_end_date", "description", "_assign"
+    ]
+    for fieldname in (
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
+        "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
+    ):
+        if fieldname in available_task_fields:
+            task_fields.append(fieldname)
     tasks = frappe.get_all(
         "Task",
         filters={"custom_activity": activity_id},
-        fields=[
-            "name", "subject", "project", "custom_activity", "status",
-            "priority", "exp_start_date", "exp_end_date", "description",
-            "_assign"
-        ],
+        fields=task_fields,
         order_by="creation asc"
     )
     for td in tasks:
-        td["custom_assignee"] = "Administrator"
+        td["custom_assignee"] = td.get("custom_assignee") or "Administrator"
+        td["custom_review_status"] = td.get("custom_review_status") or "Not Submitted"
+        td["can_review_submission"] = can_review_task_submission(td)
+        td["can_submit_submission"] = can_submit_task_evidence(td)
     
+    # Fetch feedback surveys for this activity
+    feedback_surveys = []
+    if frappe.db.exists("DocType", "Feedback Survey"):
+        try:
+            feedback_surveys = frappe.get_all(
+                "Feedback Survey",
+                filters={"docstatus": ["!=", 2]},
+                or_filters={
+                    "linked_activity": act.name,
+                    "activity": ["in", [act.name, act.activity_name]]
+                },
+                fields=[
+                    "name", "village", "activity", "date_of_visit", "total_participants",
+                    "overall_rating", "respondent_type", "significant_change", "field_officer"
+                ],
+                order_by="creation desc"
+            )
+        except Exception:
+            feedback_surveys = []
+
     return {
         "activity": {
             "name": act.name,
@@ -1767,20 +2539,18 @@ def get_activity_detail(activity_id=None):
             "project": act.project,
             "project_title": project_title,
             "theme": act.theme,
+            "sub_theme": act.sub_theme,
             "status": act.status or "Open",
             "assignee": act.assignee,
-            "goal": act.goal,
-            "linked_kre": act.linked_kre,
             "start_date": act.start_date,
             "end_date": act.end_date,
-            "timeline_description": act.timeline_description,
-            "input_output": act.input_output,
-            "impact": act.impact,
-            "planned_budget": flt(act.planned_budget),
-            "actual_expenditure": flt(act.actual_expenditure),
-            "description": act.description
+            "approved_budget": flt(act.approved_budget),
+            "total_expenditure": flt(act.total_expenditure),
+            "target": flt(act.target),
+            "achievement": flt(act.achievement)
         },
-        "tasks": tasks
+        "tasks": tasks,
+        "feedback_surveys": feedback_surveys
     }
 
 
@@ -1801,18 +2571,15 @@ def save_activity(data):
     doc.activity_name = data.get("activity_name")
     doc.project = data.get("project")
     doc.theme = data.get("theme")
+    doc.sub_theme = data.get("sub_theme")
     doc.status = data.get("status") or "Open"
     doc.assignee = data.get("assignee")
-    doc.goal = data.get("goal")
-    doc.linked_kre = data.get("linked_kre")
     doc.start_date = data.get("start_date")
     doc.end_date = data.get("end_date")
-    doc.timeline_description = data.get("timeline_description")
-    doc.input_output = data.get("input_output")
-    doc.impact = data.get("impact")
-    doc.planned_budget = flt(data.get("planned_budget") or 0)
-    doc.actual_expenditure = flt(data.get("actual_expenditure") or 0)
-    doc.description = data.get("description")
+    doc.approved_budget = flt(data.get("approved_budget") or 0)
+    doc.total_expenditure = flt(data.get("total_expenditure") or 0)
+    doc.target = flt(data.get("target") or 0)
+    doc.achievement = flt(data.get("achievement") or 0)
     
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -1842,13 +2609,112 @@ def delete_activity_record(name):
     return {"success": True, "message": f"Activity {name} and child tasks deleted successfully."}
 
 
+def ensure_task_custom_fields():
+    """Create the Task evidence and review fields if they are not installed yet."""
+    custom_fields = [
+        {
+            "name": "Task-custom_section_evidence",
+            "fieldname": "custom_section_evidence",
+            "fieldtype": "Section Break",
+            "label": "Task Evidence & Review",
+            "insert_after": "custom_strategy",
+        },
+        {
+            "name": "Task-custom_require_evidence",
+            "fieldname": "custom_require_evidence",
+            "fieldtype": "Check",
+            "label": "Evidence Image Required for Completion",
+            "default": "0",
+            "allow_in_quick_entry": 1,
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "insert_after": "custom_section_evidence",
+        },
+        {
+            "name": "Task-custom_evidence_image",
+            "fieldname": "custom_evidence_image",
+            "fieldtype": "Attach Image",
+            "label": "Task Evidence Image / Attachment",
+            "allow_in_quick_entry": 1,
+            "insert_after": "custom_require_evidence",
+        },
+        {
+            "name": "Task-custom_col_evidence",
+            "fieldname": "custom_col_evidence",
+            "fieldtype": "Column Break",
+            "insert_after": "custom_evidence_image",
+        },
+        {
+            "name": "Task-custom_review_status",
+            "fieldname": "custom_review_status",
+            "fieldtype": "Select",
+            "label": "Evidence Review Status",
+            "options": "Not Submitted\nPending Review\nApproved\nRejected",
+            "default": "Not Submitted",
+            "read_only": 1,
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "insert_after": "custom_col_evidence",
+        },
+        {
+            "name": "Task-custom_review_comment",
+            "fieldname": "custom_review_comment",
+            "fieldtype": "Small Text",
+            "label": "Review Comment / Instructions",
+            "read_only": 1,
+            "insert_after": "custom_review_status",
+        },
+        {
+            "name": "Task-custom_reviewed_by",
+            "fieldname": "custom_reviewed_by",
+            "fieldtype": "Link",
+            "label": "Reviewed By",
+            "options": "User",
+            "read_only": 1,
+            "insert_after": "custom_review_comment",
+        },
+        {
+            "name": "Task-custom_reviewed_on",
+            "fieldname": "custom_reviewed_on",
+            "fieldtype": "Datetime",
+            "label": "Reviewed On",
+            "read_only": 1,
+            "insert_after": "custom_reviewed_by",
+        },
+        {
+            "name": "Task-custom_assignee",
+            "fieldname": "custom_assignee",
+            "fieldtype": "Link",
+            "label": "Assigned Field Officer",
+            "options": "User",
+            "allow_in_quick_entry": 1,
+            "insert_after": "custom_activity_owner",
+        },
+    ]
+    for field in custom_fields:
+        if not frappe.db.exists("Custom Field", field["name"]):
+            frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "Task",
+                "module": "Krushi Vikas",
+                **field,
+            }).insert(ignore_permissions=True)
+        else:
+            cf = frappe.get_doc("Custom Field", field["name"])
+            cf.update(field)
+            cf.save(ignore_permissions=True)
+    frappe.clear_cache(doctype="Task")
+
+
 @frappe.whitelist(allow_guest=True)
 def save_task(data):
     """Create or Update a Task record."""
     if isinstance(data, str):
         import json
         data = json.loads(data)
-        
+
+    ensure_task_custom_fields()
+
     name = data.get("name")
     if name and frappe.db.exists("Task", name):
         doc = frappe.get_doc("Task", name)
@@ -1864,6 +2730,19 @@ def save_task(data):
     doc.exp_end_date = data.get("exp_end_date")
     doc.description = data.get("description")
     doc.custom_assignee = data.get("custom_assignee")
+    if "require_evidence" in data:
+        requested_requirement = cint(data.get("require_evidence"))
+        if requested_requirement != cint(doc.get("custom_require_evidence")) and not can_review_task_submission(doc, frappe.session.user):
+            frappe.throw(_("Only the Project Coordinator assigned to this project can change the evidence requirement."), frappe.PermissionError)
+        doc.custom_require_evidence = requested_requirement
+    if doc.is_new():
+        doc.custom_review_status = "Not Submitted"
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if data.get("status") == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -1875,6 +2754,127 @@ def save_task(data):
         "status": doc.status,
         "project": doc.project,
         "custom_activity": doc.custom_activity
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_task_for_review(name):
+    """Submit task (with optional or mandatory attached evidence) for review by the assigned coordinator."""
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Please sign in before submitting task evidence."), frappe.PermissionError)
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
+
+    doc = frappe.get_doc("Task", name)
+    if not can_submit_task_evidence(doc, user):
+        frappe.throw(_("Only the task creator or assignee can submit this task for review."), frappe.PermissionError)
+
+    require_evidence = cint(doc.get("custom_require_evidence"))
+    if require_evidence and not doc.get("custom_evidence_image"):
+        frappe.throw(_("Attach an image before submitting this task for review."), frappe.ValidationError)
+    if doc.get("custom_review_status") == "Approved":
+        frappe.throw(_("This task is already approved."), frappe.ValidationError)
+
+    if doc.get("custom_evidence_image"):
+        file_url = (doc.custom_evidence_image or "").strip()
+        is_image = any(file_url.lower().endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"))
+        if not is_image:
+            attached_file = frappe.db.get_value(
+                "File",
+                {"file_url": file_url},
+                ["name", "file_name", "file_type"],
+                as_dict=True,
+            )
+            if attached_file and attached_file.file_type and str(attached_file.file_type).lower().startswith("image"):
+                is_image = True
+        if not is_image:
+            frappe.throw(_("The attached evidence must be an image."), frappe.ValidationError)
+
+    doc.custom_review_status = "Pending Review"
+    doc.status = "Pending Review"
+    doc.custom_review_comment = ""
+    doc.custom_reviewed_by = ""
+    doc.custom_reviewed_on = None
+    doc.save(ignore_permissions=True)
+    msg = _("Task submitted for review by {0}.").format(user) if not doc.custom_evidence_image else _("Task evidence submitted for review by {0}.").format(user)
+    doc.add_comment("Comment", text=msg)
+    frappe.db.commit()
+    return {"success": True, "name": doc.name, "review_status": doc.custom_review_status, "status": doc.status}
+
+
+@frappe.whitelist(methods=["POST"])
+def review_task_submission(name, decision, comment=None):
+    """Approve or reject task submission; only the assigned coordinator or manager can review.
+    If approved, status changes to Completed. If rejected, moves back to Field Officer queue with status Needs Work.
+    """
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Please sign in before reviewing task evidence."), frappe.PermissionError)
+    if not frappe.db.exists("Task", name):
+        frappe.throw(_("Task does not exist."), frappe.DoesNotExistError)
+
+    decision = (decision or "").strip().lower()
+    if decision not in ("approve", "reject"):
+        frappe.throw(_("Choose either approve or reject."), frappe.ValidationError)
+    comment = (comment or "").strip()
+    if decision == "reject" and not comment:
+        frappe.throw(_("Add a comment explaining why the task was rejected."), frappe.ValidationError)
+
+    doc = frappe.get_doc("Task", name)
+    if not can_review_task_submission(doc, user):
+        frappe.throw(_("Only the assigned Project Coordinator or Manager can review this task."), frappe.PermissionError)
+    if doc.get("custom_review_status") != "Pending Review":
+        frappe.throw(_("This task is not waiting for review."), frappe.ValidationError)
+
+    doc.custom_review_status = "Approved" if decision == "approve" else "Rejected"
+    doc.custom_review_comment = comment
+    doc.custom_reviewed_by = user
+    doc.custom_reviewed_on = frappe.utils.now_datetime()
+    doc.status = "Completed" if decision == "approve" else "Needs Work"
+    doc.save(ignore_permissions=True)
+    doc.add_comment("Comment", text=_("Task {0} by {1}.{2}").format(
+        "approved" if decision == "approve" else "rejected",
+        user,
+        f" Comment: {comment}" if comment else "",
+    ))
+    frappe.db.commit()
+    return {
+        "success": True,
+        "name": doc.name,
+        "status": doc.status,
+        "review_status": doc.custom_review_status,
+        "comment": doc.custom_review_comment,
+    }
+
+
+@frappe.whitelist()
+def get_task_review_permissions(task_name):
+    """Returns permission flags and review state for a task in the standard Desk form."""
+    if not task_name or not frappe.db.exists("Task", task_name):
+        return {"can_review": False, "can_submit": False, "can_require": False}
+    doc = frappe.get_doc("Task", task_name)
+    user = frappe.session.user
+    roles = frappe.get_roles(user)
+    is_exec = user in ("Administrator", "System Administrator") or any(
+        r in roles for r in ("Administrator", "System Manager", "CEO", "Project Director")
+    )
+    is_coord_or_pm = any(
+        r in roles for r in ("Project Coordinator", "Project Manager")
+    )
+    can_rev = can_review_task_submission(doc, user)
+    can_sub = can_submit_task_evidence(doc, user)
+    can_req = is_exec or is_coord_or_pm or can_rev
+    return {
+        "can_review": can_rev,
+        "can_submit": can_sub,
+        "can_require": can_req,
+        "review_status": doc.get("custom_review_status") or "Not Submitted",
+        "has_evidence": bool(doc.get("custom_evidence_image")),
+        "require_evidence": cint(doc.get("custom_require_evidence")),
+        "evidence_image": doc.get("custom_evidence_image"),
+        "review_comment": doc.get("custom_review_comment"),
+        "status": doc.status,
     }
 
 
@@ -1894,6 +2894,12 @@ def toggle_task_status(name, status):
     if not frappe.db.exists("Task", name):
         frappe.throw(_("Task does not exist."))
     doc = frappe.get_doc("Task", name)
+    evidence_required = cint(doc.get("custom_require_evidence")) or bool(doc.get("custom_evidence_image"))
+    if status == "Completed" and evidence_required:
+        if not doc.get("custom_evidence_image"):
+            frappe.throw(_("This task requires an evidence image before it can be completed."), frappe.ValidationError)
+        if doc.get("custom_review_status") != "Approved":
+            frappe.throw(_("Task evidence must be approved by the Project Coordinator before the task can be completed."), frappe.ValidationError)
     doc.status = status
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -1915,9 +2921,9 @@ def get_global_activities(project=None, status=None, assignee=None, search=None)
         "Activity",
         filters=filters,
         fields=[
-            "name", "activity_name", "project", "theme", "status",
-            "assignee", "goal", "start_date", "end_date", "impact",
-            "planned_budget", "actual_expenditure", "creation"
+            "name", "activity_name", "project", "theme", "sub_theme", "status",
+            "assignee", "start_date", "end_date",
+            "approved_budget", "total_expenditure", "target", "achievement", "creation"
         ],
         order_by="modified desc"
     )
@@ -1945,6 +2951,7 @@ def get_global_activities(project=None, status=None, assignee=None, search=None)
 @frappe.whitelist(allow_guest=True)
 def get_global_tasks(project=None, activity=None, status=None, priority=None, assignee=None, search=None):
     """Returns global list of all tasks with Project → Activity → Task hierarchy tags."""
+    available_task_fields = {field.fieldname for field in frappe.get_meta("Task").fields}
     filters = {}
     if project:
         filters["project"] = project
@@ -1954,23 +2961,32 @@ def get_global_tasks(project=None, activity=None, status=None, priority=None, as
         filters["status"] = status
     if priority:
         filters["priority"] = priority
+    task_fields = [
+        "name", "subject", "owner", "project", "custom_activity", "status",
+        "priority", "exp_start_date", "exp_end_date", "description", "_assign", "creation"
+    ]
+    for fieldname in (
+        "custom_assignee", "custom_evidence_image", "custom_require_evidence", "custom_review_status",
+        "custom_review_comment", "custom_reviewed_by", "custom_reviewed_on",
+    ):
+        if fieldname in available_task_fields:
+            task_fields.append(fieldname)
     tasks = frappe.get_all(
         "Task",
         filters=filters,
-        fields=[
-            "name", "subject", "project", "custom_activity", "status",
-            "priority", "exp_start_date", "exp_end_date", "description",
-            "_assign", "creation"
-        ],
+        fields=task_fields,
         order_by="modified desc"
     )
     for t in tasks:
-        t["custom_assignee"] = "Administrator"
+        t["custom_assignee"] = t.get("custom_assignee") or "Administrator"
+        t["custom_review_status"] = t.get("custom_review_status") or "Not Submitted"
+        t["can_review_submission"] = can_review_task_submission(t)
+        t["can_submit_submission"] = can_submit_task_evidence(t)
         if t.get("_assign"):
             try:
                 import json
                 users = json.loads(t["_assign"])
-                if users:
+                if users and t.get("custom_assignee") == "Administrator":
                     t["custom_assignee"] = users[0]
             except Exception:
                 pass
@@ -2052,3 +3068,226 @@ def get_analytics_summary():
 
 
 
+
+
+# ═════════════════════════════════════════════════════════════════
+# Programme pipeline — the 10-step operational roadmap
+#
+# 01 Concept Note      Donor / Mgmt      idea framework
+# 02 RRA Report        Management        macro appraisal
+# 03 Proposal          Project Manager   operational draft & budget
+# 04 Approval          Director / CXO    external sign-off  (workflow)
+# 05 Baseline Survey   Field Officer     benchmark ground data
+# 06 Project Creation  Coordinator       operational logging
+# 07 Internal Approval Director / CXO    maker-checker      (workflow)
+# 08 Task Assignment   Project Manager   activity/task allocation
+# 09 Execution         Project Staff     milestone updates
+# 10 Reverse Reporting Field Officer     evidence back to dashboards
+#
+# Each hand-off below refuses to run unless the previous stage closed
+# cleanly, so the chain cannot be short-circuited from the UI.
+# ═════════════════════════════════════════════════════════════════
+
+JOURNEY_STAGES = (
+	("01", "Concept Note", "Concept Note", "Donor / Management"),
+	("02", "RRA Report", "RRA Report", "Management"),
+	("03", "Proposal", "Project Proposal", "Project Manager"),
+	("04", "Approval", "Project Proposal", "Director / CXO"),
+	("05", "Baseline Survey", "Baseline Survey", "Field Officer"),
+	("06", "Project Creation", "KV Project", "Project Coordinator"),
+	("07", "Internal Approval", "KV Project", "Director / CXO"),
+	("08", "Task Assignment", "Activity", "Project Manager"),
+	("09", "Execution", "Task", "Project Staff"),
+	("10", "Reverse Reporting", "Activity Outcome", "Field Officer"),
+)
+
+
+@frappe.whitelist()
+def create_rra_from_concept_note(concept_note):
+	"""02 <- 01. Opens an appraisal against an approved concept note."""
+	note = frappe.get_doc("Concept Note", concept_note)
+
+	if frappe.db.exists("RRA Report", {"concept_note": concept_note, "docstatus": ["<", 2]}):
+		frappe.throw(
+			frappe._("An RRA Report already exists for concept note {0}.").format(concept_note)
+		)
+
+	report = frappe.new_doc("RRA Report")
+	report.title = f"RRA — {note.title}"
+	report.concept_note = note.name
+	report.thematic_area = note.thematic_area
+	report.target_geography = note.target_geography
+	report.estimated_beneficiaries = note.beneficiary_estimate
+	report.recommended_budget = note.estimated_budget
+	report.prepared_by = frappe.session.user
+	report.insert()
+
+	return report.name
+
+
+@frappe.whitelist()
+def create_proposal_from_rra(rra_report):
+	"""03 <- 02. Drafts the operational proposal from the appraisal."""
+	report = frappe.get_doc("RRA Report", rra_report)
+
+	if report.proposal:
+		frappe.throw(
+			frappe._("Proposal {0} already exists for this RRA Report.").format(report.proposal)
+		)
+
+	# The planned window is mandatory on the proposal, so seed it from the
+	# duration the concept note argued for. The Project Manager adjusts it
+	# before submitting; this only keeps the draft creatable.
+	duration_months = (
+		frappe.db.get_value("Concept Note", report.concept_note, "duration_months")
+		if report.concept_note
+		else None
+	) or 12
+
+	start_date = frappe.utils.nowdate()
+
+	proposal = frappe.new_doc("Project Proposal")
+	proposal.title = (report.title or "").replace("RRA — ", "") or report.name
+	proposal.rra_report = report.name
+	proposal.concept_note = report.concept_note
+	proposal.thematic_area = report.thematic_area
+	proposal.target_geography = report.target_geography
+	proposal.beneficiary_target = report.estimated_beneficiaries
+	proposal.total_budget = report.recommended_budget
+	proposal.project_manager = frappe.session.user
+	proposal.planned_start_date = start_date
+	proposal.planned_end_date = frappe.utils.add_months(start_date, duration_months)
+	proposal.insert()
+
+	return proposal.name
+
+
+@frappe.whitelist()
+def create_project_from_proposal(proposal, coordinator=None, village_profiles=None):
+    """06 <- 04. Creates the operational project once the proposal is
+    approved. Everything the proposal settled is carried over rather than
+    re-keyed, so the project cannot disagree with what was signed off."""
+    doc = frappe.get_doc("Project Proposal", proposal)
+
+    if doc.docstatus != 1:
+        frappe.throw(frappe._("Proposal {0} has not been submitted.").format(proposal))
+
+    if doc.workflow_state != "Approved":
+        frappe.throw(
+            frappe._(
+                "Proposal {0} is at '{1}'. A project can only be created from an "
+                "approved proposal (step 04)."
+            ).format(proposal, doc.workflow_state or "Draft")
+        )
+
+    if doc.kv_project:
+        frappe.throw(frappe._("Project {0} was already created from this proposal.").format(doc.kv_project))
+
+    project = frappe.new_doc("KV Project")
+    project.project_name = doc.title
+    project.theme = doc.thematic_area
+    project.project_phase = "Execution"
+    project.status = "Planning"
+    project.project_manager = doc.project_manager
+    project.project_coordinator = coordinator or doc.proposed_coordinator or frappe.session.user
+    project.start_date = doc.planned_start_date
+    project.end_date = doc.planned_end_date
+    project.budget = doc.total_budget
+    project.proposal = doc.name
+    if isinstance(village_profiles, str):
+        village_profiles = frappe.parse_json(village_profiles)
+    for village in village_profiles or []:
+        village_profile = village if isinstance(village, str) else village.get("village_profile")
+        if village_profile:
+            project.append("project_villages", {"village_profile": village_profile})
+    project.insert()
+
+    frappe.db.set_value("Project Proposal", doc.name, "kv_project", project.name)
+
+    return project.name
+
+
+@frappe.whitelist()
+def get_journey_status(project=None):
+	"""Where a single project sits on the roadmap, with the document behind
+	each step. Drives the journey strip on the dashboard."""
+	if not project:
+		return {"stages": [], "project": None}
+
+	doc = frappe.get_doc("KV Project", project)
+
+	if not has_project_permission(doc, "read"):
+		frappe.throw(frappe._("Not permitted to read project {0}.").format(project), frappe.PermissionError)
+
+	activities = frappe.get_all("Activity", filters={"project": doc.name}, pluck="name")
+
+	reached = {
+		"01": doc.concept_note,
+		"02": doc.rra_report,
+		"03": doc.proposal,
+		"04": doc.proposal if doc.proposal else None,
+		"05": frappe.db.get_value("Baseline Survey", {"project": doc.name}, "name")
+		or doc.linked_baseline_survey,
+		"06": doc.name,
+		"07": doc.name if doc.approval_status == "Approved" else None,
+		"08": activities[0] if activities else None,
+		# Execution is evidenced by a task, or by the project itself having
+		# moved into (or through) an executing status — small projects run
+		# their activities without breaking them into tasks.
+		"09": frappe.db.get_value("Task", {"custom_activity": ["in", activities or [""]]}, "name")
+		or (doc.name if doc.status in ("In Progress", "Deployed", "Completed") else None),
+		"10": frappe.db.get_value("Activity Outcome", {"project": doc.name}, "name")
+		or frappe.db.get_value("Feedback Survey", {"project": doc.name}, "name"),
+	}
+
+	stages = []
+
+	for number, label, doctype, owner in JOURNEY_STAGES:
+		stages.append(
+			{
+				"number": number,
+				"label": label,
+				"doctype": doctype,
+				"owner": owner,
+				"document": reached.get(number),
+				"complete": bool(reached.get(number)),
+			}
+		)
+
+	return {
+		"project": doc.name,
+		"project_name": doc.project_name,
+		"journey_stage": doc.journey_stage,
+		"stages": stages,
+	}
+
+
+def cleanup_activity_task_row(doc, method=None):
+	"""Remove the mirrored row from its Activity's Tasks grid.
+
+	Activity Task Detail carries a Link back to this Task (linked_task),
+	which otherwise blocks deleting a Task that was created from — or has
+	synced into — an activity's own Tasks table. Task is a core doctype,
+	so this runs via the on_trash doc_event in hooks.py rather than a
+	controller override. Frappe calls on_trash before its link check, so
+	clearing the row here is enough for the delete to proceed.
+	"""
+	frappe.db.delete("Activity Task Detail", {"linked_task": doc.name})
+
+
+def has_krushi_vikas_app_permission():
+	"""Every real Krushi Vikas role sees the app tile on the apps screen —
+	the same five roles that ever get to be logged in at all here.
+	"""
+	roles = frappe.get_roles(frappe.session.user)
+	return bool(
+		set(roles)
+		& {
+			"System Manager",
+			"CEO",
+			"Project Director",
+			"Project Coordinator",
+			"Project Manager",
+			"Field Officer",
+		}
+	)

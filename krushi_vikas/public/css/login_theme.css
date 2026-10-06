@@ -1,0 +1,92 @@
+/* Restyles the stock Frappe login page to match the Krushi Vikas
+   dashboard's own look (same green, same rounded-card language) —
+   loaded globally via app_include_css, but every rule below is scoped
+   under .for-login so nothing leaks onto Desk pages, which use some of
+   the same component class names (.es-button, .es-alert, etc). */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap');
+
+.for-login {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #F7F6EF;
+	padding: 24px;
+	font-family: 'Work Sans', -apple-system, Helvetica, Arial, sans-serif;
+}
+
+.for-login .login-content.page-card {
+	background: #ffffff;
+	border-radius: 16px;
+	box-shadow: 0 12px 32px -16px rgba(20, 35, 25, 0.18);
+	border: 1px solid #E7E4D6;
+	padding: 40px 36px;
+	max-width: 400px;
+	width: 100%;
+}
+
+.for-login .app-logo {
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	box-shadow: 0 6px 16px -6px rgba(26, 127, 75, 0.5);
+	animation: kv-logo-breathe 3.2s ease-in-out infinite;
+	transform-origin: center;
+}
+
+@keyframes kv-logo-breathe {
+	0%, 100% { transform: scale(1); box-shadow: 0 6px 16px -6px rgba(26, 127, 75, 0.5); }
+	50% { transform: scale(1.06); box-shadow: 0 8px 20px -6px rgba(26, 127, 75, 0.65); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.for-login .app-logo { animation: none; }
+}
+
+.for-login .page-card-head-text h4 {
+	font-family: 'Fraunces', Georgia, serif;
+	font-weight: 700;
+	color: #10231a;
+}
+
+.for-login .page-card-subtitle {
+	color: #5c6b63;
+}
+
+.for-login .form-group label {
+	color: #445048;
+	font-weight: 500;
+}
+
+.for-login .form-control {
+	border-radius: 10px;
+	border: 1px solid #dbe5df;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.for-login .form-control:focus {
+	border-color: #1a7f4b;
+	box-shadow: 0 0 0 3px rgba(26, 127, 75, 0.15);
+}
+
+.for-login a {
+	color: #1a7f4b;
+}
+
+.for-login .es-button[data-variant="solid"] {
+	background: #1a7f4b;
+	border-color: #1a7f4b;
+	border-radius: 10px;
+	font-weight: 600;
+	transition: background 0.15s ease;
+}
+
+.for-login .es-button[data-variant="solid"]:hover {
+	background: #126037;
+	border-color: #126037;
+}
+
+.for-login .btn-login-option {
+	border-radius: 10px;
+}
