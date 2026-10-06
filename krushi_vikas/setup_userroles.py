@@ -1,29 +1,12 @@
 import frappe
 
 def execute():
-    setup_default_app()
     setup_test_users()
     disable_unused_roles()
     frappe.db.commit()
     print("Default app, test users, and role cleanup completed successfully!")
 
 
-def setup_default_app():
-    print("Setting default app and workspace for all users...")
-
-    # System-wide default (applies to anyone without a personal override)
-    frappe.db.set_value("System Settings", "System Settings", "default_app", "krushi_vikas")
-
-    # Force it onto every existing System User too, clearing any personal override
-    frappe.db.sql("""
-        UPDATE `tabUser`
-        SET default_app = %s,
-            default_workspace = %s
-        WHERE user_type = 'System User'
-    """, ("krushi_vikas", "Krushi Vikas"))
-
-    frappe.clear_cache()
-    print("Default app and workspace set for all users.")
 
 
 def setup_test_users():
@@ -46,7 +29,7 @@ def setup_test_users():
             user.send_welcome_email = 0
             user.new_password = "krushivikas.test"
             user.default_app = "krushi_vikas"
-            user.default_workspace = "Krushi Vikas"
+            user.default_workspace = "Krushi Dashboard"
             user.insert(ignore_permissions=True)
             user.add_roles(ru["role"])
             print(f"Created {ru['email']} with role {ru['role']}")
@@ -55,7 +38,7 @@ def setup_test_users():
             if ru["role"] not in [r.role for r in user.roles]:
                 user.add_roles(ru["role"])
             user.default_app = "krushi_vikas"
-            user.default_workspace = "Krushi Vikas"
+            user.default_workspace = "Krushi Dashboard"
             user.save(ignore_permissions=True)
             print(f"{ru['email']} already existed — ensured role and defaults")
 
