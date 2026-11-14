@@ -47,6 +47,9 @@ class KVProject(Document):
     def onload(self):
         """Loads and updates linked feedback surveys under this project"""
         if self.name:
+            # New submitted household surveys should appear without requiring
+            # another project save.
+            self.refresh_baseline_surveys()
             surveys = frappe.get_all("Feedback Survey",
                 filters={"project": ["in", [self.name, self.project_name]]},
                 fields=["name", "village", "activity", "date_of_visit", "total_participants", "overall_rating"]
@@ -137,15 +140,23 @@ class KVProject(Document):
             return
 
         project_refs = list({ref for ref in (self.name, self.project_name) if ref})
+        if not project_refs:
+            return
         surveys = frappe.get_all(
             "Baseline Survey",
-            filters={"project": ["in", project_refs]},
-            fields=["name"],
+            filters={"project": ["in", project_refs], "docstatus": 1},
+            fields=["name", "farmer_name", "village", "survey_date", "submission_status"],
             order_by="creation asc",
         )
         self.set("baseline_surveys", [])
         for survey in surveys:
-            self.append("baseline_surveys", {"baseline_survey": survey.name})
+            self.append("baseline_surveys", {
+                "baseline_survey": survey.name,
+                "farmer_name": survey.farmer_name,
+                "village": survey.village,
+                "survey_date": survey.survey_date,
+                "submission_status": survey.submission_status,
+            })
 
     def recompute_themes_covered(self):
         """A project spans whatever Themes its Activities actually carry —

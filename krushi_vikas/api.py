@@ -308,7 +308,12 @@ def get_village_profile_options():
 
     projects = []
     try:
-        projs = frappe.get_all("Project", fields=["name", "project_name"], limit=20)
+        projs = frappe.get_all(
+            "KV Project",
+            fields=["name", "project_name"],
+            order_by="creation desc",
+            limit=20,
+        )
         projects = [{"name": p.name, "title": p.project_name or p.name} for p in projs]
     except Exception:
         pass
