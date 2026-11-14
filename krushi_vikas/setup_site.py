@@ -2,6 +2,9 @@ import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 import json
 
+def execute():
+    run()
+    
 def run():
     setup_roles()
     setup_docperms()
@@ -10,10 +13,14 @@ def run():
     setup_task_status_options()
     setup_workspace()
     setup_workflows()
+    setup_default_app()
     setup_branding()
     frappe.db.commit()
     print("All site configurations and workflows completed successfully!")
 
+def setup_default_app():
+    print("Setting default app...")
+    frappe.db.set_value("System Settings", "System Settings", "default_app", "krushi_vikas")
 
 def setup_branding():
     """Replace the default Frappe/ERPNext mark on the login page and desk

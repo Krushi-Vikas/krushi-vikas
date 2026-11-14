@@ -50,6 +50,15 @@ app_include_css = [
 	"/assets/krushi_vikas/css/krushi_dashboard.css",
 	"/assets/krushi_vikas/css/survey_grid_mobile.css"
 ]
+
+add_to_apps_screen = [
+    {
+        "name": "krushi_vikas",
+        "logo": "/assets/krushi_vikas/logo.jpg",
+        "title": "Krushi Vikas",
+        "route": "/app/krushi-dashboard"
+    }
+]
 # Permission Hooks for Role-based Least Privilege
 has_permission = {
 	"KV Project": "krushi_vikas.api.has_project_permission",

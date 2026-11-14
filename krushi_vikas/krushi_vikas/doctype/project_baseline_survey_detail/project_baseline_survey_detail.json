@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "creation": "2026-11-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "baseline_survey",
+  "farmer_name",
+  "village",
+  "survey_date",
+  "submission_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "baseline_survey",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Baseline Survey",
+   "options": "Baseline Survey",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "baseline_survey.farmer_name",
+   "fieldname": "farmer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Farmer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "baseline_survey.village",
+   "fieldname": "village",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Village",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "baseline_survey.survey_date",
+   "fieldname": "survey_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Survey Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "baseline_survey.submission_status",
+   "fieldname": "submission_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Submission Status",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "module": "Krushi Vikas",
+ "name": "Project Baseline Survey Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

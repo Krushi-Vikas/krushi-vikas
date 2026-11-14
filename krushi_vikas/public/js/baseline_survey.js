@@ -41,6 +41,13 @@
     init: function() {
       this.populateDefaultRows();
       this.updateStepperUI();
+
+      // Project detail pages open this wizard with ?project=<KV Project name>.
+      const project = new URLSearchParams(window.location.search).get('project');
+      const projectSelect = document.getElementById('project');
+      if (project && projectSelect && Array.from(projectSelect.options).some(option => option.value === project)) {
+        projectSelect.value = project;
+      }
     },
 
     populateDefaultRows: function() {

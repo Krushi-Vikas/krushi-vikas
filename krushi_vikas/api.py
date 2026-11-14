@@ -308,7 +308,12 @@ def get_village_profile_options():
 
     projects = []
     try:
-        projs = frappe.get_all("Project", fields=["name", "project_name"], limit=20)
+        projs = frappe.get_all(
+            "KV Project",
+            fields=["name", "project_name"],
+            order_by="creation desc",
+            limit=20,
+        )
         projects = [{"name": p.name, "title": p.project_name or p.name} for p in projs]
     except Exception:
         pass
@@ -2158,7 +2163,6 @@ def submit_kv_project(data):
         "budget": flt(data.get("budget") or 0),
         "actual_amount_spent": flt(data.get("actual_amount_spent") or 0),
         "linked_baseline_survey": data.get("linked_baseline_survey"),
-        "linked_field_tracking_form": data.get("linked_field_tracking_form")
     })
 
     for village in data.get("project_villages") or []:
@@ -2233,7 +2237,7 @@ def submit_kv_project(data):
                 "custom_actual_amount_spent": doc.actual_amount_spent,
                 "custom_remaining_funds": doc.remaining_funds,
                 "custom_linked_baseline_survey": doc.linked_baseline_survey,
-                "custom_linked_field_tracking_form": doc.linked_field_tracking_form
+                "custom_linked_field_tracking_form": data.get("linked_field_tracking_form")
             }).insert(ignore_permissions=True)
     except Exception:
         pass
