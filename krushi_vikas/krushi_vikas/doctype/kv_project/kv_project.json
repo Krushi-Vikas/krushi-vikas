@@ -39,10 +39,10 @@
   "journey_stage",
   "workflow_state",
   "structural_forms_section",
-    "project_villages",
+  "project_villages",
+  "baseline_surveys",
   "linked_baseline_survey",
   "column_break_4",
-  "linked_field_tracking_form",
   "feedback_surveys_section",
   "feedback_surveys",
   "activities_section",
@@ -286,8 +286,14 @@
   {
     "fieldname": "project_villages",
     "fieldtype": "Table",
-    "label": "Project Villages and Baseline Coverage",
+    "label": "Project Villages",
     "options": "Project Village Detail"
+  },
+  {
+   "fieldname": "baseline_surveys",
+   "fieldtype": "Table",
+   "label": "Baseline Surveys",
+   "options": "Project Baseline Survey Detail"
   },
   {
    "fieldname": "linked_baseline_survey",
@@ -299,12 +305,6 @@
   {
    "fieldname": "column_break_4",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "linked_field_tracking_form",
-   "fieldtype": "Link",
-   "label": "Linked Feedback Survey / Field Tracking Form",
-   "options": "Feedback Survey"
   },
   {
    "fieldname": "feedback_surveys_section",

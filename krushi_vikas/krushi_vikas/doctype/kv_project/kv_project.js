@@ -8,6 +8,9 @@ frappe.ui.form.on('KV Project', {
         }
         frm.set_query('theme', 'activities', () => ({ filters: { is_group: 1 } }));
         frm.set_query('village_profile', 'project_villages', () => ({ filters: { docstatus: 1 } }));
+        frm.set_query('baseline_survey', 'baseline_surveys', () => ({
+            filters: { project: ['in', [frm.doc.name, frm.doc.project_name].filter(Boolean)] }
+        }));
         frm.set_query('sub_theme', 'activities', (doc, cdt, cdn) => {
             const row = locals[cdt][cdn];
             return { filters: { is_group: 0, parent_project_theme: row.theme || '' } };
@@ -77,9 +80,11 @@ frappe.ui.form.on('KV Project', {
                     frappe.set_route('Form', 'Baseline Survey', frm.doc.linked_baseline_survey);
                 }, __('Linked Forms'));
             }
-            if (frm.doc.linked_field_tracking_form) {
-                frm.add_custom_button(__('Field Tracking Form'), function() {
-                    frappe.set_route('Form', 'Feedback Survey', frm.doc.linked_field_tracking_form);
+            if ((frm.doc.baseline_surveys || []).length) {
+                frm.add_custom_button(__('Baseline Surveys'), function() {
+                    frappe.set_route('List', 'Baseline Survey', {
+                        project: ['in', [frm.doc.name, frm.doc.project_name].filter(Boolean)]
+                    });
                 }, __('Linked Forms'));
             }
         }

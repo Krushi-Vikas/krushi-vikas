@@ -68,6 +68,7 @@ class KVProject(Document):
         enforce_project_least_privilege(self)
 
         self.refresh_baseline_coverage()
+        self.refresh_baseline_surveys()
         if self.start_date and self.end_date and str(self.end_date) < str(self.start_date):
             frappe.throw("End Date cannot be before Start Date for KV Project.")
             
@@ -129,6 +130,22 @@ class KVProject(Document):
 
         if warnings:
             frappe.msgprint("<br>".join(warnings), title="Baseline Evidence", indicator="orange")
+
+    def refresh_baseline_surveys(self):
+        """Keep the project child table aligned with its household Baseline Survey records."""
+        if not self.name:
+            return
+
+        project_refs = list({ref for ref in (self.name, self.project_name) if ref})
+        surveys = frappe.get_all(
+            "Baseline Survey",
+            filters={"project": ["in", project_refs]},
+            fields=["name"],
+            order_by="creation asc",
+        )
+        self.set("baseline_surveys", [])
+        for survey in surveys:
+            self.append("baseline_surveys", {"baseline_survey": survey.name})
 
     def recompute_themes_covered(self):
         """A project spans whatever Themes its Activities actually carry —
